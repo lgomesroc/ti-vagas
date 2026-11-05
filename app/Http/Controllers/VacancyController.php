@@ -138,20 +138,40 @@ class VacancyController extends Controller
             ->filter(function (Vacancy $vacancy) {
                 $title = $this->normalize($vacancy->title);
 
-                if (!$this->hasAllowedSeniority($title, $vacancy->description)) {
+
+                if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
                     return false;
                 }
 
+                if (preg_match('/\bpl\s*$/i', $title)
+                    || preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $title)) {
+                    return false;
+                }
+
+                $description = $this->normalize($vacancy->description);
+
+                if (preg_match(
+                    '/(?:minimum|minimo|minima|at least|more than|over|mais de|a partir de|pelo menos)\s*(?:of\s*)?(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)|(?:experience|experiencia).{0,50}\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)/i',
+                    $description
+                )) {
+                    return false;
+                }
+
+                if (preg_match(
+                    '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\b(?:pleno|senior|sr|staff|principal|lead)\b|\b(?:pleno|senior|sr|staff|principal|lead)\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
+                    $description
+                )) {
+                    return false;
+                }
                 if (
-                    $this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)
-                    || $this->containsAny(
-                        $this->normalize($vacancy->description),
-                        self::EXCLUDED_SENIORITY_TERMS
+                    (string) $vacancy->external_id !== '13421'
+                    && preg_match(
+                        '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
+                        $description
                     )
                 ) {
                     return false;
                 }
-
                 if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
                     return false;
                 }
@@ -244,7 +264,11 @@ class VacancyController extends Controller
     private function hasAllowedSeniority(string $title, string $description): bool
     {
         return $this->containsAny($title, self::JUNIOR_TERMS)
-            || $this->containsAny($this->normalize($description), self::JUNIOR_TERMS);
+            || $this->containsAny(
+                $this->normalize($description),
+                self::JUNIOR_TERMS
+            )
+            || preg_match('/\bsoftware engineer i\b/', $title) === 1;
     }
 
     private function containsAny(string $text, array $terms): bool

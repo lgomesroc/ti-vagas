@@ -61,6 +61,22 @@ class GreenhouseSource implements VacancySource
             }
 
             $location = $job['location']['name'] ?? null;
+
+            // O painel Greenhouse da Stone é destinado às vagas brasileiras.
+            // A API informa apenas "Remoto", sem identificar o país.
+            // A normalização é exclusiva dessa fonte e não altera
+            // os critérios de localização das demais empresas.
+            if (
+                $this->boardToken === 'stone'
+                && in_array(
+                    mb_strtolower(trim($location ?? '')),
+                    ['remoto', 'remote'],
+                    true
+                )
+            ) {
+                $location = 'Remoto, Brasil';
+            }
+
             $description = $this->cleanDescription($content);
 
             $workModel = $this->locationFilter->classifyWorkModel(
@@ -80,7 +96,7 @@ class GreenhouseSource implements VacancySource
 
             $vacancies[] = [
                 'title' => $title,
-                'company' => $job['company_name'] ?? $this->companyName,
+                'company' => $this->companyName,
                 'description' => $description,
                 'location' => $location,
                 'work_model' => $workModel,
