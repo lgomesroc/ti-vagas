@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 return [
     'greenhouse' => [
@@ -15,6 +15,7 @@ return [
             'gympass' => 'Wellhub',
             'jusbrasil' => 'Jusbrasil',
             'systemiq' => 'Systemiq',
+            'stone' => 'Stone',
         ],
     ],
 
@@ -64,4 +65,22 @@ return [
             ],
         ],
     ],
+
+    'oracle_hcm' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 1000,
+
+        'companies' => [
+            'uber' => [
+                'site_number' => 'CX_1',
+                'site_name' => 'UberCareers',
+                'name' => 'Uber',
+            ],
+        ],
+    ],
+    'radartec' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 200,
+    ],
+
 ];

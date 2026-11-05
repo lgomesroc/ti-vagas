@@ -7,6 +7,8 @@ use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
 use App\Sources\GreenhouseSource;
 use App\Sources\LeverSource;
+use App\Sources\OracleHcmSource;
+use App\Sources\RadarTecSource;
 use App\Sources\OzySource;
 use App\Sources\SensediaSource;
 use App\Sources\WorkableSource;
@@ -118,6 +120,31 @@ class CollectVacancies extends Command
             );
         }
 
+        $oracleConfig = config('vacancy_sources.oracle_hcm', []);
+
+        foreach (
+            $oracleConfig['companies'] ?? []
+            as $companyKey => $company
+        ) {
+            $sources[] = new OracleHcmSource(
+                siteNumber: $company['site_number'],
+                siteName: $company['site_name'],
+                companyName: $company['name'] ?? $companyKey,
+                caBundle: $oracleConfig['ca_bundle'] ?? null,
+                maxJobs: (int) (
+                    $oracleConfig['max_jobs'] ?? 1000
+                ),
+                locationFilter: $locationFilter,
+            );
+        }
+
+        $radartecConfig = config('vacancy_sources.radartec', []);
+
+        $sources[] = new RadarTecSource(
+            caBundle: $radartecConfig['ca_bundle'] ?? null,
+            maxJobs: (int) ($radartecConfig['max_jobs'] ?? 200),
+            locationFilter: $locationFilter,
+        );
         foreach ($sources as $source) {
             $this->newLine();
             $this->info('Consultando fonte: ' . $source->name());
