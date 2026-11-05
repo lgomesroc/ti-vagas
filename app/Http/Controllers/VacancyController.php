@@ -138,13 +138,14 @@ class VacancyController extends Controller
             ->filter(function (Vacancy $vacancy) {
                 $title = $this->normalize($vacancy->title);
 
-
                 if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
                     return false;
                 }
 
-                if (preg_match('/\bpl\s*$/i', $title)
-                    || preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $title)) {
+                if (
+                    preg_match('/\bpl\s*$/i', $title)
+                    || preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $title)
+                ) {
                     return false;
                 }
 
@@ -163,15 +164,19 @@ class VacancyController extends Controller
                 )) {
                     return false;
                 }
-                if (
-                    (string) $vacancy->external_id !== '13421'
-                    && preg_match(
-                        '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
-                        $description
-                    )
-                ) {
+
+                $isRadarTecFullStackException =
+                    $vacancy->source === 'radartec'
+                    && (string) $vacancy->external_id === '13421'
+                    && str_contains($title, 'desenvolvedor full stack web');
+
+                if (!$isRadarTecFullStackException && preg_match(
+                    '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
+                    $description
+                )) {
                     return false;
                 }
+
                 if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
                     return false;
                 }
