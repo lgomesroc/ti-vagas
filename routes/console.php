@@ -8,6 +8,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('vacancies:collect')
+    ->dailyAt('07:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
 Schedule::command('vacancies:prune-expired')
     ->weeklyOn(1, '03:00')
     ->timezone('America/Sao_Paulo')
