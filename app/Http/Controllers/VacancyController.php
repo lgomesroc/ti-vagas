@@ -130,7 +130,7 @@ class VacancyController extends Controller
 
     private function eligibleVacancies(): Collection
     {
-        return Vacancy::query()
+        $vacancies = Vacancy::query()
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
@@ -138,11 +138,17 @@ class VacancyController extends Controller
             ->filter(function (Vacancy $vacancy) {
                 $title = $this->normalize($vacancy->title);
 
-                if (!$this->hasAllowedSeniority($title)) {
+                if (!$this->hasAllowedSeniority($title, $vacancy->description)) {
                     return false;
                 }
 
-                if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
+                if (
+                    $this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)
+                    || $this->containsAny(
+                        $this->normalize($vacancy->description),
+                        self::EXCLUDED_SENIORITY_TERMS
+                    )
+                ) {
                     return false;
                 }
 
@@ -170,6 +176,62 @@ class VacancyController extends Controller
                 );
             })
             ->values();
+
+        return $this->removeDuplicateVacancies($vacancies);
+    }
+
+    private function removeDuplicateVacancies(Collection $vacancies): Collection
+    {
+        return $vacancies
+            ->groupBy(function (Vacancy $vacancy) {
+                $normalizedTitle = $this->normalize($vacancy->title);
+
+                if (!preg_match('/\((\d{4,})\)/', $normalizedTitle, $matches)) {
+                    return 'unique-' . $vacancy->id;
+                }
+
+                return implode('|', [
+                    $this->normalize($vacancy->company),
+                    $matches[1],
+                ]);
+            })
+            ->map(function (Collection $group) {
+                return $group
+                    ->sort(function (Vacancy $a, Vacancy $b) {
+                        $dateComparison = $b->original_published_at
+                            <=> $a->original_published_at;
+
+                        if ($dateComparison !== 0) {
+                            return $dateComparison;
+                        }
+
+                        $collectionComparison = $b->collected_at
+                            <=> $a->collected_at;
+
+                        if ($collectionComparison !== 0) {
+                            return $collectionComparison;
+                        }
+
+                        $aIsExclusivePcd = str_contains(
+                            $this->normalize($a->title),
+                            'exclusivo pcd'
+                        );
+
+                        $bIsExclusivePcd = str_contains(
+                            $this->normalize($b->title),
+                            'exclusivo pcd'
+                        );
+
+                        if ($aIsExclusivePcd !== $bIsExclusivePcd) {
+                            return $aIsExclusivePcd ? 1 : -1;
+                        }
+
+                        return $b->id <=> $a->id;
+                    })
+                    ->first();
+            })
+            ->sortByDesc('original_published_at')
+            ->values();
     }
 
     private function isTechnologyRole(string $title): bool
@@ -179,9 +241,10 @@ class VacancyController extends Controller
             || $this->containsAny($title, self::INFRASTRUCTURE_TERMS);
     }
 
-    private function hasAllowedSeniority(string $title): bool
+    private function hasAllowedSeniority(string $title, string $description): bool
     {
-        return $this->containsAny($title, self::JUNIOR_TERMS);
+        return $this->containsAny($title, self::JUNIOR_TERMS)
+            || $this->containsAny($this->normalize($description), self::JUNIOR_TERMS);
     }
 
     private function containsAny(string $text, array $terms): bool
