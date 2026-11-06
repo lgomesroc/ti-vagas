@@ -1,4 +1,3 @@
-
 # TI Vagas
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
@@ -67,18 +66,19 @@ O TI Vagas utiliza coletores automatizados para consultar fontes públicas de re
 
 As integrações são implementadas de acordo com as características técnicas de cada fonte.
 
-Entre as fontes integradas ou contempladas pelo projeto estão:
+Entre as fontes integradas pelo projeto estão:
 
 - Greenhouse;
 - Lever;
 - Workable;
 - Workday;
 - Oracle HCM;
-- Inhire;
+- InHire;
 - Derevo;
 - Sensedia;
 - Ozy;
-- RadarTEC.
+- RadarTEC;
+- Ashby.
 
 A relação de fontes pode mudar conforme novas integrações forem implementadas ou fontes existentes deixarem de funcionar.
 
@@ -99,6 +99,16 @@ Entre as verificações estão:
 A identificação da oportunidade utiliza a fonte e seu identificador externo para evitar a criação de registros duplicados.
 
 A data original de publicação é preservada durante as atualizações de registros existentes. A data da coleta não substitui a data original do anúncio.
+
+### Integração Ashby
+
+O projeto possui integração com a API pública de anúncios da plataforma Ashby.
+
+O Nubank é o primeiro board cadastrado nessa integração.
+
+A implementação permite consultar as oportunidades publicadas no board, normalizar os dados recebidos e aplicar os critérios gerais de localização e modalidade do TI Vagas.
+
+A integração permanece preparada para identificar futuras oportunidades compatíveis com o público do portal.
 
 ## Verificação de disponibilidade
 
@@ -140,7 +150,7 @@ Como as fontes externas podem apresentar informações desatualizadas ou incompl
 
 Além da verificação de disponibilidade, o projeto possui uma regra independente de expiração.
 
-Vagas com mais de 60 dias, considerando a data original de publicação, são removidas do banco de dados por meio do processo de limpeza.
+Vagas com mais de 60 dias, considerando a data original de publicação, são removidas do banco de dados por meio do comando de limpeza.
 
 Essa regra evita o acúmulo de anúncios antigos.
 
@@ -173,6 +183,7 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 | Laravel Queue | Estrutura de processamento de filas |
 | PHPUnit | Testes automatizados |
 | Git | Controle de versão |
+| GitHub Actions | Automação de CI e futura execução das rotinas de produção |
 
 ## Testes automatizados
 
@@ -194,6 +205,21 @@ Entre os cenários cobertos estão:
 A última execução completa registrada apresentou:
 
 **57 testes aprovados e 156 asserções.**
+
+## Automação e agendamento
+
+O projeto utiliza o Laravel Scheduler para definir a execução das tarefas de coleta e manutenção.
+
+Entre os comandos disponíveis estão:
+
+- `php artisan vacancies:collect`: consulta as fontes configuradas e importa ou atualiza oportunidades;
+- `php artisan vacancies:prune-expired`: remove vagas que ultrapassaram o limite de 60 dias.
+
+A configuração atual das tarefas está em `routes/console.php`.
+
+A execução automatizada em produção será integrada ao GitHub Actions, permitindo que as rotinas sejam executadas no ambiente de hospedagem sem depender do computador do desenvolvedor.
+
+A frequência efetiva de execução em produção dependerá da configuração dos workflows do GitHub Actions.
 
 ## Aviso importante e responsabilidade
 
@@ -226,7 +252,7 @@ A coleta depende da disponibilidade das fontes externas e de suas respectivas AP
 
 Alterações em serviços de terceiros, políticas de acesso ou formatos de resposta podem interromper temporariamente a integração de determinadas empresas.
 
-A automação de produção e seu agendamento serão configurados durante a publicação da aplicação.
+A automação de produção depende da configuração e disponibilidade dos workflows do GitHub Actions.
 
 ## Projeto
 
