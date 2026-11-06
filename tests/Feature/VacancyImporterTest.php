@@ -112,6 +112,52 @@ class VacancyImporterTest extends TestCase
         $this->assertDatabaseCount('vacancies', 0);
     }
 
+    public function test_it_does_not_create_an_unavailable_vacancy(): void
+    {
+        $vacancy = $this->validVacancy([
+            'description' => 'Esta vaga foi encerrada.',
+        ]);
+
+        $source = $this->makeSource([$vacancy]);
+
+        $result = app(VacancyImporter::class)->import($source);
+
+        $this->assertSame([
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 1,
+        ], $result);
+
+        $this->assertDatabaseCount('vacancies', 0);
+    }
+
+    public function test_it_deletes_an_existing_vacancy_when_it_becomes_unavailable(): void
+    {
+        $source = $this->makeSource([
+            $this->validVacancy(),
+        ]);
+
+        app(VacancyImporter::class)->import($source);
+
+        $this->assertDatabaseCount('vacancies', 1);
+
+        $unavailableVacancy = $this->validVacancy([
+            'description' => 'Esta vaga foi encerrada.',
+        ]);
+
+        $source = $this->makeSource([$unavailableVacancy]);
+
+        $result = app(VacancyImporter::class)->import($source);
+
+        $this->assertSame([
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 1,
+        ], $result);
+
+        $this->assertDatabaseCount('vacancies', 0);
+    }
+
     private function makeSource(array $vacancies): VacancySource
     {
         return new class($vacancies) implements VacancySource {

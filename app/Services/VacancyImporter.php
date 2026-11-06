@@ -5,11 +5,16 @@ namespace App\Services;
 use App\Contracts\VacancySource;
 use App\Models\Vacancy;
 use Illuminate\Support\Carbon;
-use Throwable;
 use InvalidArgumentException;
+use Throwable;
 
 class VacancyImporter
 {
+    public function __construct(
+        private readonly VacancyAvailabilityDetector $availabilityDetector
+    ) {
+    }
+
     public function import(VacancySource $source): array
     {
         $sourceName = trim($source->name());
@@ -32,12 +37,47 @@ class VacancyImporter
                 continue;
             }
 
+            $externalId = $data['external_id'] ?? null;
+
+            if (
+                !is_string($externalId) ||
+                trim($externalId) === ''
+            ) {
+                $result['skipped']++;
+                continue;
+            }
+
+            $externalId = trim($externalId);
+
+            $status = $data['status']
+                ?? $data['job_status']
+                ?? $data['availability_status']
+                ?? null;
+
+            if ($this->availabilityDetector->isUnavailable(
+                is_string($data['title'] ?? null)
+                    ? $data['title']
+                    : null,
+                is_string($data['description'] ?? null)
+                    ? $data['description']
+                    : null,
+                is_string($status) ? $status : null
+            )) {
+                Vacancy::query()
+                    ->where('source', $sourceName)
+                    ->where('external_id', $externalId)
+                    ->delete();
+
+                $result['skipped']++;
+
+                continue;
+            }
+
             $requiredFields = [
                 'title',
                 'company',
                 'description',
                 'application_url',
-                'external_id',
             ];
 
             $valid = true;
@@ -62,6 +102,7 @@ class VacancyImporter
                 empty($data['original_published_at'])
             ) {
                 $result['skipped']++;
+
                 continue;
             }
 
@@ -71,10 +112,9 @@ class VacancyImporter
                 );
             } catch (Throwable) {
                 $result['skipped']++;
+
                 continue;
             }
-
-            $externalId = trim($data['external_id']);
 
             $vacancy = Vacancy::firstOrNew([
                 'source' => $sourceName,
