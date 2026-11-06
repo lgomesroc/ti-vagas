@@ -1,0 +1,41 @@
+
+name: TI Vagas - Automação
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vacancies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: developer
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip
+          coverage: none
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Executar agendamentos Laravel
+        env:
+          APP_ENV: production
+          APP_DEBUG: "false"
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_CONNECTION: pgsql
+          DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DB_SSLMODE: require
+        run: php artisan schedule:run

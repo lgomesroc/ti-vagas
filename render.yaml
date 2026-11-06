@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: ti-vagas
+    runtime: docker
+    plan: free
+    branch: developer
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    autoDeploy: true
+
+    envVars:
+      - key: APP_ENV
+        value: production
+
+      - key: APP_DEBUG
+        value: "false"
+
+      - key: APP_KEY
+        sync: false
+
+      - key: APP_URL
+        value: https://tivagas.lucianorocha.dev.br
+
+      - key: DB_CONNECTION
+        value: pgsql
+
+      - key: DB_URL
+        sync: false
+
+      - key: DB_SSLMODE
+        value: require
