@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vacancy;
+use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -29,11 +30,27 @@ class VacancyController extends Controller
         '.net developer',
         'java developer',
         'python developer',
+        'desenvolvedor de software',
+        'desenvolvedor de sistemas',
+        'desenvolvedor web',
+        'desenvolvedor mobile',
+        'desenvolvedor de aplicativos',
+        'software developer',
+        'web developer',
+        'mobile developer',
+        'application developer',
+        'analista de desenvolvimento',
+        'analista de sistemas de informação',
+        'engenheiro de software',
+        'software engineer',
+        'ios developer',
+        'android developer',
     ];
 
     private const SUPPORT_TERMS = [
         'suporte tecnico',
         'suporte de ti',
+        'suporte ti',
         'analista de suporte',
         'tecnico de informatica',
         'tecnico de suporte',
@@ -46,6 +63,20 @@ class VacancyController extends Controller
         'field support',
         'analista de service desk',
         'analista de help desk',
+        'suporte ti',
+        'suporte ao usuario',
+        'suporte de sistemas',
+        'suporte a sistemas',
+        'suporte de informatica',
+        'assistente de suporte',
+        'auxiliar de suporte',
+        'analista de suporte de sistemas',
+        'analista de suporte tecnico',
+        'tecnico de suporte ti',
+        'tecnico de service desk',
+        'operador de service desk',
+        'field service',
+        'microinformatica',
     ];
 
     private const INFRASTRUCTURE_TERMS = [
@@ -62,6 +93,21 @@ class VacancyController extends Controller
         'administrador de sistemas',
         'analista de sistemas',
         'noc',
+        'analista de infraestrutura',
+        'tecnico de infraestrutura',
+        'assistente de infraestrutura',
+        'auxiliar de infraestrutura',
+        'administrador de redes',
+        'administrador de sistemas',
+        'administrador de banco de dados',
+        'database administrator',
+        'dba',
+        'site reliability engineer',
+        'sre',
+        'network administrator',
+        'cloud administrator',
+        'analista de cloud',
+        'engenheiro de infraestrutura',
     ];
 
     private const JUNIOR_TERMS = [
@@ -121,10 +167,35 @@ class VacancyController extends Controller
         'analista administrativo',
         'analista de gestao',
         'analista de operacoes',
+        'compras',
+        'procurement',
+        'contabilidade',
+        'accounting',
+        'departamento pessoal',
+        'folha de pagamento',
+        'payroll',
+        'logistica',
+        'logistics',
+        'almoxarifado',
+        'estoque',
+        'comercial',
+        'customer success',
+        'customer experience',
+        'atendimento ao cliente',
+        'operador de caixa',
+        'secretaria',
+        'secretariado',
+        'recepcionista',
+        'engenheiro civil',
+        'engenheiro eletricista',
+        'engenheiro de producao',
+        'engenheiro ambiental',
+        'tecnico de seguranca do trabalho',
     ];
 
     public function __construct(
-        private readonly VacancyLocationFilter $locationFilter
+        private readonly VacancyLocationFilter $locationFilter,
+        private readonly VacancyAvailabilityDetector $availabilityDetector
     ) {
     }
 
@@ -136,20 +207,35 @@ class VacancyController extends Controller
             ->orderByDesc('original_published_at')
             ->get()
             ->filter(function (Vacancy $vacancy) {
+                if ($this->availabilityDetector->isUnavailable(
+                    $vacancy->title,
+                    $vacancy->description
+                )) {
+                    return false;
+                }
+
                 $title = $this->normalize($vacancy->title);
 
-                if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
+                if ($this->containsAny(
+                    $title,
+                    self::EXCLUDED_SENIORITY_TERMS
+                )) {
                     return false;
                 }
 
                 if (
-                    preg_match('/\bpl\s*$/i', $title)
-                    || preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $title)
+                    preg_match('/\bpl\s*$/i', $title) ||
+                    preg_match(
+                        '/\bsoftware engineer\s+(?:iii|iv|v)\b/i',
+                        $title
+                    )
                 ) {
                     return false;
                 }
 
-                $description = $this->normalize($vacancy->description);
+                $description = $this->normalize(
+                    $vacancy->description
+                );
 
                 if (preg_match(
                     '/(?:minimum|minimo|minima|at least|more than|over|mais de|a partir de|pelo menos)\s*(?:of\s*)?(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)|(?:experience|experiencia).{0,50}\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)/i',
@@ -168,16 +254,25 @@ class VacancyController extends Controller
                 $isRadarTecFullStackException =
                     $vacancy->source === 'radartec'
                     && (string) $vacancy->external_id === '13421'
-                    && str_contains($title, 'desenvolvedor full stack web');
+                    && str_contains(
+                        $title,
+                        'desenvolvedor full stack web'
+                    );
 
-                if (!$isRadarTecFullStackException && preg_match(
-                    '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
-                    $description
-                )) {
+                if (
+                    !$isRadarTecFullStackException &&
+                    preg_match(
+                        '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
+                        $description
+                    )
+                ) {
                     return false;
                 }
 
-                if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
+                if ($this->containsAny(
+                    $title,
+                    self::IRRELEVANT_TERMS
+                )) {
                     return false;
                 }
 
@@ -191,7 +286,8 @@ class VacancyController extends Controller
                     $vacancy->description
                 );
 
-                $vacancy->display_work_model = $workModel ?? 'Não informado';
+                $vacancy->display_work_model = $workModel
+                    ?? 'Não informado';
 
                 return $this->locationFilter->isEligible(
                     $vacancy->location,
@@ -205,13 +301,20 @@ class VacancyController extends Controller
         return $this->removeDuplicateVacancies($vacancies);
     }
 
-    private function removeDuplicateVacancies(Collection $vacancies): Collection
-    {
+    private function removeDuplicateVacancies(
+        Collection $vacancies
+    ): Collection {
         return $vacancies
             ->groupBy(function (Vacancy $vacancy) {
-                $normalizedTitle = $this->normalize($vacancy->title);
+                $normalizedTitle = $this->normalize(
+                    $vacancy->title
+                );
 
-                if (!preg_match('/\((\d{4,})\)/', $normalizedTitle, $matches)) {
+                if (!preg_match(
+                    '/\((\d{4,})\)/',
+                    $normalizedTitle,
+                    $matches
+                )) {
                     return 'unique-' . $vacancy->id;
                 }
 
@@ -261,28 +364,49 @@ class VacancyController extends Controller
 
     private function isTechnologyRole(string $title): bool
     {
-        return $this->containsAny($title, self::DEVELOPMENT_TERMS)
-            || $this->containsAny($title, self::SUPPORT_TERMS)
-            || $this->containsAny($title, self::INFRASTRUCTURE_TERMS);
+        return $this->containsAny(
+            $title,
+            self::DEVELOPMENT_TERMS
+        )
+            || $this->containsAny(
+                $title,
+                self::SUPPORT_TERMS
+            )
+            || $this->containsAny(
+                $title,
+                self::INFRASTRUCTURE_TERMS
+            );
     }
 
-    private function hasAllowedSeniority(string $title, string $description): bool
-    {
-        return $this->containsAny($title, self::JUNIOR_TERMS)
+    private function hasAllowedSeniority(
+        string $title,
+        string $description
+    ): bool {
+        return $this->containsAny(
+            $title,
+            self::JUNIOR_TERMS
+        )
             || $this->containsAny(
                 $this->normalize($description),
                 self::JUNIOR_TERMS
             )
-            || preg_match('/\bsoftware engineer i\b/', $title) === 1;
+            || preg_match(
+                '/\bsoftware engineer i\b/',
+                $title
+            ) === 1;
     }
 
-    private function containsAny(string $text, array $terms): bool
-    {
+    private function containsAny(
+        string $text,
+        array $terms
+    ): bool {
         foreach ($terms as $term) {
             $normalizedTerm = $this->normalize($term);
 
             if (preg_match(
-                '/(^|[^a-z0-9])' . preg_quote($normalizedTerm, '/') . '([^a-z0-9]|$)/',
+                '/(^|[^a-z0-9])' .
+                preg_quote($normalizedTerm, '/') .
+                '([^a-z0-9]|$)/',
                 $text
             )) {
                 return true;
@@ -307,13 +431,17 @@ class VacancyController extends Controller
             $normalizedSearch = $this->normalize($search);
 
             $eligibleVacancies = $eligibleVacancies
-                ->filter(function (Vacancy $vacancy) use ($normalizedSearch) {
-                    $searchableText = $this->normalize(implode(' ', [
-                        $vacancy->title,
-                        $vacancy->company,
-                        $vacancy->location ?? '',
-                        $vacancy->description,
-                    ]));
+                ->filter(function (Vacancy $vacancy) use (
+                    $normalizedSearch
+                ) {
+                    $searchableText = $this->normalize(
+                        implode(' ', [
+                            $vacancy->title,
+                            $vacancy->company,
+                            $vacancy->location ?? '',
+                            $vacancy->description,
+                        ])
+                    );
 
                     return Str::contains(
                         $searchableText,

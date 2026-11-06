@@ -1,3 +1,4 @@
+
 <?php
 
 return [
@@ -66,6 +67,17 @@ return [
         ],
     ],
 
+    'inhire' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'orizon' => [
+                'name' => 'Orizon',
+            ],
+        ],
+    ],
+
     'oracle_hcm' => [
         'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
         'max_jobs' => 1000,
@@ -78,9 +90,13 @@ return [
             ],
         ],
     ],
+
     'radartec' => [
         'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
         'max_jobs' => 200,
     ],
 
+    'derevo' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+    ],
 ];

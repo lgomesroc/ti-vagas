@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Models\Vacancy;
 use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
+use App\Sources\DerevoSource;
 use App\Sources\GreenhouseSource;
+use App\Sources\InhireSource;
 use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\RadarTecSource;
@@ -120,6 +122,23 @@ class CollectVacancies extends Command
             );
         }
 
+        $inhireConfig = config('vacancy_sources.inhire', []);
+
+        foreach (
+            $inhireConfig['companies'] ?? []
+            as $tenant => $company
+        ) {
+            $sources[] = new InhireSource(
+                tenant: $tenant,
+                companyName: $company['name'] ?? $tenant,
+                caBundle: $inhireConfig['ca_bundle'] ?? null,
+                maxJobs: (int) (
+                    $inhireConfig['max_jobs'] ?? 200
+                ),
+                locationFilter: $locationFilter,
+            );
+        }
+
         $oracleConfig = config('vacancy_sources.oracle_hcm', []);
 
         foreach (
@@ -145,6 +164,17 @@ class CollectVacancies extends Command
             maxJobs: (int) ($radartecConfig['max_jobs'] ?? 200),
             locationFilter: $locationFilter,
         );
+
+        // Derevo
+        $derevoConfig = config('vacancy_sources.derevo', []);
+
+        $sources[] = new DerevoSource(
+            caBundle: $derevoConfig['ca_bundle']
+                ?? $greenhouseConfig['ca_bundle']
+                ?? null,
+            locationFilter: $locationFilter,
+        );
+
         foreach ($sources as $source) {
             $this->newLine();
             $this->info('Consultando fonte: ' . $source->name());
