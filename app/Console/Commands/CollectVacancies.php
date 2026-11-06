@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Vacancy;
 use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
+use App\Sources\AshbySource;
 use App\Sources\DerevoSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\InhireSource;
@@ -174,6 +175,24 @@ class CollectVacancies extends Command
                 ?? null,
             locationFilter: $locationFilter,
         );
+
+        // Ashby
+        $ashbyConfig = config('vacancy_sources.ashby', []);
+
+        foreach (
+            $ashbyConfig['companies'] ?? []
+            as $board => $company
+        ) {
+            $sources[] = new AshbySource(
+                board: $board,
+                companyName: $company['name'] ?? $board,
+                caBundle: $ashbyConfig['ca_bundle'] ?? null,
+                maxJobs: (int) (
+                    $ashbyConfig['max_jobs'] ?? 200
+                ),
+                locationFilter: $locationFilter,
+            );
+        }
 
         foreach ($sources as $source) {
             $this->newLine();

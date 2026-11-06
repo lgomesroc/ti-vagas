@@ -1,4 +1,3 @@
-
 <?php
 
 return [
@@ -17,6 +16,8 @@ return [
             'jusbrasil' => 'Jusbrasil',
             'systemiq' => 'Systemiq',
             'stone' => 'Stone',
+            'blip-global' => 'Blip',
+            'inter' => 'Banco Inter',
         ],
     ],
 
@@ -98,5 +99,16 @@ return [
 
     'derevo' => [
         'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+    ],
+
+    'ashby' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'nubank' => [
+                'name' => 'Nubank',
+            ],
+        ],
     ],
 ];
