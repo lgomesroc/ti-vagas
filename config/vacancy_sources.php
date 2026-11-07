@@ -1,4 +1,3 @@
-
 <?php
 
 return [
@@ -148,6 +147,18 @@ return [
             ],
             'openai' => [
                 'name' => 'OpenAI',
+            ],
+        ],
+    ],
+
+    'recrutai' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'grupobamaq' => [
+                'name' => 'Grupo Bamaq',
+                'domain' => 'grupobamaq.jobs.recrut.ai',
             ],
         ],
     ],

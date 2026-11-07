@@ -10,6 +10,7 @@ use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\RadarTecSource;
+use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
@@ -160,6 +161,21 @@ class VacancySourceFactory
                 companyName: $company['name'] ?? $board,
                 caBundle: $ashby['ca_bundle'] ?? null,
                 maxJobs: (int) ($ashby['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $recrutai = config('vacancy_sources.recrutai', []);
+
+        foreach ($recrutai['companies'] ?? [] as $tenant => $company) {
+            $source = new RecrutAiSource(
+                tenant: $tenant,
+                companyName: $company['name'] ?? $tenant,
+                domain: $company['domain'],
+                maxJobs: (int) ($recrutai['max_jobs'] ?? 200),
+                caBundle: $recrutai['ca_bundle'] ?? null,
                 locationFilter: $this->locationFilter,
             );
 
