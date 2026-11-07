@@ -1,3 +1,4 @@
+
 <?php
 
 return [
@@ -49,6 +50,30 @@ return [
                 'name' => 'CI&T',
                 'region' => 'global',
             ],
+            'swile' => [
+                'name' => 'Swile',
+                'region' => 'global',
+            ],
+            'tryjeeves' => [
+                'name' => 'Jeeves',
+                'region' => 'global',
+            ],
+            'Ubiminds' => [
+                'name' => 'Ubiminds',
+                'region' => 'global',
+            ],
+            'oowlish' => [
+                'name' => 'Oowlish',
+                'region' => 'global',
+            ],
+            'Flex' => [
+                'name' => 'Flex',
+                'region' => 'global',
+            ],
+            'bluelightconsulting' => [
+                'name' => 'Bluelight Consulting',
+                'region' => 'global',
+            ],
         ],
     ],
 
@@ -75,6 +100,9 @@ return [
         'companies' => [
             'orizon' => [
                 'name' => 'Orizon',
+            ],
+            'brivia' => [
+                'name' => 'Brivia',
             ],
         ],
     ],
@@ -108,6 +136,18 @@ return [
         'companies' => [
             'nubank' => [
                 'name' => 'Nubank',
+            ],
+            'truelogic' => [
+                'name' => 'Truelogic',
+            ],
+            'latamcent' => [
+                'name' => 'LatamCent',
+            ],
+            'constructor' => [
+                'name' => 'Constructor',
+            ],
+            'openai' => [
+                'name' => 'OpenAI',
             ],
         ],
     ],

@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Foundation\Inspiring;
@@ -9,7 +10,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('vacancies:collect')
-    ->dailyAt('07:00')
+    ->everySixHours()
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
