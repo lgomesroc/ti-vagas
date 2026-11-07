@@ -3,6 +3,8 @@
 
 @section('title', 'TI Vagas | Oportunidades em Tecnologia')
 
+@section('description', 'Encontre vagas júnior em desenvolvimento, suporte técnico e infraestrutura.')
+
 @section('content')
 
 <section class="hero">
@@ -101,6 +103,22 @@
                         </div>
 
                     </article>
+
+                    @if ($loop->iteration % 4 === 0 && !$loop->last)
+
+                        <aside
+                            class="ad-slot"
+                            aria-label="Espaço publicitário"
+                        >
+                            <span class="ad-label">Publicidade</span>
+
+                            <div class="ad-placeholder">
+                                Espaço reservado para publicidade relacionada
+                                à carreira, educação, tecnologia e serviços.
+                            </div>
+                        </aside>
+
+                    @endif
 
                 @endforeach
 

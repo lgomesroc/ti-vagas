@@ -28,13 +28,38 @@ class VacancyControllerTest extends TestCase
         ], $attributes));
     }
 
+    private function getAcceptedTerms()
+    {
+        return $this->withCookie(
+            'ti_vagas_terms_accepted',
+            '1.0'
+        );
+    }
+
+    public function test_vacancy_listing_redirects_to_welcome_without_terms_acceptance(): void
+    {
+        $response = $this->get(route('vacancies.index'));
+
+        $response->assertRedirect(route('welcome'));
+    }
+
+    public function test_vacancy_details_redirect_to_welcome_without_terms_acceptance(): void
+    {
+        $vacancy = $this->createVacancy();
+
+        $response = $this->get(route('vacancies.show', $vacancy));
+
+        $response->assertRedirect(route('welcome'));
+    }
+
     public function test_unavailable_vacancy_does_not_appear_in_listing(): void
     {
         $vacancy = $this->createVacancy([
             'description' => 'Esta vaga foi encerrada e não aceita mais candidaturas.',
         ]);
 
-        $response = $this->get(route('vacancies.index'));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
 
         $response->assertOk();
         $response->assertDontSee($vacancy->title);
@@ -47,7 +72,8 @@ class VacancyControllerTest extends TestCase
             'description' => 'Esta vaga foi encerrada e não aceita mais candidaturas.',
         ]);
 
-        $response = $this->get(route('vacancies.show', $vacancy));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.show', $vacancy));
 
         $response->assertNotFound();
     }
@@ -56,7 +82,8 @@ class VacancyControllerTest extends TestCase
     {
         $vacancy = $this->createVacancy();
 
-        $response = $this->get(route('vacancies.index'));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
 
         $response->assertOk();
         $response->assertSee($vacancy->title);
@@ -67,7 +94,8 @@ class VacancyControllerTest extends TestCase
     {
         $vacancy = $this->createVacancy();
 
-        $response = $this->get(route('vacancies.show', $vacancy));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.show', $vacancy));
 
         $response->assertOk();
         $response->assertSee($vacancy->title);
@@ -80,7 +108,8 @@ class VacancyControllerTest extends TestCase
             'original_published_at' => now()->subDays(61),
         ]);
 
-        $response = $this->get(route('vacancies.index'));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
 
         $response->assertOk();
         $response->assertDontSee($vacancy->title);
@@ -93,7 +122,8 @@ class VacancyControllerTest extends TestCase
             'original_published_at' => now()->subDays(61),
         ]);
 
-        $response = $this->get(route('vacancies.show', $vacancy));
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.show', $vacancy));
 
         $response->assertNotFound();
     }

@@ -16,6 +16,10 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             margin: 0;
             background: #f5f7fa;
@@ -27,6 +31,11 @@
         a {
             color: inherit;
             text-decoration: none;
+        }
+
+        button,
+        input {
+            font: inherit;
         }
 
         .container {
@@ -69,7 +78,8 @@
 
         .hero h1 {
             margin: 0 0 12px;
-            font-size: 34px;
+            font-size: clamp(27px, 4vw, 36px);
+            line-height: 1.25;
         }
 
         .hero p {
@@ -107,6 +117,11 @@
 
         .button:hover {
             background: #1d4ed8;
+        }
+
+        .button:disabled {
+            cursor: wait;
+            opacity: .65;
         }
 
         .main {
@@ -166,6 +181,7 @@
         .vacancy-description {
             margin: 14px 0 0;
             color: #475569;
+            overflow-wrap: anywhere;
         }
 
         .vacancy-date {
@@ -192,6 +208,8 @@
         .details-card h1 {
             margin: 0 0 8px;
             font-size: 30px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
         }
 
         .details-section {
@@ -222,7 +240,228 @@
 
         .pagination {
             margin-top: 25px;
+            overflow-x: auto;
         }
+
+        /* Publicidade */
+
+        .ad-slot {
+            width: 100%;
+            max-width: 900px;
+            margin: 28px auto;
+            padding: 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ad-label {
+            display: block;
+            margin-bottom: 12px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .ad-placeholder {
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .ad-continuation {
+            margin: 12px 0 0;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* Boas-vindas */
+
+        .welcome-page {
+            padding: 35px 0 60px;
+        }
+
+        .welcome-hero {
+            margin-bottom: 25px;
+            padding: 38px;
+            background: #1e3a8a;
+            border-radius: 10px;
+            color: #ffffff;
+        }
+
+        .welcome-eyebrow {
+            color: #bfdbfe;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+        }
+
+        .welcome-hero h1 {
+            max-width: 760px;
+            margin: 12px 0;
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 1.2;
+        }
+
+        .welcome-hero p {
+            max-width: 760px;
+            margin: 0;
+            color: #dbeafe;
+        }
+
+        .welcome-card,
+        .legal-section {
+            margin-bottom: 22px;
+            padding: 28px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+        }
+
+        .welcome-card h2,
+        .legal-section h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .welcome-information {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 7px;
+        }
+
+        .welcome-information h3 {
+            margin-top: 0;
+            font-size: 17px;
+        }
+
+        .welcome-information p:last-child {
+            margin-bottom: 0;
+        }
+
+        .terms-acceptance {
+            margin-top: 28px;
+            padding: 18px;
+            background: #eff6ff;
+            border-radius: 7px;
+        }
+
+        .terms-acceptance label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .terms-acceptance input {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .terms-acceptance a {
+            color: #1d4ed8;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .location-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .welcome-primary-button {
+            background: #2563eb;
+        }
+
+        .welcome-secondary-button {
+            background: #475569;
+        }
+
+        .welcome-secondary-button:hover {
+            background: #334155;
+        }
+
+        .location-message {
+            margin: 14px 0 0;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .form-error {
+            margin: 8px 0 0;
+            color: #b91c1c;
+            font-size: 13px;
+        }
+
+        .legal-section {
+            scroll-margin-top: 20px;
+        }
+
+        .legal-section p {
+            color: #475569;
+            overflow-wrap: anywhere;
+        }
+
+        /* Aviso independente de cookies */
+
+        .cookie-notice {
+            position: fixed;
+            z-index: 1000;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            padding: 18px 4%;
+            background: #ffffff;
+            border-top: 1px solid #cbd5e1;
+            box-shadow: 0 -4px 20px rgba(15, 23, 42, .12);
+        }
+
+        .cookie-notice-content {
+            width: min(1100px, 100%);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .cookie-notice-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cookie-notice-text h2 {
+            margin: 0 0 5px;
+            font-size: 17px;
+        }
+
+        .cookie-notice-text p {
+            margin: 0;
+            color: #475569;
+            font-size: 13px;
+        }
+
+        .cookie-notice form {
+            flex-shrink: 0;
+        }
+
+        /* Rodapé */
 
         .footer {
             padding: 25px 0;
@@ -232,21 +471,158 @@
             font-size: 13px;
         }
 
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px 22px;
+            margin-top: 10px;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        /* Tablet */
+
+        @media (max-width: 900px) {
+            .container {
+                width: 94%;
+            }
+
+            .hero {
+                padding: 45px 0;
+            }
+
+            .details-card {
+                padding: 25px;
+            }
+
+            .welcome-hero {
+                padding: 30px;
+            }
+        }
+
+        /* Celular */
+
         @media (max-width: 600px) {
-            .hero h1 {
-                font-size: 27px;
+            .header {
+                padding: 15px 0;
+            }
+
+            .header-content {
+                gap: 12px;
+            }
+
+            .logo {
+                font-size: 22px;
+            }
+
+            .header-link {
+                font-size: 12px;
+                text-align: right;
+            }
+
+            .hero {
+                padding: 35px 0;
             }
 
             .search-form {
                 flex-direction: column;
             }
 
+            .search-form input,
+            .search-form .button {
+                width: 100%;
+            }
+
+            .main {
+                padding: 25px 0 40px;
+            }
+
+            .vacancy-card {
+                padding: 18px;
+            }
+
             .details-card {
-                padding: 20px;
+                padding: 18px;
             }
 
             .details-card h1 {
                 font-size: 24px;
+            }
+
+            .details-actions,
+            .location-actions {
+                flex-direction: column;
+            }
+
+            .details-actions .button,
+            .location-actions .button {
+                width: 100%;
+            }
+
+            .ad-slot {
+                margin: 22px auto;
+                padding: 12px;
+            }
+
+            .ad-placeholder {
+                min-height: 120px;
+            }
+
+            .welcome-page {
+                padding: 20px 0 35px;
+            }
+
+            .welcome-hero {
+                padding: 25px 20px;
+            }
+
+            .welcome-card,
+            .legal-section {
+                padding: 20px;
+            }
+
+            .welcome-information {
+                padding: 16px;
+            }
+
+            .cookie-notice {
+                padding: 16px 4%;
+            }
+
+            .cookie-notice-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .cookie-notice form,
+            .cookie-notice .button {
+                width: 100%;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Monitores grandes */
+
+        @media (min-width: 1500px) {
+            .container {
+                width: min(1200px, 90%);
+            }
+
+            .main {
+                padding-top: 45px;
+            }
+
+            .vacancy-card {
+                padding: 26px;
             }
         }
     </style>
@@ -256,13 +632,17 @@
 
     <header class="header">
         <div class="container header-content">
-            <a href="{{ route('vacancies.index') }}" class="logo">
+
+            <a href="{{ route('welcome') }}" class="logo">
                 TI <span>Vagas</span>
             </a>
 
-            <a href="{{ route('vacancies.index') }}" class="header-link">
-                Encontrar oportunidades
-            </a>
+            @unless (request()->routeIs('welcome'))
+                <a href="{{ route('vacancies.index') }}" class="header-link">
+                    Encontrar oportunidades
+                </a>
+            @endunless
+
         </div>
     </header>
 
@@ -270,9 +650,68 @@
 
     <footer class="footer">
         <div class="container">
-            TI Vagas — Oportunidades na área de tecnologia.
+
+            <div>
+                TI Vagas — Oportunidades na área de tecnologia.
+            </div>
+
+            <nav class="footer-links" aria-label="Links institucionais">
+
+                <a href="{{ route('welcome') }}#termos">
+                    Termos de Uso
+                </a>
+
+                <a href="{{ route('welcome') }}#responsabilidade">
+                    Termos de Responsabilidade
+                </a>
+
+                <a href="{{ route('welcome') }}#privacidade">
+                    Política de Privacidade
+                </a>
+
+            </nav>
         </div>
     </footer>
+
+    @unless (request()->cookie('ti_vagas_cookie_notice') === '1')
+
+        <aside
+            class="cookie-notice"
+            role="region"
+            aria-label="Aviso sobre cookies"
+        >
+            <div class="cookie-notice-content">
+
+                <div class="cookie-notice-text">
+                    <h2>Utilizamos cookies</h2>
+
+                    <p>
+                        O TI Vagas utiliza cookies necessários para manter
+                        sua sessão, proteger a navegação e registrar suas
+                        confirmações. Nesta versão, não utilizamos cookies
+                        de rastreamento publicitário. Consulte nossa
+                        <a href="{{ route('welcome') }}#privacidade">
+                            Política de Privacidade
+                        </a>
+                        para saber mais.
+                    </p>
+                </div>
+
+                <form
+                    method="POST"
+                    action="{{ route('cookies.acknowledge') }}"
+                >
+                    @csrf
+
+                    <button type="submit" class="button">
+                        Aceitar cookies necessários
+                    </button>
+                </form>
+
+            </div>
+        </aside>
+
+    @endunless
 
 </body>
 </html>

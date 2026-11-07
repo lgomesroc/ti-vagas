@@ -47,6 +47,22 @@
                 {{ $vacancy->original_published_at->format('d/m/Y') }}
             </div>
 
+            <aside
+                class="ad-slot"
+                aria-label="Espaço publicitário"
+            >
+                <span class="ad-label">Publicidade</span>
+
+                <div class="ad-placeholder">
+                    Espaço reservado para publicidade relacionada
+                    à carreira, educação, tecnologia e serviços.
+                </div>
+
+                <p class="ad-continuation">
+                    A descrição da vaga continua após o anúncio.
+                </p>
+            </aside>
+
             <section class="details-section">
                 <h2>Descrição da oportunidade</h2>
 
