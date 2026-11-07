@@ -73,8 +73,6 @@ class InhireSource implements VacancySource
                     'job_id' => $job['jobId'],
                     'error' => $exception->getMessage(),
                 ]);
-
-                continue;
             }
         }
 
@@ -114,11 +112,13 @@ class InhireSource implements VacancySource
             (string) ($details['description'] ?? '')
         );
 
+        // Filtra apenas a área profissional.
+        // Senioridade é responsabilidade dos filtros gerais do projeto.
         if (!$this->isTechnologyVacancy($title, $description)) {
             return null;
         }
 
-        $location = trim(
+        $rawLocation = trim(
             (string) (
                 $details['location']
                 ?? $job['location']
@@ -126,20 +126,27 @@ class InhireSource implements VacancySource
             )
         );
 
-        $location = preg_replace(
-            '/,\s*BR$/i',
-            ', Brasil',
-            $location
-        ) ?? $location;
-
         $workplaceType = $details['workplaceType']
             ?? $job['workplaceType']
             ?? null;
 
         $workModel = $this->normalizeWorkModel($workplaceType);
 
+        $isBrazilWideRemote = $this->isBrazilWideRemote(
+            $rawLocation,
+            $workplaceType
+        );
+
+        // A InHire representa vagas remotas nacionais como "BR".
+        // Para o portal, isso significa Brasil inteiro.
+        $location = $isBrazilWideRemote
+            ? 'Brasil'
+            : $this->normalizeLocation($rawLocation);
+
+        // Não deixa o filtro geográfico eliminar vagas remotas nacionais.
         if (
-            $this->locationFilter !== null
+            !$isBrazilWideRemote
+            && $this->locationFilter !== null
             && !$this->locationFilter->isEligible(
                 $location,
                 $title,
@@ -150,7 +157,9 @@ class InhireSource implements VacancySource
             return null;
         }
 
-        $publishedAt = $details['publishedAt'] ?? null;
+        $publishedAt = $details['publishedAt']
+            ?? $job['publishedAt']
+            ?? null;
 
         if (empty($publishedAt)) {
             return null;
@@ -215,6 +224,41 @@ class InhireSource implements VacancySource
         };
     }
 
+    private function isBrazilWideRemote(
+        string $location,
+        ?string $workplaceType
+    ): bool {
+        $model = Str::lower(trim((string) $workplaceType));
+
+        $normalizedLocation = Str::ascii(
+            Str::lower(trim($location))
+        );
+
+        return $model === 'remote'
+            && in_array(
+                $normalizedLocation,
+                ['br', 'brasil', 'brazil'],
+                true
+            );
+    }
+
+    private function normalizeLocation(string $location): string
+    {
+        $location = trim($location);
+
+        if ($location === '') {
+            return 'Não informada';
+        }
+
+        $location = preg_replace(
+            '/,\s*BR$/i',
+            ', Brasil',
+            $location
+        ) ?? $location;
+
+        return $location;
+    }
+
     private function cleanDescription(string $description): string
     {
         $description = html_entity_decode(
@@ -239,7 +283,7 @@ class InhireSource implements VacancySource
         );
 
         return preg_match(
-            '/desenvolvedor|developer|programador|programmer|software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|suporte ti|suporte tecnico|infraestrutura|infra|redes|cloud|devops|banco de dados|database|qa|quality assurance|testes de software|seguranca da informacao|cyber security|help.?desk|service desk|sistemas/',
+            '/desenvolvedor|developer|programador|programmer|software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte ti|suporte tecnico|suporte n[1-3]|help.?desk|service desk|infraestrutura|infra|redes|cloud|devops|banco de dados|database|analista de dados|data analyst|engenheiro de dados|data engineer|business intelligence|quality assurance|testes de software|qa|seguranca da informacao|cyber security|sistemas|salesforce|consultor sap|administrador de sistemas|administrador salesforce|automacao de sistemas/',
             $text
         ) === 1;
     }
