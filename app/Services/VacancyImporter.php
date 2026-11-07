@@ -17,7 +17,17 @@ class VacancyImporter
 
     public function import(VacancySource $source): array
     {
-        $sourceName = trim($source->name());
+        return $this->importFetched(
+            $source->name(),
+            $source->fetch()
+        );
+    }
+
+    public function importFetched(
+        string $sourceName,
+        iterable $vacancies
+    ): array {
+        $sourceName = trim($sourceName);
 
         if ($sourceName === '') {
             throw new InvalidArgumentException(
@@ -31,7 +41,7 @@ class VacancyImporter
             'skipped' => 0,
         ];
 
-        foreach ($source->fetch() as $data) {
+        foreach ($vacancies as $data) {
             if (!is_array($data)) {
                 $result['skipped']++;
                 continue;
@@ -102,7 +112,6 @@ class VacancyImporter
                 empty($data['original_published_at'])
             ) {
                 $result['skipped']++;
-
                 continue;
             }
 
@@ -112,7 +121,6 @@ class VacancyImporter
                 );
             } catch (Throwable) {
                 $result['skipped']++;
-
                 continue;
             }
 

@@ -2,235 +2,48 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Vacancy;
-use App\Services\VacancyImporter;
-use App\Services\VacancyLocationFilter;
-use App\Sources\AshbySource;
-use App\Sources\DerevoSource;
-use App\Sources\GreenhouseSource;
-use App\Sources\InhireSource;
-use App\Sources\LeverSource;
-use App\Sources\OracleHcmSource;
-use App\Sources\RadarTecSource;
-use App\Sources\OzySource;
-use App\Sources\SensediaSource;
-use App\Sources\WorkableSource;
-use App\Sources\WorkdaySource;
+use App\Jobs\FetchVacancySourceJob;
+use App\Services\VacancySourceFactory;
 use Illuminate\Console\Command;
-use Throwable;
+use Illuminate\Support\Facades\Queue;
 
 class CollectVacancies extends Command
 {
     protected $signature = 'vacancies:collect';
 
-    protected $description = 'Coleta vagas nas fontes configuradas';
+    protected $description = 'Despacha a coleta das fontes configuradas para a fila Redis';
 
-    public function handle(
-        VacancyImporter $importer,
-        VacancyLocationFilter $locationFilter
-    ): int {
-        $total = [
-            'created' => 0,
-            'updated' => 0,
-            'skipped' => 0,
-        ];
+    public function handle(VacancySourceFactory $factory): int
+    {
+        $sources = $factory->all();
 
-        $failed = false;
+        if (empty($sources)) {
+            $this->warn('Nenhuma fonte configurada.');
 
-        $sources = [];
-
-        $greenhouseConfig = config('vacancy_sources.greenhouse', []);
-
-        foreach (
-            $greenhouseConfig['companies'] ?? []
-            as $boardToken => $companyName
-        ) {
-            $sources[] = new GreenhouseSource(
-                boardToken: $boardToken,
-                companyName: $companyName,
-                caBundle: $greenhouseConfig['ca_bundle'] ?? null,
-                locationFilter: $locationFilter,
-            );
+            return self::SUCCESS;
         }
 
-        $sources[] = new SensediaSource(
-            caBundle: config('vacancy_sources.sensedia.ca_bundle'),
-            locationFilter: $locationFilter,
-        );
+        $this->info('Fontes configuradas: ' . count($sources));
+        $this->info('Fila: vacancies');
+        $this->info('Conexão: redis');
 
-        $workdayConfig = config('vacancy_sources.workday', []);
+        $dispatched = 0;
 
-        foreach (
-            $workdayConfig['companies'] ?? []
-            as $tenantKey => $company
-        ) {
-            $sources[] = new WorkdaySource(
-                host: $company['host'],
-                tenant: $company['tenant'] ?? $tenantKey,
-                site: $company['site'],
-                companyName: $company['name'] ?? $tenantKey,
-                locale: $company['locale'] ?? 'en-US',
-                caBundle: $workdayConfig['ca_bundle'] ?? null,
-                maxJobs: (int) (
-                    $workdayConfig['max_jobs'] ?? 200
-                ),
-                locationFilter: $locationFilter,
-            );
+        foreach (array_keys($sources) as $sourceName) {
+            FetchVacancySourceJob::dispatch($sourceName);
+
+            $dispatched++;
+
+            $this->line("Job enviado: {$sourceName}");
         }
 
-        $leverConfig = config('vacancy_sources.lever', []);
-
-        foreach (
-            $leverConfig['companies'] ?? []
-            as $site => $company
-        ) {
-            $sources[] = new LeverSource(
-                site: $site,
-                companyName: $company['name'] ?? $site,
-                caBundle: $leverConfig['ca_bundle'] ?? null,
-                region: $company['region'] ?? 'global',
-                maxJobs: (int) (
-                    $leverConfig['max_jobs'] ?? 200
-                ),
-                locationFilter: $locationFilter,
-            );
-        }
-
-        $ozyConfig = config('vacancy_sources.ozy', []);
-
-        $sources[] = new OzySource(
-            caBundle: $ozyConfig['ca_bundle'] ?? null,
-            maxJobs: (int) (
-                $ozyConfig['max_jobs'] ?? 200
-            ),
-            locationFilter: $locationFilter,
-        );
-
-        $workableConfig = config('vacancy_sources.workable', []);
-
-        foreach (
-            $workableConfig['companies'] ?? []
-            as $account => $company
-        ) {
-            $sources[] = new WorkableSource(
-                account: $account,
-                companyName: $company['name'] ?? $account,
-                caBundle: $workableConfig['ca_bundle'] ?? null,
-                maxJobs: (int) (
-                    $workableConfig['max_jobs'] ?? 200
-                ),
-                locationFilter: $locationFilter,
-            );
-        }
-
-        $inhireConfig = config('vacancy_sources.inhire', []);
-
-        foreach (
-            $inhireConfig['companies'] ?? []
-            as $tenant => $company
-        ) {
-            $sources[] = new InhireSource(
-                tenant: $tenant,
-                companyName: $company['name'] ?? $tenant,
-                caBundle: $inhireConfig['ca_bundle'] ?? null,
-                maxJobs: (int) (
-                    $inhireConfig['max_jobs'] ?? 200
-                ),
-                locationFilter: $locationFilter,
-            );
-        }
-
-        $oracleConfig = config('vacancy_sources.oracle_hcm', []);
-
-        foreach (
-            $oracleConfig['companies'] ?? []
-            as $companyKey => $company
-        ) {
-            $sources[] = new OracleHcmSource(
-                siteNumber: $company['site_number'],
-                siteName: $company['site_name'],
-                companyName: $company['name'] ?? $companyKey,
-                caBundle: $oracleConfig['ca_bundle'] ?? null,
-                maxJobs: (int) (
-                    $oracleConfig['max_jobs'] ?? 1000
-                ),
-                locationFilter: $locationFilter,
-            );
-        }
-
-        $radartecConfig = config('vacancy_sources.radartec', []);
-
-        $sources[] = new RadarTecSource(
-            caBundle: $radartecConfig['ca_bundle'] ?? null,
-            maxJobs: (int) ($radartecConfig['max_jobs'] ?? 200),
-            locationFilter: $locationFilter,
-        );
-
-        // Derevo
-        $derevoConfig = config('vacancy_sources.derevo', []);
-
-        $sources[] = new DerevoSource(
-            caBundle: $derevoConfig['ca_bundle']
-                ?? $greenhouseConfig['ca_bundle']
-                ?? null,
-            locationFilter: $locationFilter,
-        );
-
-        // Ashby
-        $ashbyConfig = config('vacancy_sources.ashby', []);
-
-        foreach (
-            $ashbyConfig['companies'] ?? []
-            as $board => $company
-        ) {
-            $sources[] = new AshbySource(
-                board: $board,
-                companyName: $company['name'] ?? $board,
-                caBundle: $ashbyConfig['ca_bundle'] ?? null,
-                maxJobs: (int) (
-                    $ashbyConfig['max_jobs'] ?? 200
-                ),
-                locationFilter: $locationFilter,
-            );
-        }
-
-        foreach ($sources as $source) {
-            $this->newLine();
-            $this->info('Consultando fonte: ' . $source->name());
-
-            try {
-                $result = $importer->import($source);
-
-                foreach ($total as $key => $value) {
-                    $total[$key] += $result[$key] ?? 0;
-                }
-
-                $this->info('Criadas: ' . $result['created']);
-                $this->info('Atualizadas: ' . $result['updated']);
-                $this->info('Ignoradas: ' . $result['skipped']);
-            } catch (Throwable $exception) {
-                $failed = true;
-
-                report($exception);
-
-                $this->error(
-                    'Falha na fonte ' .
-                    $source->name() .
-                    ': ' .
-                    $exception->getMessage()
-                );
-            }
-        }
+        $queueSize = Queue::connection('redis')->size('vacancies');
 
         $this->newLine();
-        $this->info('RESUMO DA COLETA');
+        $this->info('DESPACHO CONCLUÍDO');
+        $this->line("Jobs enviados: {$dispatched}");
+        $this->line("Jobs aguardando na fila: {$queueSize}");
 
-        $this->line('Criadas: ' . $total['created']);
-        $this->line('Atualizadas: ' . $total['updated']);
-        $this->line('Ignoradas: ' . $total['skipped']);
-
-        $this->line('Total no PostgreSQL: ' . Vacancy::count());
-
-        return $failed ? self::FAILURE : self::SUCCESS;
+        return self::SUCCESS;
     }
 }

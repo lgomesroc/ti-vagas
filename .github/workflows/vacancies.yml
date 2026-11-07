@@ -3,16 +3,23 @@ name: TI Vagas - Automação
 
 on:
   schedule:
-    - cron: "0 10 * * *"
-    - cron: "0 6 * * 1"
+    - cron: "0 0,6,12,18 * * *"
+      timezone: "America/Sao_Paulo"
+    - cron: "0 3 * * 1"
+      timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ti-vagas-vacancies
+  cancel-in-progress: false
+
 jobs:
   vacancies:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
