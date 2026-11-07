@@ -1,3 +1,4 @@
+
 <?php
 
 return [
@@ -100,6 +101,9 @@ return [
             'orizon' => [
                 'name' => 'Orizon',
             ],
+            'brivia' => [
+                'name' => 'Brivia',
+            ],
         ],
     ],
 
@@ -135,6 +139,15 @@ return [
             ],
             'truelogic' => [
                 'name' => 'Truelogic',
+            ],
+            'latamcent' => [
+                'name' => 'LatamCent',
+            ],
+            'constructor' => [
+                'name' => 'Constructor',
+            ],
+            'openai' => [
+                'name' => 'OpenAI',
             ],
         ],
     ],
