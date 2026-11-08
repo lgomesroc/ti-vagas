@@ -1,4 +1,3 @@
-
 # Etapa 1: compilar os arquivos do frontend
 FROM node:22-alpine AS frontend
 
@@ -30,6 +29,7 @@ RUN apt-get update && apt-get install -y \
         intl \
         zip \
         bcmath \
+        pcntl \
         opcache \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
