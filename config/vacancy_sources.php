@@ -151,6 +151,11 @@ return [
         ],
     ],
 
+    'geekhunter' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_jobs' => 50,
+    ],
+
     'recrutai' => [
         'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
         'max_jobs' => 200,
