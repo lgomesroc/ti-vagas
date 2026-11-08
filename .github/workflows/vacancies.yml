@@ -1,12 +1,13 @@
-
 name: TI Vagas - Automação
 
 on:
   schedule:
     - cron: "0 0,6,12,18 * * *"
       timezone: "America/Sao_Paulo"
+
     - cron: "0 3 * * 1"
       timezone: "America/Sao_Paulo"
+
   workflow_dispatch:
 
 permissions:
@@ -21,6 +22,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+
+      DB_CONNECTION: pgsql
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+      DB_SSLMODE: require
+
+      QUEUE_CONNECTION: database
+      DB_QUEUE: vacancies
+      DB_QUEUE_RETRY_AFTER: "150"
+
+      CACHE_STORE: database
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,30 +47,24 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
           coverage: none
 
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Executar coleta de vagas
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule != '0 3 * * 1'
-        env:
-          APP_ENV: production
-          APP_DEBUG: "false"
-          APP_KEY: ${{ secrets.APP_KEY }}
-          DB_CONNECTION: pgsql
-          DB_URL: ${{ secrets.NEON_DATABASE_URL }}
-          DB_SSLMODE: require
-        run: php artisan vacancies:collect --sync
+      - name: Executar agendador do Laravel
+        run: php artisan schedule:run
 
-      - name: Remover vagas expiradas
-        if: github.event.schedule == '0 3 * * 1'
-        env:
-          APP_ENV: production
-          APP_DEBUG: "false"
-          APP_KEY: ${{ secrets.APP_KEY }}
-          DB_CONNECTION: pgsql
-          DB_URL: ${{ secrets.NEON_DATABASE_URL }}
-          DB_SSLMODE: require
-        run: php artisan vacancies:prune-expired
+      - name: Executar coleta manual
+        if: github.event_name == 'workflow_dispatch'
+        run: php artisan vacancies:collect
+
+      - name: Processar fila de vagas
+        run: |
+          php artisan queue:work database \
+            --queue=vacancies \
+            --stop-when-empty \
+            --tries=3 \
+            --timeout=120 \
+            --sleep=3

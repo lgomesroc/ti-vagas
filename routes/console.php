@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Foundation\Inspiring;
@@ -19,3 +18,4 @@ Schedule::command('vacancies:prune-expired')
     ->timezone('America/Sao_Paulo')
     ->when(fn (): bool => now()->isoWeek % 2 === 0)
     ->withoutOverlapping();
+    

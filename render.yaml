@@ -20,7 +20,7 @@ services:
         sync: false
 
       - key: APP_URL
-        value: https://tivagas.lucianorocha.dev.br
+        value: https://ti-vagas.lucianorocha.dev.br
 
       - key: DB_CONNECTION
         value: pgsql
@@ -30,3 +30,15 @@ services:
 
       - key: DB_SSLMODE
         value: require
+
+      - key: QUEUE_CONNECTION
+        value: database
+
+      - key: DB_QUEUE
+        value: vacancies
+
+      - key: DB_QUEUE_RETRY_AFTER
+        value: "150"
+
+      - key: CACHE_STORE
+        value: database

@@ -40,7 +40,7 @@ class CollectVacancies extends Command
 
         $this->info('Fontes configuradas: ' . count($sources));
         $this->info('Fila: vacancies');
-        $this->info('Conexão: redis');
+        $this->info('Conexão: database');
 
         $dispatched = 0;
 
@@ -52,7 +52,7 @@ class CollectVacancies extends Command
             $this->line("Job enviado: {$sourceName}");
         }
 
-        $queueSize = Queue::connection('redis')->size('vacancies');
+        $queueSize = Queue::connection('database')->size('vacancies');
 
         $this->newLine();
         $this->info('DESPACHO CONCLUÍDO');

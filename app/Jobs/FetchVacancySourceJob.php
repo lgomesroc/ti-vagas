@@ -39,7 +39,7 @@ class FetchVacancySourceJob implements ShouldQueue
     public function __construct(
         public readonly string $sourceName
     ) {
-        $this->onConnection('redis');
+        $this->onConnection('database');
         $this->onQueue('vacancies');
     }
 
@@ -97,9 +97,9 @@ class FetchVacancySourceJob implements ShouldQueue
             $status = $exception->response->status();
 
             $retryableStatuses = [
-                408, // Request Timeout
-                425, // Too Early
-                429, // Too Many Requests
+                408,
+                425,
+                429,
             ];
 
             $isPermanentClientError =
