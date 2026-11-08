@@ -41,10 +41,19 @@ class VacancyController extends Controller
         'application developer',
         'analista de desenvolvimento',
         'analista de sistemas de informação',
-        'engenheiro de software',
-        'software engineer',
         'ios developer',
         'android developer',
+        'qa',
+        'quality assurance',
+        'quality analyst',
+        'analista de qa',
+        'analista de testes',
+        'tester',
+        'software tester',
+        'test engineer',
+        'engenheiro de testes',
+        'automation tester',
+        'qa automation',
     ];
 
     private const SUPPORT_TERMS = [
@@ -63,7 +72,6 @@ class VacancyController extends Controller
         'field support',
         'analista de service desk',
         'analista de help desk',
-        'suporte ti',
         'suporte ao usuario',
         'suporte de sistemas',
         'suporte a sistemas',
@@ -98,7 +106,6 @@ class VacancyController extends Controller
         'assistente de infraestrutura',
         'auxiliar de infraestrutura',
         'administrador de redes',
-        'administrador de sistemas',
         'administrador de banco de dados',
         'database administrator',
         'dba',
@@ -108,15 +115,28 @@ class VacancyController extends Controller
         'cloud administrator',
         'analista de cloud',
         'engenheiro de infraestrutura',
+        'security analyst',
+        'analista de seguranca da informacao',
+        'analista de seguranca',
+        'cybersecurity',
+        'ciberseguranca',
+        'soc analyst',
     ];
 
+    /**
+     * Termos que identificam vagas efetivas de nível júnior
+     * ou equivalentes de entrada na carreira.
+     *
+     * Estágio, intern e internship não são considerados
+     * equivalentes a uma vaga efetiva júnior.
+     */
     private const JUNIOR_TERMS = [
         'junior',
         'jr',
-        'estagio',
-        'estagiario',
-        'intern',
-        'internship',
+        'entry level',
+        'entry-level',
+        'early career',
+        'nivel inicial',
     ];
 
     private const EXCLUDED_SENIORITY_TERMS = [
@@ -139,8 +159,20 @@ class VacancyController extends Controller
         'lider',
         'supervisor',
         'supervisora',
+        'trainee',
+        'estagio',
+        'estagiario',
+        'intern',
+        'internship',
     ];
 
+    /**
+     * Áreas e especialidades que não fazem parte do escopo editorial.
+     *
+     * A verificação é feita no título da vaga para evitar que uma
+     * menção incidental na descrição elimine uma vaga convencional
+     * de desenvolvimento, QA, infraestrutura ou suporte.
+     */
     private const IRRELEVANT_TERMS = [
         'marketing',
         'vendas',
@@ -153,8 +185,6 @@ class VacancyController extends Controller
         'recrutamento',
         'recursos humanos',
         'human resources',
-        'data analyst',
-        'analytics engineer',
         'engenheiro de planejamento',
         'engenheiro de pocos',
         'engenheiro mecanico',
@@ -191,6 +221,50 @@ class VacancyController extends Controller
         'engenheiro de producao',
         'engenheiro ambiental',
         'tecnico de seguranca do trabalho',
+
+        // CRM, ERP e sistemas corporativos especializados.
+        'consultor crm',
+        'consultora crm',
+        'analista crm',
+        'consultor erp',
+        'consultora erp',
+        'analista erp',
+        'consultor sap',
+        'consultora sap',
+        'analista sap',
+        'desenvolvedor sap',
+        'sap abap',
+        'abap',
+        'totvs',
+        'protheus',
+        'consultor funcional',
+        'consultora funcional',
+        'analista funcional',
+        'implantacao de sistemas',
+        'implantador de sistemas',
+
+        // Dados, BI e inteligência artificial como especialidade.
+        'data analyst',
+        'data analytics',
+        'analytics engineer',
+        'analista de dados',
+        'engenheiro de dados',
+        'data engineer',
+        'cientista de dados',
+        'data scientist',
+        'business intelligence',
+        'business intelligence analyst',
+        'bi analyst',
+        'analista de bi',
+        'engenheiro de machine learning',
+        'machine learning engineer',
+        'machine learning specialist',
+        'deep learning',
+        'ml engineer',
+        'ai engineer',
+        'engenheiro de inteligencia artificial',
+        'especialista em inteligencia artificial',
+        'cientista de machine learning',
     ];
 
     public function __construct(
@@ -216,6 +290,7 @@ class VacancyController extends Controller
 
                 $title = $this->normalize($vacancy->title);
 
+                // Exclui níveis acima de júnior, estágio e trainee.
                 if ($this->containsAny(
                     $title,
                     self::EXCLUDED_SENIORITY_TERMS
@@ -230,6 +305,14 @@ class VacancyController extends Controller
                         $title
                     )
                 ) {
+                    return false;
+                }
+
+                // Exige indicação de nível júnior no título ou descrição.
+                if (!$this->hasAllowedSeniority(
+                    $title,
+                    $vacancy->description ?? ''
+                )) {
                     return false;
                 }
 
@@ -284,6 +367,7 @@ class VacancyController extends Controller
                     return false;
                 }
 
+                // Exclui especialidades fora do escopo pelo título.
                 if ($this->containsAny(
                     $title,
                     self::IRRELEVANT_TERMS
@@ -291,6 +375,7 @@ class VacancyController extends Controller
                     return false;
                 }
 
+                // Mantém apenas desenvolvimento, QA, suporte e infraestrutura.
                 if (!$this->isTechnologyRole($title)) {
                     return false;
                 }
@@ -304,6 +389,7 @@ class VacancyController extends Controller
                 $vacancy->display_work_model = $workModel
                     ?? 'Não informado';
 
+                // Preserva as regras atuais de localização e modalidade.
                 return $this->locationFilter->isEligible(
                     $vacancy->location,
                     $vacancy->title,
@@ -397,12 +483,14 @@ class VacancyController extends Controller
         string $title,
         string $description
     ): bool {
+        $normalizedDescription = $this->normalize($description);
+
         return $this->containsAny(
             $title,
             self::JUNIOR_TERMS
         )
             || $this->containsAny(
-                $this->normalize($description),
+                $normalizedDescription,
                 self::JUNIOR_TERMS
             )
             || preg_match(
