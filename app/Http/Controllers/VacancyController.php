@@ -237,8 +237,23 @@ class VacancyController extends Controller
                     $vacancy->description
                 );
 
+                /*
+                 * Exclui vagas que exigem 3 ou mais anos de experiência.
+                 *
+                 * Exemplos:
+                 * 3 years
+                 * 5+ years
+                 * 8 years
+                 * 10 years
+                 * 5 plus years
+                 * 5-7 years
+                 * 5–7 years
+                 * 5 years of experience
+                 * 5+ years in DevOps
+                 * 5 anos de experiência
+                 */
                 if (preg_match(
-                    '/(?:minimum|minimo|minima|at least|more than|over|mais de|a partir de|pelo menos)\s*(?:of\s*)?(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)|(?:experience|experiencia).{0,50}\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus|[-–]\s*\d+)?\s*(?:years?|anos)/i',
+                    '/\b(?:3|[4-9]|\d{2,})\s*(?:(?:\+|plus)\s*)?(?:[-–]\s*(?:3|[4-9]|\d{2,})\s*)?(?:years?|anos)\b/i',
                     $description
                 )) {
                     return false;
