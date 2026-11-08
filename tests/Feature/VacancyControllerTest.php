@@ -181,19 +181,49 @@ class VacancyControllerTest extends TestCase
         }
     }
 
-    public function test_vacancy_without_junior_seniority_is_not_listed(): void
+    public function test_support_vacancy_without_explicit_junior_seniority_is_listed(): void
     {
         $vacancy = $this->createVacancy([
-            'title' => 'Desenvolvedor PHP',
-            'description' => 'Vaga para desenvolvimento de aplicações com PHP e Laravel.',
+            'title' => 'Analista de Suporte Técnico',
+            'description' => 'Atendimento técnico aos usuários e resolução de incidentes.',
         ]);
 
         $response = $this->getAcceptedTerms()
             ->get(route('vacancies.index'));
 
         $response->assertOk();
-        $response->assertDontSee($vacancy->title);
-        $response->assertDontSee($vacancy->company);
+        $response->assertSee($vacancy->title);
+        $response->assertSee($vacancy->company);
+    }
+
+    public function test_software_engineer_i_without_junior_keyword_is_listed(): void
+    {
+        $vacancy = $this->createVacancy([
+            'title' => 'Software Engineer I',
+            'description' => 'Desenvolvimento de software com Java.',
+        ]);
+
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
+
+        $response->assertOk();
+        $response->assertSee($vacancy->title);
+        $response->assertSee($vacancy->company);
+    }
+
+    public function test_dotnet_developer_without_junior_seniority_is_listed(): void
+    {
+        $vacancy = $this->createVacancy([
+            'title' => '.NET Developer',
+            'description' => 'Desenvolvimento de aplicações utilizando C# e .NET.',
+        ]);
+
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
+
+        $response->assertOk();
+        $response->assertSee($vacancy->title);
+        $response->assertSee($vacancy->company);
     }
 
     public function test_internship_vacancy_is_not_listed(): void
@@ -336,21 +366,6 @@ class VacancyControllerTest extends TestCase
         $vacancy = $this->createVacancy([
             'title' => 'Desenvolvedor Backend PHP Júnior',
             'description' => 'Desenvolvimento de APIs com Laravel e integração com sistemas ERP. Conhecimento em BI é considerado diferencial.',
-        ]);
-
-        $response = $this->getAcceptedTerms()
-            ->get(route('vacancies.index'));
-
-        $response->assertOk();
-        $response->assertSee($vacancy->title);
-        $response->assertSee($vacancy->company);
-    }
-
-    public function test_software_engineer_i_is_accepted_as_junior_equivalent(): void
-    {
-        $vacancy = $this->createVacancy([
-            'title' => 'Software Engineer I',
-            'description' => 'Desenvolvimento de software com Java.',
         ]);
 
         $response = $this->getAcceptedTerms()
