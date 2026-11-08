@@ -1,3 +1,4 @@
+
 @extends('layouts.app')
 
 @section('title', 'Boas-vindas | TI Vagas')
@@ -85,28 +86,32 @@
                     type="hidden"
                     name="location_status"
                     id="location-status"
-                    value="limited"
+                    value="{{ old('location_status', 'limited') }}"
                 >
 
                 <input
                     type="hidden"
                     name="latitude"
                     id="latitude"
+                    value="{{ old('latitude') }}"
                 >
 
                 <input
                     type="hidden"
                     name="longitude"
                     id="longitude"
+                    value="{{ old('longitude') }}"
                 >
 
                 <div class="terms-acceptance">
                     <label>
                         <input
                             type="checkbox"
+                            id="terms-accepted"
                             name="terms"
                             value="1"
                             required
+                            @checked(old('terms'))
                         >
 
                         <span>
@@ -128,6 +133,7 @@
                         type="button"
                         id="enable-location"
                         class="button welcome-primary-button"
+                        disabled
                     >
                         Ativar localização e continuar
                     </button>
@@ -136,6 +142,7 @@
                         type="submit"
                         id="continue-limited"
                         class="button welcome-secondary-button"
+                        disabled
                     >
                         Continuar com experiência limitada
                     </button>
@@ -148,8 +155,8 @@
                     role="status"
                     aria-live="polite"
                 >
-                    Você poderá escolher se autoriza a localização
-                    quando clicar no botão acima.
+                    Marque a opção de aceite dos termos para habilitar
+                    os botões e continuar.
                 </p>
 
                 @error('location_status')
@@ -287,13 +294,44 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('welcome-form');
+    const termsCheckbox = document.getElementById('terms-accepted');
+
     const locationButton = document.getElementById('enable-location');
+    const limitedButton = document.getElementById('continue-limited');
+
     const statusInput = document.getElementById('location-status');
     const latitudeInput = document.getElementById('latitude');
     const longitudeInput = document.getElementById('longitude');
+
     const message = document.getElementById('location-message');
 
+    function updateButtons() {
+        const accepted = termsCheckbox.checked;
+
+        locationButton.disabled = !accepted;
+        limitedButton.disabled = !accepted;
+    }
+
+    termsCheckbox.addEventListener('change', function () {
+        updateButtons();
+
+        if (termsCheckbox.checked) {
+            message.textContent =
+                'Termos aceitos. Agora você pode escolher como deseja continuar.';
+        } else {
+            message.textContent =
+                'Marque a opção de aceite dos termos para habilitar os botões e continuar.';
+        }
+    });
+
+    updateButtons();
+
     locationButton.addEventListener('click', function () {
+        if (!termsCheckbox.checked) {
+            termsCheckbox.reportValidity();
+            return;
+        }
+
         if (!navigator.geolocation) {
             message.textContent =
                 'Seu navegador não disponibiliza localização. Você pode continuar com experiência limitada.';
@@ -301,6 +339,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         locationButton.disabled = true;
+        limitedButton.disabled = true;
+
         locationButton.textContent = 'Obtendo localização...';
 
         message.textContent =
@@ -322,16 +362,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 latitudeInput.value = '';
                 longitudeInput.value = '';
 
-                locationButton.disabled = false;
                 locationButton.textContent =
-                    'Tentar autorizar localização novamente';
+                    'Ativar localização e continuar';
+
+                updateButtons();
 
                 if (error.code === error.PERMISSION_DENIED) {
                     message.textContent =
-                        'A localização não foi autorizada. Você pode continuar com experiência limitada.';
+                        'A localização não foi autorizada. Você pode continuar com experiência limitada ou tentar novamente.';
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
                     message.textContent =
-                        'Não foi possível identificar sua localização. Você pode continuar com experiência limitada.';
+                        'Não foi possível identificar sua localização. Você pode continuar com experiência limitada ou tentar novamente.';
                 } else {
                     message.textContent =
                         'O tempo para obter a localização terminou. Você pode tentar novamente ou continuar com experiência limitada.';
