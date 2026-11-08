@@ -123,22 +123,6 @@ class VacancyController extends Controller
         'soc analyst',
     ];
 
-    /**
-     * Termos que identificam vagas efetivas de nível júnior
-     * ou equivalentes de entrada na carreira.
-     *
-     * Estágio, intern e internship não são considerados
-     * equivalentes a uma vaga efetiva júnior.
-     */
-    private const JUNIOR_TERMS = [
-        'junior',
-        'jr',
-        'entry level',
-        'entry-level',
-        'early career',
-        'nivel inicial',
-    ];
-
     private const EXCLUDED_SENIORITY_TERMS = [
         'pleno',
         'senior',
@@ -308,14 +292,6 @@ class VacancyController extends Controller
                     return false;
                 }
 
-                // Exige indicação de nível júnior no título ou descrição.
-                if (!$this->hasAllowedSeniority(
-                    $title,
-                    $vacancy->description ?? ''
-                )) {
-                    return false;
-                }
-
                 $description = $this->normalize(
                     $vacancy->description
                 );
@@ -477,26 +453,6 @@ class VacancyController extends Controller
                 $title,
                 self::INFRASTRUCTURE_TERMS
             );
-    }
-
-    private function hasAllowedSeniority(
-        string $title,
-        string $description
-    ): bool {
-        $normalizedDescription = $this->normalize($description);
-
-        return $this->containsAny(
-            $title,
-            self::JUNIOR_TERMS
-        )
-            || $this->containsAny(
-                $normalizedDescription,
-                self::JUNIOR_TERMS
-            )
-            || preg_match(
-                '/\bsoftware engineer i\b/',
-                $title
-            ) === 1;
     }
 
     private function containsAny(
