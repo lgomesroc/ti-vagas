@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Sources\AshbySource;
 use App\Sources\DerevoSource;
+use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\InhireSource;
 use App\Sources\LeverSource;
@@ -166,6 +167,15 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+        $geekhunter = config('vacancy_sources.geekhunter', []);
+
+        $source = new GeekHunterSource(
+            caBundle: $geekhunter['ca_bundle'] ?? null,
+            maxJobs: (int) ($geekhunter['max_jobs'] ?? 50),
+        );
+
+        $sources[$source->name()] = $source;
 
         $recrutai = config('vacancy_sources.recrutai', []);
 
