@@ -127,4 +127,57 @@ class VacancyControllerTest extends TestCase
 
         $response->assertNotFound();
     }
+
+    public function test_vacancies_requiring_three_or_more_years_do_not_appear_in_listing(): void
+    {
+        $experienceRequirements = [
+            '5+ years in DevOps, SRE or cloud infrastructure.',
+            '8 years of experience in infrastructure.',
+            '10 years of experience in software development.',
+        ];
+
+        $vacancies = collect($experienceRequirements)
+            ->map(function (string $description, int $index) {
+                return $this->createVacancy([
+                    'title' => 'DevOps Engineer Test ' . ($index + 1),
+                    'company' => 'Empresa Teste ' . ($index + 1),
+                    'description' => $description,
+                ]);
+            });
+
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
+
+        $response->assertOk();
+
+        foreach ($vacancies as $vacancy) {
+            $response->assertDontSee($vacancy->title);
+            $response->assertDontSee($vacancy->company);
+        }
+    }
+
+    public function test_vacancies_requiring_three_or_more_years_return_404_when_accessed_directly(): void
+    {
+        $experienceRequirements = [
+            '5+ years in DevOps, SRE or cloud infrastructure.',
+            '8 years of experience in infrastructure.',
+            '10 years of experience in software development.',
+        ];
+
+        $vacancies = collect($experienceRequirements)
+            ->map(function (string $description, int $index) {
+                return $this->createVacancy([
+                    'title' => 'DevOps Engineer Test ' . ($index + 1),
+                    'company' => 'Empresa Teste ' . ($index + 1),
+                    'description' => $description,
+                ]);
+            });
+
+        foreach ($vacancies as $vacancy) {
+            $response = $this->getAcceptedTerms()
+                ->get(route('vacancies.show', $vacancy));
+
+            $response->assertNotFound();
+        }
+    }
 }
