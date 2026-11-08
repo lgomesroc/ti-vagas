@@ -2,119 +2,144 @@
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
-O TI Vagas é um portal independente de oportunidades profissionais na área de tecnologia, com foco em profissionais em início de carreira.
+O **TI Vagas** é um portal independente de oportunidades profissionais na área de tecnologia, com foco em vagas efetivas de nível júnior.
 
-O projeto reúne anúncios de diferentes empresas e plataformas de recrutamento em um único lugar, aplicando filtros de área, senioridade, experiência, localização e modalidade de trabalho.
+O projeto reúne anúncios publicados em diferentes empresas e plataformas de recrutamento, aplicando critérios automatizados de área profissional, senioridade, experiência, localização e modalidade de trabalho.
 
-Seu objetivo é facilitar o acesso a oportunidades de estágio e nível júnior em desenvolvimento de software, infraestrutura e suporte técnico.
+O objetivo é facilitar a busca por oportunidades em desenvolvimento de software, infraestrutura, DevOps, redes e suporte técnico.
 
 ## Objetivo do projeto
 
-Encontrar a primeira oportunidade em tecnologia ou conquistar uma recolocação profissional pode ser um processo cansativo.
+Encontrar uma oportunidade de entrada ou conquistar uma recolocação profissional em tecnologia pode ser um processo demorado.
 
-Muitas plataformas misturam vagas de diferentes níveis de senioridade, áreas e localidades. Além disso, nem sempre os anúncios deixam claro o nível de experiência esperado.
+As plataformas de recrutamento reúnem vagas de diferentes níveis, especialidades e localidades. Nem sempre os anúncios deixam claro o nível de experiência esperado ou se a oportunidade é compatível com quem está no início da carreira.
 
-O TI Vagas busca tornar essa procura mais objetiva, priorizando oportunidades compatíveis com profissionais que estão começando sua trajetória na área de tecnologia.
+O TI Vagas procura centralizar essas oportunidades e reduzir o tempo gasto na procura, priorizando vagas efetivas de nível júnior.
 
 ## Público-alvo
 
-- Desenvolvedores em início de carreira;
-- Profissionais que procuram estágio em tecnologia;
-- Pessoas interessadas em suporte técnico e suporte de TI;
-- Profissionais que buscam oportunidades em infraestrutura e redes.
+O portal é direcionado a profissionais que procuram oportunidades efetivas de nível júnior nas seguintes áreas:
+
+- Desenvolvimento backend, frontend e full stack;
+- Desenvolvimento web e mobile;
+- Infraestrutura de TI;
+- DevOps e computação em nuvem;
+- Redes e administração de sistemas;
+- Suporte técnico e suporte de TI.
+
+O projeto não tem como foco vagas de estágio, trainee ou programas de formação corporativa.
 
 ## Critérios de seleção das vagas
 
-As oportunidades passam por filtros automatizados para manter o foco do portal.
+As oportunidades passam por filtros automatizados para manter o foco editorial do portal.
 
 ### Áreas contempladas
 
-- Desenvolvimento de software;
-- Infraestrutura de TI e redes;
+- Desenvolvimento de software convencional;
+- Infraestrutura de TI;
+- DevOps e cloud;
+- Redes e administração de sistemas;
 - Suporte técnico e suporte de TI.
 
-### Senioridade
+Entre as tecnologias de desenvolvimento consideradas estão PHP, Laravel, C#/.NET, Java, Python, JavaScript, TypeScript e seus respectivos frameworks e ecossistemas.
 
-O foco é em vagas Júnior e estágio.
+### Áreas não contempladas
 
-Os filtros procuram identificar oportunidades compatíveis com esse público e excluir anúncios que indiquem explicitamente níveis como:
+O portal não tem como objetivo divulgar vagas especializadas em:
+
+- CRM;
+- ERP, SAP, ABAP e sistemas corporativos equivalentes;
+- Consultoria funcional e implantação de sistemas empresariais;
+- Business Intelligence (BI);
+- Análise e engenharia de dados;
+- Ciência de dados;
+- Machine Learning e Deep Learning;
+- Outras especialidades profissionais fora do escopo definido.
+
+A classificação considera principalmente o cargo e a especialidade da oportunidade. Uma menção incidental a uma dessas tecnologias ou áreas na descrição não deve, isoladamente, eliminar uma vaga de desenvolvimento convencional.
+
+### Senioridade e experiência
+
+O foco do portal são oportunidades de nível júnior.
+
+Os filtros identificam indicações de senioridade incompatíveis com esse público, incluindo:
 
 - Pleno;
 - Sênior;
 - Staff;
 - Principal;
 - Lead;
-- Outras posições de maior senioridade.
+- Manager;
+- Director;
+- Head;
+- Architect;
+- Especialista e outras posições de maior responsabilidade.
 
-Também são considerados requisitos de experiência, responsabilidades e exigências técnicas que possam indicar uma posição incompatível com o público do portal.
+Também são avaliados requisitos de experiência e responsabilidades descritas no anúncio. Exigências de três ou mais anos de experiência são consideradas incompatíveis com os critérios atuais.
 
-Vagas sem senioridade claramente informada podem ser consideradas, desde que não apresentem requisitos ou responsabilidades que indiquem um nível mais elevado.
+Vagas sem senioridade claramente informada podem ser submetidas aos demais critérios de elegibilidade, sem que a ausência dessa informação seja interpretada automaticamente como comprovação de nível júnior.
 
 ### Localização e modalidade de trabalho
 
 O portal prioriza oportunidades destinadas a profissionais residentes no Brasil.
 
-- **Remoto:** oportunidades destinadas a candidatos no Brasil, independentemente do estado.
-- **Híbrido ou presencial:** oportunidades localizadas no Rio de Janeiro e municípios da região metropolitana contemplados pelos filtros.
-- **Modalidade não informada:** quando aplicável às localidades permitidas, a vaga pode ser exibida com essa informação sinalizada.
+- **Remoto:** oportunidades que permitem atuação remota no Brasil, independentemente do estado.
+- **Híbrido:** oportunidades em municípios da Região Metropolitana do Rio de Janeiro contemplados pelos filtros.
+- **Presencial:** oportunidades em municípios da Região Metropolitana do Rio de Janeiro contemplados pelos filtros.
+- **Modalidade não informada:** algumas oportunidades podem ser aceitas quando a localização atende aos critérios territoriais do projeto.
 
-A ausência de informação sobre modalidade não é considerada prova de que uma vaga seja remota.
+O sistema também verifica referências a localidades estrangeiras e cidades fora da região permitida, evitando apresentar oportunidades incompatíveis com a abrangência geográfica definida.
+
+A ausência de informação sobre modalidade não significa que uma oportunidade seja remota.
 
 ## Coleta e integração de vagas
 
-O TI Vagas utiliza coletores automatizados para consultar fontes públicas de recrutamento, páginas de carreiras, APIs e plataformas de empresas.
+O TI Vagas utiliza integrações automatizadas para consultar anúncios disponíveis em APIs, páginas de carreiras e plataformas de recrutamento.
 
-As integrações são implementadas de acordo com as características técnicas de cada fonte.
+Cada integração é implementada considerando as características técnicas da respectiva fonte.
 
-Entre as fontes integradas pelo projeto estão:
+Entre as plataformas e fontes integradas estão:
 
 - Greenhouse;
 - Lever;
 - Workable;
 - Workday;
+- Ashby;
 - Oracle HCM;
 - InHire;
+- GeekHunter;
+- Recrut.ai;
 - Derevo;
 - Sensedia;
 - Ozy;
-- RadarTEC;
-- Ashby.
+- RadarTEC.
 
-A relação de fontes pode mudar conforme novas integrações forem implementadas ou fontes existentes deixarem de funcionar.
+A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
 
 ### Processo de importação
 
-O processo de importação realiza validações antes de disponibilizar uma oportunidade no portal.
+Antes de disponibilizar uma oportunidade, o sistema realiza validações e normalizações dos dados recebidos.
 
-Entre as verificações estão:
+Entre as etapas estão:
 
-- Identificação da fonte e do anúncio;
-- Validação dos campos obrigatórios;
-- Verificação de identificadores externos;
-- Validação da data original de publicação;
-- Aplicação dos critérios de localização e modalidade;
-- Identificação de oportunidades potencialmente indisponíveis;
-- Atualização ou inserção dos registros no banco de dados.
+1. Consulta às fontes configuradas;
+2. Identificação da empresa e do anúncio;
+3. Normalização dos dados recebidos;
+4. Validação dos campos obrigatórios;
+5. Verificação do identificador externo;
+6. Preservação da data original de publicação;
+7. Identificação de anúncios potencialmente indisponíveis;
+8. Inserção ou atualização dos registros no banco de dados.
 
-A identificação da oportunidade utiliza a fonte e seu identificador externo para evitar a criação de registros duplicados.
+A identificação dos anúncios utiliza a fonte de origem e o identificador externo para evitar registros duplicados.
 
-A data original de publicação é preservada durante as atualizações de registros existentes. A data da coleta não substitui a data original do anúncio.
-
-### Integração Ashby
-
-O projeto possui integração com a API pública de anúncios da plataforma Ashby.
-
-O Nubank é o primeiro board cadastrado nessa integração.
-
-A implementação permite consultar as oportunidades publicadas no board, normalizar os dados recebidos e aplicar os critérios gerais de localização e modalidade do TI Vagas.
-
-A integração permanece preparada para identificar futuras oportunidades compatíveis com o público do portal.
+Quando uma oportunidade já existe, seus dados podem ser atualizados sem substituir a data original de publicação pela data da coleta.
 
 ## Verificação de disponibilidade
 
 O projeto possui um mecanismo centralizado para identificar anúncios que não representam mais oportunidades disponíveis.
 
-O detector considera informações de status, quando fornecidas pela fonte, além de expressões encontradas no título e na descrição.
+O detector considera informações de status fornecidas pelas fontes e expressões encontradas nos títulos e nas descrições.
 
 Entre as situações identificadas estão:
 
@@ -135,10 +160,10 @@ O mecanismo contempla expressões em português e inglês.
 Quando uma oportunidade é identificada como indisponível durante a importação:
 
 - O anúncio não é inserido novamente;
-- Caso já exista no banco de dados, seu registro é excluído;
+- Caso já exista no banco de dados, seu registro é removido;
 - A ocorrência é contabilizada como item ignorado durante a importação.
 
-O portal também verifica a disponibilidade dos anúncios antes de exibi-los na listagem ou permitir o acesso à página individual.
+A aplicação também verifica a disponibilidade dos anúncios antes de exibi-los na listagem ou permitir o acesso à página individual.
 
 O objetivo é reduzir a exibição de oportunidades que já foram encerradas pelas empresas.
 
@@ -150,7 +175,7 @@ Como as fontes externas podem apresentar informações desatualizadas ou incompl
 
 Além da verificação de disponibilidade, o projeto possui uma regra independente de expiração.
 
-Vagas com mais de 60 dias, considerando a data original de publicação, são removidas do banco de dados por meio do comando de limpeza.
+Vagas com mais de 60 dias, considerando a data original de publicação, são removidas do banco de dados pelo processo de limpeza.
 
 Essa regra evita o acúmulo de anúncios antigos.
 
@@ -159,8 +184,8 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 ## Funcionalidades
 
 - Listagem de oportunidades recentes;
-- Busca por palavras-chave;
-- Página individual com detalhes da vaga;
+- Pesquisa por palavras-chave;
+- Página individual com detalhes da oportunidade;
 - Identificação da empresa, localização e modalidade de trabalho;
 - Exibição da data original de publicação, quando disponível;
 - Redirecionamento para a página original de candidatura;
@@ -169,7 +194,8 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 - Identificação de anúncios indisponíveis;
 - Remoção de registros identificados como encerrados;
 - Exclusão de vagas com mais de 60 dias;
-- Cadastro administrativo de vagas próprias.
+- Paginação dos resultados;
+- Validação de elegibilidade antes da exibição das oportunidades.
 
 ## Tecnologias utilizadas
 
@@ -179,11 +205,13 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 | Laravel 13 | Framework da aplicação |
 | PostgreSQL | Banco de dados relacional |
 | Blade | Renderização das páginas |
+| Tailwind CSS | Estilização da interface |
+| Vite | Compilação dos recursos frontend |
 | Laravel Scheduler | Agendamento de tarefas |
-| Laravel Queue | Estrutura de processamento de filas |
-| PHPUnit | Testes automatizados |
+| Laravel Queue | Processamento de filas |
+| PHPUnit 12 | Testes automatizados |
 | Git | Controle de versão |
-| GitHub Actions | Automação de CI e futura execução das rotinas de produção |
+| GitHub Actions | Integração contínua e automação das rotinas |
 
 ## Testes automatizados
 
@@ -195,31 +223,123 @@ Entre os cenários cobertos estão:
 - Reconhecimento de diferentes estados de indisponibilidade;
 - Identificação de expressões de encerramento em títulos e descrições;
 - Prevenção de falsos positivos em anúncios que mencionam encerramentos futuros;
-- Prevenção de falsos positivos em referências históricas e processos seletivos de outras áreas;
+- Prevenção de falsos positivos em referências históricas;
+- Aplicação dos critérios de senioridade;
+- Exclusão de vagas de estágio e trainee;
+- Exclusão de especialidades fora do escopo, como SAP/ABAP, ERP, CRM, BI e ciência de dados;
+- Preservação de vagas de desenvolvimento que apenas mencionam tecnologias ou áreas excluídas na descrição;
+- Tratamento de vagas com requisitos de experiência incompatíveis;
+- Aplicação dos critérios de localização e modalidade;
 - Comportamento da listagem diante de oportunidades indisponíveis;
 - Bloqueio de acesso a anúncios indisponíveis;
 - Importação de oportunidades;
-- Tratamento de registros duplicados e indisponíveis;
-- Aplicação dos critérios de localização.
+- Tratamento de registros duplicados e indisponíveis.
 
-A última execução completa registrada apresentou:
+**Última execução completa registrada:**
 
-**57 testes aprovados e 156 asserções.**
+- **73 testes aprovados**
+- **213 asserções**
+- **Nenhuma falha na execução**
+
+Para executar a suíte localmente:
+
+```bash
+php artisan test
+```
 
 ## Automação e agendamento
 
-O projeto utiliza o Laravel Scheduler para definir a execução das tarefas de coleta e manutenção.
+O projeto utiliza o Laravel Scheduler e o GitHub Actions para executar as rotinas de coleta e manutenção.
 
-Entre os comandos disponíveis estão:
+### Coleta de oportunidades
 
-- `php artisan vacancies:collect`: consulta as fontes configuradas e importa ou atualiza oportunidades;
-- `php artisan vacancies:prune-expired`: remove vagas que ultrapassaram o limite de 60 dias.
+A coleta está configurada para ocorrer a cada seis horas, no fuso horário `America/Sao_Paulo`.
 
-A configuração atual das tarefas está em `routes/console.php`.
+O comando responsável é:
 
-A execução automatizada em produção será integrada ao GitHub Actions, permitindo que as rotinas sejam executadas no ambiente de hospedagem sem depender do computador do desenvolvedor.
+```bash
+php artisan vacancies:collect
+```
 
-A frequência efetiva de execução em produção dependerá da configuração dos workflows do GitHub Actions.
+A rotina consulta as fontes configuradas e processa as oportunidades recebidas.
+
+### Limpeza de anúncios expirados
+
+A limpeza está configurada para ocorrer às segundas-feiras, às 03h, no fuso horário `America/Sao_Paulo`, com execução condicionada à semana ISO par.
+
+O comando responsável é:
+
+```bash
+php artisan vacancies:prune-expired
+```
+
+### GitHub Actions
+
+O projeto possui workflows separados:
+
+- **CI:** valida o `composer.json`, instala dependências, verifica a sintaxe dos arquivos PHP e compila o frontend. É executado em push e pull request nas branches `developer` e `main`.
+- **Automação de vagas:** executa as rotinas agendadas, conecta ao banco de dados e processa a fila de oportunidades.
+
+A automação de vagas utiliza processamento de filas para executar as tarefas de coleta.
+
+## Executando o projeto localmente
+
+### Requisitos
+
+- PHP 8.3 ou superior;
+- Composer;
+- Node.js 22 ou superior;
+- PostgreSQL;
+- Git.
+
+### Instalação
+
+Clone o repositório:
+
+```bash
+git clone https://github.com/lgomesroc/ti-vagas.git
+cd ti-vagas
+```
+
+Instale as dependências PHP:
+
+```bash
+composer install
+```
+
+Configure o ambiente:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Configure as variáveis de conexão com o PostgreSQL no arquivo `.env`.
+
+Execute as migrações:
+
+```bash
+php artisan migrate
+```
+
+Instale as dependências frontend e compile os recursos:
+
+```bash
+npm install
+npm run build
+```
+
+Inicie o servidor local:
+
+```bash
+php artisan serve
+```
+
+A aplicação ficará disponível, por padrão, em:
+
+```text
+http://127.0.0.1:8000
+```
 
 ## Aviso importante e responsabilidade
 
@@ -233,12 +353,12 @@ Embora sejam aplicados filtros e verificações automatizadas, não é possível
 
 O usuário deve considerar que:
 
-- Uma vaga pode já ter sido encerrada pela empresa, mesmo que continue aparecendo no portal.
-- Podem existir anúncios desatualizados, duplicados ou incorretos.
-- Podem existir vagas fantasmas, publicadas ou mantidas pelas empresas sem intenção imediata de contratação.
-- Requisitos, salários, benefícios, localização e modalidades podem mudar sem aviso.
-- A empresa pode alterar, suspender ou encerrar um processo seletivo a qualquer momento.
-- A classificação de senioridade e área pode apresentar falhas.
+- Uma vaga pode já ter sido encerrada pela empresa, mesmo que continue aparecendo no portal;
+- Podem existir anúncios desatualizados, duplicados ou incorretos;
+- Podem existir vagas fantasmas, publicadas ou mantidas pelas empresas sem intenção imediata de contratação;
+- Requisitos, salários, benefícios, localização e modalidades podem mudar sem aviso;
+- A empresa pode alterar, suspender ou encerrar um processo seletivo a qualquer momento;
+- A classificação automática de senioridade, área e modalidade pode apresentar falhas.
 
 **A responsabilidade pela verificação da oportunidade e pela decisão de candidatura é do próprio usuário.**
 
@@ -252,11 +372,11 @@ A coleta depende da disponibilidade das fontes externas e de suas respectivas AP
 
 Alterações em serviços de terceiros, políticas de acesso ou formatos de resposta podem interromper temporariamente a integração de determinadas empresas.
 
-A automação de produção depende da configuração e disponibilidade dos workflows do GitHub Actions.
+A atualização das oportunidades também depende da execução dos workflows, da disponibilidade do banco de dados e do funcionamento dos serviços externos.
 
 ## Projeto
 
-O TI Vagas é desenvolvido e mantido como um projeto independente, com foco em facilitar o acesso a oportunidades profissionais na área de tecnologia.
+O TI Vagas é desenvolvido e mantido como um projeto independente, com foco em facilitar o acesso a oportunidades profissionais de nível júnior na área de tecnologia.
 
 Sugestões, identificação de anúncios incorretos e contribuições para melhorar os critérios de seleção são bem-vindas.
 
