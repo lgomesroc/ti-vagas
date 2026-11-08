@@ -1,8 +1,13 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
+         crossorigin="anonymous"></script>
 
     <title>@yield('title', 'TI Vagas')</title>
 
@@ -726,13 +731,16 @@
                 </p>
 
                 <p>
-                    Nesta versão, não utilizamos cookies de rastreamento
-                    publicitário. A publicidade poderá ser contextual,
-                    considerando o conteúdo do portal.
+                    Também utilizamos cookies e tecnologias semelhantes
+                    relacionados à publicidade do Google AdSense.
+                    Eles podem ser utilizados para exibir anúncios
+                    personalizados com base nos seus interesses e
+                    na sua atividade de navegação.
                 </p>
 
                 <p>
-                    Consulte nossa
+                    Ao aceitar, você confirma que leu nosso aviso sobre
+                    o uso dessas tecnologias. Consulte nossa
                     <a href="{{ route('welcome') }}#privacidade">
                         Política de Privacidade
                     </a>
@@ -747,7 +755,7 @@
                         @csrf
 
                         <button type="submit" class="button">
-                            Aceitar
+                            Aceitar e continuar
                         </button>
                     </form>
                 </div>
