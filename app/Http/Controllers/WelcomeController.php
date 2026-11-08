@@ -9,9 +9,12 @@ use Illuminate\View\View;
 
 class WelcomeController extends Controller
 {
-    public function show(): View
+    public function show(Request $request): View
     {
-        return view('welcome');
+        $termsAccepted = $request->cookie('ti_vagas_terms_accepted')
+            === EnsureWelcomeAccepted::TERMS_VERSION;
+
+        return view('welcome', compact('termsAccepted'));
     }
 
     public function accept(Request $request): RedirectResponse
@@ -54,10 +57,9 @@ class WelcomeController extends Controller
 
         return redirect()
             ->route('vacancies.index')
-            ->withCookie(cookie(
+            ->withCookie(cookie()->forever(
                 'ti_vagas_terms_accepted',
                 EnsureWelcomeAccepted::TERMS_VERSION,
-                525600,
                 '/',
                 null,
                 $request->isSecure(),
@@ -69,16 +71,14 @@ class WelcomeController extends Controller
 
     public function acknowledgeCookies(Request $request): RedirectResponse
     {
+        $termsAccepted = $request->cookie('ti_vagas_terms_accepted')
+            === EnsureWelcomeAccepted::TERMS_VERSION;
+
         return redirect()
-            ->route(
-                $request->cookie('ti_vagas_terms_accepted') === EnsureWelcomeAccepted::TERMS_VERSION
-                    ? 'vacancies.index'
-                    : 'welcome'
-            )
-            ->withCookie(cookie(
+            ->back()
+            ->withCookie(cookie()->forever(
                 'ti_vagas_cookie_notice',
                 '1',
-                525600,
                 '/',
                 null,
                 $request->isSecure(),

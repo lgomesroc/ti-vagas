@@ -28,6 +28,10 @@
             line-height: 1.6;
         }
 
+        body.cookie-modal-open {
+            overflow: hidden;
+        }
+
         a {
             color: inherit;
             text-decoration: none;
@@ -418,47 +422,71 @@
             overflow-wrap: anywhere;
         }
 
-        /* Aviso independente de cookies */
-
-        .cookie-notice {
-            position: fixed;
-            z-index: 1000;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            padding: 18px 4%;
-            background: #ffffff;
-            border-top: 1px solid #cbd5e1;
-            box-shadow: 0 -4px 20px rgba(15, 23, 42, .12);
+        .terms-already-accepted {
+            padding: 20px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
         }
 
-        .cookie-notice-content {
-            width: min(1100px, 100%);
-            margin: 0 auto;
+        .terms-already-accepted h2 {
+            color: #166534;
+        }
+
+        .terms-already-accepted p {
+            color: #334155;
+        }
+
+        /* Modal de consentimento de cookies */
+
+        .cookie-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 24px;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, .72);
+            backdrop-filter: blur(2px);
         }
 
-        .cookie-notice-text {
-            flex: 1;
-            min-width: 0;
+        .cookie-modal {
+            width: min(560px, 100%);
+            padding: 30px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
         }
 
-        .cookie-notice-text h2 {
-            margin: 0 0 5px;
-            font-size: 17px;
+        .cookie-modal h2 {
+            margin: 0 0 12px;
+            color: #172554;
+            font-size: 23px;
         }
 
-        .cookie-notice-text p {
-            margin: 0;
+        .cookie-modal p {
+            margin: 0 0 15px;
             color: #475569;
-            font-size: 13px;
+            font-size: 14px;
         }
 
-        .cookie-notice form {
-            flex-shrink: 0;
+        .cookie-modal a {
+            color: #1d4ed8;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .cookie-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 22px;
+        }
+
+        .cookie-modal-actions form,
+        .cookie-modal-actions button {
+            width: 100%;
         }
 
         /* Rodapé */
@@ -589,19 +617,16 @@
                 padding: 16px;
             }
 
-            .cookie-notice {
-                padding: 16px 4%;
+            .cookie-modal {
+                padding: 24px 20px;
             }
 
-            .cookie-notice-content {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
+            .cookie-modal h2 {
+                font-size: 21px;
             }
 
-            .cookie-notice form,
-            .cookie-notice .button {
-                width: 100%;
+            .cookie-modal-actions {
+                justify-content: stretch;
             }
 
             .footer-links {
@@ -673,45 +698,63 @@
         </div>
     </footer>
 
-    @unless (request()->cookie('ti_vagas_cookie_notice') === '1')
+    @if (
+        !request()->routeIs('welcome')
+        && request()->cookie('ti_vagas_terms_accepted') === \App\Http\Middleware\EnsureWelcomeAccepted::TERMS_VERSION
+        && request()->cookie('ti_vagas_cookie_notice') !== '1'
+    )
 
-        <aside
-            class="cookie-notice"
-            role="region"
-            aria-label="Aviso sobre cookies"
+        <div
+            class="cookie-modal-overlay"
+            role="presentation"
         >
-            <div class="cookie-notice-content">
+            <section
+                class="cookie-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cookie-modal-title"
+                aria-describedby="cookie-modal-description"
+            >
+                <h2 id="cookie-modal-title">
+                    Utilizamos cookies
+                </h2>
 
-                <div class="cookie-notice-text">
-                    <h2>Utilizamos cookies</h2>
+                <p id="cookie-modal-description">
+                    O TI Vagas utiliza cookies necessários para manter
+                    sua sessão, proteger a navegação e registrar suas
+                    confirmações.
+                </p>
 
-                    <p>
-                        O TI Vagas utiliza cookies necessários para manter
-                        sua sessão, proteger a navegação e registrar suas
-                        confirmações. Nesta versão, não utilizamos cookies
-                        de rastreamento publicitário. Consulte nossa
-                        <a href="{{ route('welcome') }}#privacidade">
-                            Política de Privacidade
-                        </a>
-                        para saber mais.
-                    </p>
+                <p>
+                    Nesta versão, não utilizamos cookies de rastreamento
+                    publicitário. A publicidade poderá ser contextual,
+                    considerando o conteúdo do portal.
+                </p>
+
+                <p>
+                    Consulte nossa
+                    <a href="{{ route('welcome') }}#privacidade">
+                        Política de Privacidade
+                    </a>
+                    para saber mais.
+                </p>
+
+                <div class="cookie-modal-actions">
+                    <form
+                        method="POST"
+                        action="{{ route('cookies.acknowledge') }}"
+                    >
+                        @csrf
+
+                        <button type="submit" class="button">
+                            Aceitar
+                        </button>
+                    </form>
                 </div>
+            </section>
+        </div>
 
-                <form
-                    method="POST"
-                    action="{{ route('cookies.acknowledge') }}"
-                >
-                    @csrf
-
-                    <button type="submit" class="button">
-                        Aceitar cookies necessários
-                    </button>
-                </form>
-
-            </div>
-        </aside>
-
-    @endunless
+    @endif
 
 </body>
 </html>
