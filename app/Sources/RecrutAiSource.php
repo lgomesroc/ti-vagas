@@ -267,6 +267,7 @@ class RecrutAiSource implements VacancySource
         }
 
         $location = $this->extractLocation($posting);
+        $geography = $this->extractGeographicFields($posting);
 
         $workModel = $this->extractWorkModel(
             (string) ($listingJob['listing_text'] ?? ''),
@@ -277,7 +278,7 @@ class RecrutAiSource implements VacancySource
 
         if (
             $this->locationFilter !== null
-            && !$this->locationFilter->isEligible(
+            && !$this->locationFilter->isEligibleForCollection(
                 $location,
                 $title,
                 $description,
@@ -304,7 +305,7 @@ class RecrutAiSource implements VacancySource
             );
         }
 
-        return [
+        return array_merge([
             'title' => $title,
             'company' => $this->companyName,
             'description' => $description,
@@ -315,7 +316,7 @@ class RecrutAiSource implements VacancySource
             'application_url' => $applicationUrl,
             'external_id' => $code,
             'original_published_at' => $publishedAt,
-        ];
+        ], $geography);
     }
 
     private function extractJobPosting(DOMXPath $xpath): ?array
@@ -389,37 +390,33 @@ class RecrutAiSource implements VacancySource
         return null;
     }
 
+    /**
+     * Monta a localização textual usando somente os campos
+     * estruturados de endereço disponíveis no JSON-LD.
+     */
     private function extractLocation(array $posting): string
     {
-        $locations = $posting['jobLocation'] ?? [];
-
-        if (isset($locations['address'])) {
-            $locations = [$locations];
-        }
-
-        if (!is_array($locations)) {
-            return '';
-        }
+        $locations = $this->normalizeJobLocations(
+            $posting['jobLocation'] ?? []
+        );
 
         $parts = [];
 
         foreach ($locations as $place) {
-            if (!is_array($place)) {
-                continue;
-            }
-
             $address = $place['address'] ?? [];
 
             if (!is_array($address)) {
                 continue;
             }
 
-            $city = trim(
-                (string) ($address['addressLocality'] ?? '')
+            $city = $this->readStructuredString(
+                $address,
+                ['addressLocality', 'city', 'cityName']
             );
 
-            $region = trim(
-                (string) ($address['addressRegion'] ?? '')
+            $region = $this->readStructuredString(
+                $address,
+                ['addressRegion', 'state', 'stateName']
             );
 
             $location = implode(
@@ -433,6 +430,196 @@ class RecrutAiSource implements VacancySource
         }
 
         return implode(' / ', array_unique($parts));
+    }
+
+    /**
+     * Extrai os campos geográficos estruturados do JobPosting.
+     * Não utiliza texto livre da listagem ou da descrição.
+     */
+    private function extractGeographicFields(array $posting): array
+    {
+        $empty = [
+            'city' => null,
+            'state' => null,
+            'state_code' => null,
+            'country' => null,
+            'country_code' => null,
+            'latitude' => null,
+            'longitude' => null,
+        ];
+
+        $locations = $this->normalizeJobLocations(
+            $posting['jobLocation'] ?? []
+        );
+
+        foreach ($locations as $place) {
+            $address = $place['address'] ?? [];
+
+            if (!is_array($address)) {
+                continue;
+            }
+
+            $geo = $place['geo'] ?? [];
+
+            if (!is_array($geo)) {
+                $geo = [];
+            }
+
+            $city = $this->readStructuredString(
+                $address,
+                ['addressLocality', 'city', 'cityName']
+            );
+
+            $state = $this->readStructuredString(
+                $address,
+                ['addressRegion', 'state', 'stateName']
+            );
+
+            $stateCode = $this->readStructuredString(
+                $address,
+                [
+                    'addressRegionCode',
+                    'stateCode',
+                    'state_code',
+                    'uf',
+                ]
+            );
+
+            if ($stateCode !== null) {
+                $stateCode = strtoupper($stateCode);
+            }
+
+            $countryValue = $this->readStructuredString(
+                $address,
+                ['addressCountry', 'country', 'countryName']
+            );
+
+            $countryCode = $this->readStructuredString(
+                $address,
+                [
+                    'addressCountryCode',
+                    'countryCode',
+                    'country_code',
+                ]
+            );
+
+            if ($countryCode !== null) {
+                $countryCode = strtoupper($countryCode);
+            }
+
+            if (
+                $countryCode === null
+                && $countryValue !== null
+                && preg_match('/^[A-Z]{2}$/i', $countryValue)
+            ) {
+                $countryCode = strtoupper($countryValue);
+            }
+
+            $country = $countryValue;
+
+            if (in_array(
+                Str::upper(trim((string) $countryValue)),
+                ['BR', 'BRA', 'BRASIL', 'BRAZIL'],
+                true
+            )) {
+                $country = 'Brasil';
+                $countryCode = 'BR';
+            }
+
+            return [
+                'city' => $city,
+                'state' => $state,
+                'state_code' => $stateCode,
+                'country' => $country,
+                'country_code' => $countryCode,
+                'latitude' => $this->readNumericValue(
+                    $geo,
+                    ['latitude', 'lat']
+                ),
+                'longitude' => $this->readNumericValue(
+                    $geo,
+                    ['longitude', 'lng', 'lon']
+                ),
+            ];
+        }
+
+        return $empty;
+    }
+
+    /**
+     * Normaliza jobLocation para uma lista de objetos Place.
+     */
+    private function normalizeJobLocations(mixed $locations): array
+    {
+        if (!is_array($locations)) {
+            return [];
+        }
+
+        if (array_is_list($locations)) {
+            return array_values(array_filter(
+                $locations,
+                fn ($place) => is_array($place)
+            ));
+        }
+
+        if (isset($locations['address'])) {
+            return [$locations];
+        }
+
+        return [];
+    }
+
+    private function readStructuredString(
+        array $data,
+        array $keys
+    ): ?string {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = $data[$key];
+
+            if (is_array($value)) {
+                foreach (['name', 'value', '@value'] as $nestedKey) {
+                    if (
+                        isset($value[$nestedKey])
+                        && is_string($value[$nestedKey])
+                        && trim($value[$nestedKey]) !== ''
+                    ) {
+                        return trim($value[$nestedKey]);
+                    }
+                }
+
+                continue;
+            }
+
+            if (is_string($value) || is_numeric($value)) {
+                $value = trim((string) $value);
+
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function readNumericValue(
+        array $data,
+        array $keys
+    ): int|float|null {
+        foreach ($keys as $key) {
+            if (
+                array_key_exists($key, $data)
+                && is_numeric($data[$key])
+            ) {
+                return (float) $data[$key];
+            }
+        }
+
+        return null;
     }
 
     private function extractWorkModel(

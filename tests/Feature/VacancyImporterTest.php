@@ -33,6 +33,99 @@ class VacancyImporterTest extends TestCase
         ]);
     }
 
+    public function test_it_saves_valid_geographic_metadata(): void
+    {
+        $vacancy = $this->validVacancy([
+            'city' => 'Niterói',
+            'state' => 'RJ',
+            'country' => 'Brasil',
+            'ibge_municipality_code' => '3303302',
+            'latitude' => -22.8832,
+            'longitude' => -43.1034,
+        ]);
+
+        $source = $this->makeSource([$vacancy]);
+
+        app(VacancyImporter::class)->import($source);
+
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'test-source',
+            'external_id' => 'vacancy-001',
+            'city' => 'Niterói',
+            'state' => 'Rio de Janeiro',
+            'state_code' => 'RJ',
+            'country_code' => 'BR',
+            'ibge_municipality_code' => '3303302',
+            'latitude' => -22.8832,
+            'longitude' => -43.1034,
+        ]);
+    }
+
+    public function test_it_does_not_save_invalid_geographic_metadata(): void
+    {
+        $vacancy = $this->validVacancy([
+            'city' => 'Niterói',
+            'state' => 'RJ',
+            'country' => 'Brasil',
+            'ibge_municipality_code' => '123456',
+            'latitude' => 91,
+            'longitude' => -181,
+        ]);
+
+        $source = $this->makeSource([$vacancy]);
+
+        app(VacancyImporter::class)->import($source);
+
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'test-source',
+            'external_id' => 'vacancy-001',
+            'city' => 'Niterói',
+            'state' => 'Rio de Janeiro',
+            'state_code' => 'RJ',
+            'country_code' => 'BR',
+            'ibge_municipality_code' => null,
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+    }
+
+    public function test_it_preserves_existing_geographic_metadata_when_source_does_not_send_it(): void
+    {
+        $initialVacancy = $this->validVacancy([
+            'city' => 'Niterói',
+            'state' => 'RJ',
+            'country' => 'Brasil',
+            'ibge_municipality_code' => '3303302',
+            'latitude' => -22.8832,
+            'longitude' => -43.1034,
+        ]);
+
+        $source = $this->makeSource([$initialVacancy]);
+
+        app(VacancyImporter::class)->import($source);
+
+        $updatedVacancy = $this->validVacancy([
+            'title' => 'Desenvolvedor PHP Júnior - Atualizado',
+        ]);
+
+        $source = $this->makeSource([$updatedVacancy]);
+
+        app(VacancyImporter::class)->import($source);
+
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'test-source',
+            'external_id' => 'vacancy-001',
+            'title' => 'Desenvolvedor PHP Júnior - Atualizado',
+            'city' => 'Niterói',
+            'state' => 'Rio de Janeiro',
+            'state_code' => 'RJ',
+            'country_code' => 'BR',
+            'ibge_municipality_code' => '3303302',
+            'latitude' => -22.8832,
+            'longitude' => -43.1034,
+        ]);
+    }
+
     public function test_it_updates_an_existing_vacancy_without_changing_original_publication_date(): void
     {
         $initialVacancy = $this->validVacancy([

@@ -151,7 +151,7 @@ class OzySource implements VacancySource
             $location = 'Brasil (remoto)';
         }
 
-        if (!$this->locationFilter->isEligible(
+        if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
             $description,

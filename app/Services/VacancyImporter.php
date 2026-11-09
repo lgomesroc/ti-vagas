@@ -11,7 +11,8 @@ use Throwable;
 class VacancyImporter
 {
     public function __construct(
-        private readonly VacancyAvailabilityDetector $availabilityDetector
+        private readonly VacancyAvailabilityDetector $availabilityDetector,
+        private readonly GeoLocationNormalizer $geoLocationNormalizer
     ) {
     }
 
@@ -131,6 +132,8 @@ class VacancyImporter
 
             $isNew = !$vacancy->exists;
 
+            $geo = $this->geoLocationNormalizer->normalize($data);
+
             $vacancy->fill([
                 'title' => trim($data['title']),
                 'company' => trim($data['company']),
@@ -143,6 +146,15 @@ class VacancyImporter
                 'source' => $sourceName,
                 'external_id' => $externalId,
                 'collected_at' => now(),
+
+                'city' => $geo['city'] ?? $vacancy->city,
+                'state' => $geo['state'] ?? $vacancy->state,
+                'state_code' => $geo['state_code'] ?? $vacancy->state_code,
+                'country_code' => $geo['country_code'] ?? $vacancy->country_code,
+                'ibge_municipality_code' => $geo['ibge_municipality_code']
+                    ?? $vacancy->ibge_municipality_code,
+                'latitude' => $geo['latitude'] ?? $vacancy->latitude,
+                'longitude' => $geo['longitude'] ?? $vacancy->longitude,
             ]);
 
             if ($isNew) {

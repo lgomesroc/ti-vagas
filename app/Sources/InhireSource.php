@@ -118,19 +118,24 @@ class InhireSource implements VacancySource
             return null;
         }
 
-        $rawLocation = trim(
-            (string) (
-                $details['location']
-                ?? $job['location']
-                ?? ''
-            )
+        $rawLocation = $this->extractLocationText(
+            $details['location'] ?? $job['location'] ?? null
         );
 
         $workplaceType = $details['workplaceType']
             ?? $job['workplaceType']
             ?? null;
 
+        $workplaceType = is_string($workplaceType)
+            ? $workplaceType
+            : null;
+
         $workModel = $this->normalizeWorkModel($workplaceType);
+
+        $geographicFields = $this->extractGeographicFields(
+            $details,
+            $job
+        );
 
         $isBrazilWideRemote = $this->isBrazilWideRemote(
             $rawLocation,
@@ -147,7 +152,7 @@ class InhireSource implements VacancySource
         if (
             !$isBrazilWideRemote
             && $this->locationFilter !== null
-            && !$this->locationFilter->isEligible(
+            && !$this->locationFilter->isEligibleForCollection(
                 $location,
                 $title,
                 $description,
@@ -199,7 +204,144 @@ class InhireSource implements VacancySource
             'application_url' => $applicationUrl,
             'external_id' => $jobId,
             'original_published_at' => $originalPublishedAt,
+
+            'city' => $geographicFields['city'],
+            'state' => $geographicFields['state'],
+            'state_code' => $geographicFields['state_code'],
+            'country' => $geographicFields['country'],
+            'country_code' => $geographicFields['country_code'],
+            'latitude' => $geographicFields['latitude'],
+            'longitude' => $geographicFields['longitude'],
         ];
+    }
+
+    /**
+     * Extrai somente informações geográficas fornecidas em campos
+     * estruturados pela API.
+     *
+     * Não interpreta strings como "Niterói, RJ, Brasil".
+     */
+    private function extractGeographicFields(
+        array $details,
+        array $job
+    ): array {
+        $sources = [
+            $details,
+            $job,
+        ];
+
+        foreach (['location', 'address', 'addressDetails'] as $container) {
+            foreach ([$details, $job] as $record) {
+                if (isset($record[$container]) && is_array($record[$container])) {
+                    $sources[] = $record[$container];
+                }
+            }
+        }
+
+        return [
+            'city' => $this->extractStructuredValue(
+                $sources,
+                ['city', 'cityName', 'addressLocality'],
+                ['name', 'value']
+            ),
+
+            'state' => $this->extractStructuredValue(
+                $sources,
+                ['state', 'stateName', 'addressRegion'],
+                ['name', 'value']
+            ),
+
+            'state_code' => $this->extractStructuredValue(
+                $sources,
+                ['stateCode', 'state_code', 'uf'],
+                ['code', 'value']
+            ),
+
+            'country' => $this->extractStructuredValue(
+                $sources,
+                ['country', 'countryName', 'addressCountry'],
+                ['name', 'value']
+            ),
+
+            'country_code' => $this->extractStructuredValue(
+                $sources,
+                ['countryCode', 'country_code'],
+                ['code', 'value']
+            ),
+
+            'latitude' => $this->extractNumericValue(
+                $sources,
+                ['latitude', 'lat']
+            ),
+
+            'longitude' => $this->extractNumericValue(
+                $sources,
+                ['longitude', 'long', 'lng', 'lon']
+            ),
+        ];
+    }
+
+    private function extractStructuredValue(
+        array $sources,
+        array $keys,
+        array $nestedKeys = []
+    ): ?string {
+        foreach ($sources as $source) {
+            foreach ($keys as $key) {
+                if (!array_key_exists($key, $source)) {
+                    continue;
+                }
+
+                $value = $source[$key];
+
+                if (is_array($value)) {
+                    foreach ($nestedKeys as $nestedKey) {
+                        if (
+                            isset($value[$nestedKey])
+                            && is_string($value[$nestedKey])
+                            && trim($value[$nestedKey]) !== ''
+                        ) {
+                            return trim($value[$nestedKey]);
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (is_string($value) || is_numeric($value)) {
+                    $value = trim((string) $value);
+
+                    if ($value !== '') {
+                        return $value;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractNumericValue(
+        array $sources,
+        array $keys
+    ): int|float|null {
+        foreach ($sources as $source) {
+            foreach ($keys as $key) {
+                if (
+                    array_key_exists($key, $source)
+                    && is_numeric($source[$key])
+                ) {
+                    return (float) $source[$key];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractLocationText(mixed $location): string
+    {
+        return is_string($location) ? trim($location) : '';
     }
 
     private function http()

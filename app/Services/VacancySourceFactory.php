@@ -10,6 +10,7 @@ use App\Sources\InhireSource;
 use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
+use App\Sources\PandapeSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
@@ -146,9 +147,7 @@ class VacancySourceFactory
         $derevo = config('vacancy_sources.derevo', []);
 
         $source = new DerevoSource(
-            caBundle: $derevo['ca_bundle']
-                ?? $greenhouse['ca_bundle']
-                ?? null,
+            caBundle: $derevo['ca_bundle'] ?? null,
             locationFilter: $this->locationFilter,
         );
 
@@ -186,6 +185,22 @@ class VacancySourceFactory
                 domain: $company['domain'],
                 maxJobs: (int) ($recrutai['max_jobs'] ?? 200),
                 caBundle: $recrutai['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $pandape = config('vacancy_sources.pandape', []);
+
+        foreach ($pandape['companies'] ?? [] as $companyKey => $company) {
+            $source = new PandapeSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                baseUrl: $company['url'],
+                companyId: (int) $company['company_id'],
+                caBundle: $pandape['ca_bundle'] ?? null,
+                maxPages: (int) ($pandape['max_pages'] ?? 100),
                 locationFilter: $this->locationFilter,
             );
 

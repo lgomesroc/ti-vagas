@@ -9,6 +9,7 @@ use DOMDocument;
 use DOMElement;
 use DOMXPath;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class DerevoSource implements VacancySource
@@ -157,7 +158,7 @@ class DerevoSource implements VacancySource
                 continue;
             }
 
-            if (!$this->locationFilter->isEligible(
+            if (!$this->locationFilter->isEligibleForCollection(
                 $location,
                 $title,
                 $description,
@@ -185,6 +186,16 @@ class DerevoSource implements VacancySource
                 'external_id' => 'derevo:' .
                     $this->generateSlug($title),
                 'original_published_at' => $publishedAt,
+
+                // A página fornece apenas localização em texto livre.
+                // Não inferir cidade, estado ou coordenadas desse texto.
+                'city' => null,
+                'state' => null,
+                'state_code' => null,
+                'country' => null,
+                'country_code' => null,
+                'latitude' => null,
+                'longitude' => null,
             ];
         }
 
@@ -289,20 +300,6 @@ class DerevoSource implements VacancySource
 
     private function generateSlug(string $title): string
     {
-        $slug = mb_strtolower($title);
-
-        $slug = iconv(
-            'UTF-8',
-            'ASCII//TRANSLIT//IGNORE',
-            $slug
-        ) ?: $slug;
-
-        $slug = preg_replace(
-            '/[^a-z0-9]+/',
-            '-',
-            $slug
-        );
-
-        return trim($slug, '-');
+        return Str::slug($title);
     }
 }

@@ -19,6 +19,13 @@ class Vacancy extends Model
         'external_id',
         'original_published_at',
         'collected_at',
+        'city',
+        'state',
+        'state_code',
+        'country_code',
+        'ibge_municipality_code',
+        'latitude',
+        'longitude',
     ];
 
     protected function casts(): array
@@ -26,6 +33,8 @@ class Vacancy extends Model
         return [
             'original_published_at' => 'datetime',
             'collected_at' => 'datetime',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 }

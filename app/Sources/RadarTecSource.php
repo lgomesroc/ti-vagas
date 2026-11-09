@@ -11,7 +11,6 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMXPath;
-use RuntimeException;
 
 class RadarTecSource implements VacancySource
 {
@@ -111,6 +110,14 @@ class RadarTecSource implements VacancySource
                 'application_url' => $card['url'],
                 'external_id' => $id,
                 'original_published_at' => $publishedAt,
+
+                'city' => $details['city'],
+                'state' => $details['state'],
+                'state_code' => $details['state_code'],
+                'country' => $details['country'],
+                'country_code' => $details['country_code'],
+                'latitude' => $details['latitude'],
+                'longitude' => $details['longitude'],
             ];
         }
 
@@ -132,6 +139,7 @@ class RadarTecSource implements VacancySource
     private function extractCards(string $html): array
     {
         $xpath = $this->createXPath($html);
+
         $nodes = $xpath->query(
             '//div[contains(concat(" ", normalize-space(@class), " "), " vote-item ")]'
         );
@@ -171,10 +179,8 @@ class RadarTecSource implements VacancySource
                 continue;
             }
 
-            $id = $matches[1];
-
             $cards[] = [
-                'id' => $id,
+                'id' => $matches[1],
                 'title' => $this->nodeText($titleNode),
                 'url' => $url,
                 'location' => $this->nodeText(
@@ -218,6 +224,9 @@ class RadarTecSource implements VacancySource
 
         $xpath = $this->createXPath($response->body());
 
+        // O JSON-LD precisa ser lido antes da remoção dos scripts.
+        $geography = $this->extractJsonLdGeography($xpath);
+
         foreach ($xpath->query('//script | //style | //noscript') ?: [] as $node) {
             $node->parentNode?->removeChild($node);
         }
@@ -253,10 +262,270 @@ class RadarTecSource implements VacancySource
             $employmentType = trim($matches[1]);
         }
 
-        return [
+        return array_merge([
             'description' => $description,
             'employment_type' => $employmentType,
+        ], $geography);
+    }
+
+    /**
+     * Localiza o JobPosting no JSON-LD e extrai sua localização.
+     * Suporta objetos diretos, arrays e estruturas @graph.
+     */
+    private function extractJsonLdGeography(DOMXPath $xpath): array
+    {
+        $empty = [
+            'city' => null,
+            'state' => null,
+            'state_code' => null,
+            'country' => null,
+            'country_code' => null,
+            'latitude' => null,
+            'longitude' => null,
         ];
+
+        $scripts = $xpath->query(
+            '//script[contains(translate(@type, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "ld+json")]'
+        );
+
+        if ($scripts === false) {
+            return $empty;
+        }
+
+        foreach ($scripts as $script) {
+            $json = json_decode(
+                $script->textContent ?? '',
+                true
+            );
+
+            if (!is_array($json)) {
+                continue;
+            }
+
+            $jobPosting = $this->findJobPosting($json);
+
+            if ($jobPosting === null) {
+                continue;
+            }
+
+            $jobLocation = $jobPosting['jobLocation'] ?? null;
+
+            if (!is_array($jobLocation)) {
+                continue;
+            }
+
+            if (array_is_list($jobLocation)) {
+                $jobLocation = $jobLocation[0] ?? null;
+            }
+
+            if (!is_array($jobLocation)) {
+                continue;
+            }
+
+            $address = $jobLocation['address'] ?? [];
+
+            if (!is_array($address)) {
+                continue;
+            }
+
+            $geo = $jobLocation['geo'] ?? [];
+
+            if (!is_array($geo)) {
+                $geo = [];
+            }
+
+            $city = $this->readStructuredString(
+                $address,
+                ['addressLocality', 'city', 'cityName']
+            );
+
+            $state = $this->readStructuredString(
+                $address,
+                ['addressRegion', 'state', 'stateName']
+            );
+
+            // addressRegionCode é o campo usado para informar a UF.
+            $stateCode = $this->readStructuredString(
+                $address,
+                [
+                    'addressRegionCode',
+                    'stateCode',
+                    'state_code',
+                    'uf',
+                ]
+            );
+
+            if ($stateCode !== null) {
+                $stateCode = strtoupper($stateCode);
+            }
+
+            // Fallback somente quando o próprio campo de estado
+            // contém uma UF de exatamente duas letras.
+            if (
+                $stateCode === null
+                && $state !== null
+                && preg_match('/^[A-Z]{2}$/i', $state)
+            ) {
+                $stateCode = strtoupper($state);
+            }
+
+            $countryValue = $this->readStructuredString(
+                $address,
+                ['addressCountry', 'country', 'countryName']
+            );
+
+            // addressCountryCode é o campo usado para informar
+            // o código ISO do país.
+            $countryCode = $this->readStructuredString(
+                $address,
+                [
+                    'addressCountryCode',
+                    'countryCode',
+                    'country_code',
+                ]
+            );
+
+            if ($countryCode !== null) {
+                $countryCode = strtoupper($countryCode);
+            }
+
+            if (
+                $countryCode === null
+                && $countryValue !== null
+                && preg_match('/^[A-Z]{2}$/i', $countryValue)
+            ) {
+                $countryCode = strtoupper($countryValue);
+            }
+
+            $country = $countryValue;
+
+            if (in_array(
+                Str::upper(trim((string) $countryValue)),
+                ['BR', 'BRA', 'BRASIL', 'BRAZIL'],
+                true
+            )) {
+                $country = 'Brasil';
+                $countryCode = 'BR';
+            }
+
+            return [
+                'city' => $city,
+                'state' => $state,
+                'state_code' => $stateCode,
+                'country' => $country,
+                'country_code' => $countryCode,
+                'latitude' => $this->readNumericValue(
+                    $geo,
+                    ['latitude', 'lat']
+                ),
+                'longitude' => $this->readNumericValue(
+                    $geo,
+                    ['longitude', 'lng', 'lon']
+                ),
+            ];
+        }
+
+        return $empty;
+    }
+
+    /**
+     * Procura um objeto JobPosting em estruturas JSON-LD,
+     * incluindo @graph e arrays de objetos.
+     */
+    private function findJobPosting(array $data): ?array
+    {
+        $type = $data['@type'] ?? null;
+
+        if (is_string($type) && Str::lower($type) === 'jobposting') {
+            return $data;
+        }
+
+        if (is_array($type) && in_array('JobPosting', $type, true)) {
+            return $data;
+        }
+
+        foreach ($data as $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            if (array_is_list($value)) {
+                foreach ($value as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+
+                    $found = $this->findJobPosting($item);
+
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+
+                continue;
+            }
+
+            $found = $this->findJobPosting($value);
+
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function readStructuredString(
+        array $data,
+        array $keys
+    ): ?string {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = $data[$key];
+
+            if (is_array($value)) {
+                foreach (['name', 'value', '@value'] as $nestedKey) {
+                    if (
+                        isset($value[$nestedKey])
+                        && is_string($value[$nestedKey])
+                        && trim($value[$nestedKey]) !== ''
+                    ) {
+                        return trim($value[$nestedKey]);
+                    }
+                }
+
+                continue;
+            }
+
+            if (is_string($value) || is_numeric($value)) {
+                $value = trim((string) $value);
+
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function readNumericValue(
+        array $data,
+        array $keys
+    ): int|float|null {
+        foreach ($keys as $key) {
+            if (
+                array_key_exists($key, $data)
+                && is_numeric($data[$key])
+            ) {
+                return (float) $data[$key];
+            }
+        }
+
+        return null;
     }
 
     private function isPotentiallyRelevant(array $card): bool
@@ -325,7 +594,7 @@ class RadarTecSource implements VacancySource
             $details['description']
         );
 
-        return $this->locationFilter->isEligible(
+        return $this->locationFilter->isEligibleForCollection(
             $location,
             $card['title'],
             $details['description'],

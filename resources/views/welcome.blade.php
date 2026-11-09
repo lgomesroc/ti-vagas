@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('title', 'Boas-vindas | TI Vagas')
@@ -43,6 +42,13 @@
                     Ao autorizar o acesso à localização pelo navegador,
                     você terá acesso à experiência completa dos recursos
                     que dependem dessa informação.
+                </p>
+
+                <p>
+                    As vagas remotas nacionais poderão ser exibidas
+                    independentemente do estado. Vagas presenciais,
+                    híbridas ou sem modalidade identificada serão
+                    filtradas conforme o estado da sua localização.
                 </p>
 
                 <p>
@@ -101,6 +107,13 @@
                     name="longitude"
                     id="longitude"
                     value="{{ old('longitude') }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="state_code"
+                    id="state-code"
+                    value="{{ old('state_code') }}"
                 >
 
                 <div class="terms-acceptance">
@@ -168,6 +181,10 @@
                 @enderror
 
                 @error('longitude')
+                    <p class="form-error">{{ $message }}</p>
+                @enderror
+
+                @error('state_code')
                     <p class="form-error">{{ $message }}</p>
                 @enderror
 
@@ -252,10 +269,10 @@
 
             <p>
                 Quando o usuário autoriza a localização pelo navegador,
-                as coordenadas poderão ser utilizadas para funcionalidades
-                regionais. Nesta versão, essas informações são mantidas
-                na sessão de navegação e não são utilizadas para criar
-                um cadastro de usuário.
+                as coordenadas são utilizadas para identificar o estado
+                e disponibilizar oportunidades regionais. Nesta versão,
+                essas informações são mantidas na sessão de navegação
+                e não são utilizadas para criar um cadastro de usuário.
             </p>
 
             <p>
@@ -302,14 +319,108 @@ document.addEventListener('DOMContentLoaded', function () {
     const statusInput = document.getElementById('location-status');
     const latitudeInput = document.getElementById('latitude');
     const longitudeInput = document.getElementById('longitude');
+    const stateCodeInput = document.getElementById('state-code');
 
     const message = document.getElementById('location-message');
+
+    const stateCodes = {
+        'acre': 'AC',
+        'alagoas': 'AL',
+        'amapa': 'AP',
+        'amazonas': 'AM',
+        'bahia': 'BA',
+        'ceara': 'CE',
+        'distrito federal': 'DF',
+        'espirito santo': 'ES',
+        'goias': 'GO',
+        'maranhao': 'MA',
+        'mato grosso': 'MT',
+        'mato grosso do sul': 'MS',
+        'minas gerais': 'MG',
+        'para': 'PA',
+        'paraiba': 'PB',
+        'parana': 'PR',
+        'pernambuco': 'PE',
+        'piaui': 'PI',
+        'rio de janeiro': 'RJ',
+        'rio grande do norte': 'RN',
+        'rio grande do sul': 'RS',
+        'rondonia': 'RO',
+        'roraima': 'RR',
+        'santa catarina': 'SC',
+        'sao paulo': 'SP',
+        'sergipe': 'SE',
+        'tocantins': 'TO'
+    };
 
     function updateButtons() {
         const accepted = termsCheckbox.checked;
 
         locationButton.disabled = !accepted;
         limitedButton.disabled = !accepted;
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+    }
+
+    function identifyStateCode(address) {
+        const isoCode =
+            address['ISO3166-2-lvl4'] ||
+            address['ISO3166-2-lvl3'] ||
+            '';
+
+        const isoMatch = String(isoCode).match(/BR-([A-Z]{2})/i);
+
+        if (isoMatch) {
+            return isoMatch[1].toUpperCase();
+        }
+
+        const stateName = normalizeText(address.state);
+
+        return stateCodes[stateName] || null;
+    }
+
+    async function getStateCode(latitude, longitude) {
+        const url = new URL(
+            'https://nominatim.openstreetmap.org/reverse'
+        );
+
+        url.searchParams.set('format', 'jsonv2');
+        url.searchParams.set('lat', latitude);
+        url.searchParams.set('lon', longitude);
+        url.searchParams.set('zoom', '5');
+        url.searchParams.set('addressdetails', '1');
+        url.searchParams.set('accept-language', 'pt-BR');
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Não foi possível identificar o estado.');
+        }
+
+        const data = await response.json();
+
+        if (!data.address) {
+            throw new Error('A resposta de localização não contém endereço.');
+        }
+
+        const stateCode = identifyStateCode(data.address);
+
+        if (!stateCode) {
+            throw new Error('Não foi possível identificar a UF.');
+        }
+
+        return stateCode;
     }
 
     termsCheckbox.addEventListener('change', function () {
@@ -347,20 +458,48 @@ document.addEventListener('DOMContentLoaded', function () {
             'Aguardando a autorização de localização do navegador.';
 
         navigator.geolocation.getCurrentPosition(
-            function (position) {
-                statusInput.value = 'available';
-                latitudeInput.value = position.coords.latitude;
-                longitudeInput.value = position.coords.longitude;
+            async function (position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
 
-                message.textContent =
-                    'Localização autorizada. Continuando...';
+                try {
+                    message.textContent =
+                        'Localização obtida. Identificando seu estado...';
 
-                form.requestSubmit();
+                    const stateCode = await getStateCode(
+                        latitude,
+                        longitude
+                    );
+
+                    statusInput.value = 'available';
+                    latitudeInput.value = latitude;
+                    longitudeInput.value = longitude;
+                    stateCodeInput.value = stateCode;
+
+                    message.textContent =
+                        'Localização identificada (' + stateCode + '). Continuando...';
+
+                    form.requestSubmit();
+                } catch (error) {
+                    statusInput.value = 'limited';
+                    latitudeInput.value = '';
+                    longitudeInput.value = '';
+                    stateCodeInput.value = '';
+
+                    locationButton.textContent =
+                        'Ativar localização e continuar';
+
+                    updateButtons();
+
+                    message.textContent =
+                        'Não foi possível identificar seu estado. Tente novamente ou continue com experiência limitada.';
+                }
             },
             function (error) {
                 statusInput.value = 'limited';
                 latitudeInput.value = '';
                 longitudeInput.value = '';
+                stateCodeInput.value = '';
 
                 locationButton.textContent =
                     'Ativar localização e continuar';
