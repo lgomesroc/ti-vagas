@@ -1,3 +1,4 @@
+
 <?php
 
 return [
@@ -164,6 +165,19 @@ return [
             'grupobamaq' => [
                 'name' => 'Grupo Bamaq',
                 'domain' => 'grupobamaq.jobs.recrut.ai',
+            ],
+        ],
+    ],
+
+    'pandape' => [
+        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'max_pages' => 100,
+
+        'companies' => [
+            'fiesc' => [
+                'name' => 'FIESC',
+                'url' => 'https://fiesc.pandape.infojobs.com.br/',
+                'company_id' => 696,
             ],
         ],
     ],

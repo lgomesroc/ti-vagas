@@ -60,6 +60,7 @@ class SensediaSource implements VacancySource
         foreach ($feed->channel->item ?? [] as $item) {
             $title = trim((string) ($item->title ?? ''));
             $descriptionHtml = (string) ($item->description ?? '');
+
             $decodedHtml = html_entity_decode(
                 $descriptionHtml,
                 ENT_QUOTES | ENT_HTML5,
@@ -78,7 +79,6 @@ class SensediaSource implements VacancySource
                 $country,
             ]));
 
-            // O feed da Sensedia também publica a localização dentro do HTML.
             if ($location === '') {
                 $location = $this->extractLocation($decodedHtml);
             }
@@ -103,7 +103,6 @@ class SensediaSource implements VacancySource
                 $description
             );
 
-            // Identifica expressões explícitas de trabalho totalmente remoto.
             if (preg_match(
                 '/\b100\s*%\s*remot[oa]\b|\btotalmente remoto\b|\bfully remote\b/i',
                 $description
@@ -111,7 +110,7 @@ class SensediaSource implements VacancySource
                 $workModel = 'Remoto';
             }
 
-            if (!$this->locationFilter->isEligible(
+            if (!$this->locationFilter->isEligibleForCollection(
                 $location,
                 $title,
                 $description,
@@ -136,6 +135,11 @@ class SensediaSource implements VacancySource
                 ),
                 'external_id' => $guid,
                 'original_published_at' => $publishedAt,
+
+                // Dados geográficos estruturados fornecidos pelo RSS.
+                'city' => $city !== '' ? $city : null,
+                'state' => $state !== '' ? $state : null,
+                'country' => $country !== '' ? $country : null,
             ];
         }
 

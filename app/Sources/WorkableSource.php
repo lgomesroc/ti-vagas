@@ -126,7 +126,7 @@ class WorkableSource implements VacancySource
             $workModel
         );
 
-        if (!$this->locationFilter->isEligible(
+        if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
             $description,

@@ -82,6 +82,10 @@ class OracleHcmSource implements VacancySource
             }
 
             foreach ($postings as $posting) {
+                if ($processed >= $this->maxJobs) {
+                    break;
+                }
+
                 $processed++;
 
                 if (!is_array($posting)) {
@@ -156,7 +160,7 @@ class OracleHcmSource implements VacancySource
     private function isBrazilianPosting(array $posting): bool
     {
         $location = $this->normalize(
-            $posting['PrimaryLocation'] ?? ''
+            (string) ($posting['PrimaryLocation'] ?? '')
         );
 
         $country = strtoupper(trim(
@@ -206,7 +210,9 @@ class OracleHcmSource implements VacancySource
         ));
 
         $country = strtoupper(trim((string) (
-            $detail['PrimaryLocationCountry'] ?? ''
+            $detail['PrimaryLocationCountry']
+                ?? $posting['PrimaryLocationCountry']
+                ?? ''
         )));
 
         if (
@@ -226,7 +232,7 @@ class OracleHcmSource implements VacancySource
             $description
         );
 
-        if (!$this->locationFilter->isEligible(
+        if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
             $description,
@@ -257,6 +263,9 @@ class OracleHcmSource implements VacancySource
                 $detail
             ),
             'location' => $location !== '' ? $location : null,
+            'city' => null,
+            'state' => null,
+            'country' => $country !== '' ? $country : null,
             'work_model' => $workModel,
             'employment_type' => $employmentType,
             'salary' => null,

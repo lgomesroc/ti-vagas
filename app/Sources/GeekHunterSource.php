@@ -176,12 +176,17 @@ class GeekHunterSource implements VacancySource
             $company = $this->companyFromUrl($url);
         }
 
+        $geographicFields = $this->extractGeographicFields($posting);
+
         return [
             'title' => $title,
             'company' => trim($company),
             'description' => $description,
             'location' => $this->extractLocation($posting)
                 ?? 'Brasil (remoto)',
+            'city' => $geographicFields['city'],
+            'state' => $geographicFields['state'],
+            'country' => $geographicFields['country'],
             'work_model' => 'Remoto',
             'employment_type' => $this->normalizeEmploymentType(
                 $posting['employmentType'] ?? null,
@@ -389,18 +394,30 @@ class GeekHunterSource implements VacancySource
     {
         $locations = $posting['jobLocation'] ?? [];
 
+        if (!is_array($locations)) {
+            return null;
+        }
+
         if (isset($locations['address'])) {
             $locations = [$locations];
         }
 
         foreach ($locations as $location) {
+            if (!is_array($location)) {
+                continue;
+            }
+
             $address = $location['address'] ?? [];
+
+            if (!is_array($address)) {
+                continue;
+            }
 
             $parts = array_filter([
                 $address['addressLocality'] ?? null,
                 $address['addressRegion'] ?? null,
                 $address['addressCountry'] ?? null,
-            ]);
+            ], static fn ($value) => is_string($value) && trim($value) !== '');
 
             if ($parts !== []) {
                 return implode(', ', $parts) . ' (remoto)';
@@ -408,6 +425,62 @@ class GeekHunterSource implements VacancySource
         }
 
         return null;
+    }
+
+    private function extractGeographicFields(array $posting): array
+    {
+        $result = [
+            'city' => null,
+            'state' => null,
+            'country' => null,
+        ];
+
+        $locations = $posting['jobLocation'] ?? [];
+
+        if (!is_array($locations)) {
+            return $result;
+        }
+
+        if (isset($locations['address'])) {
+            $locations = [$locations];
+        }
+
+        foreach ($locations as $location) {
+            if (!is_array($location)) {
+                continue;
+            }
+
+            $address = $location['address'] ?? [];
+
+            if (!is_array($address)) {
+                continue;
+            }
+
+            $city = $address['addressLocality'] ?? null;
+            $state = $address['addressRegion'] ?? null;
+            $country = $address['addressCountry'] ?? null;
+
+            $result = [
+                'city' => is_string($city) && trim($city) !== ''
+                    ? trim($city)
+                    : null,
+                'state' => is_string($state) && trim($state) !== ''
+                    ? trim($state)
+                    : null,
+                'country' => is_string($country) && trim($country) !== ''
+                    ? trim($country)
+                    : null,
+            ];
+
+            if (in_array(true, array_map(
+                static fn ($value) => $value !== null,
+                $result
+            ), true)) {
+                return $result;
+            }
+        }
+
+        return $result;
     }
 
     private function extractSalary(array $posting): ?string

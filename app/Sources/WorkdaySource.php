@@ -126,7 +126,7 @@ class WorkdaySource implements VacancySource
                     ''
                 );
 
-                if (!$this->locationFilter->isEligible(
+                if (!$this->locationFilter->isEligibleForCollection(
                     $location,
                     $title,
                     '',
@@ -189,7 +189,7 @@ class WorkdaySource implements VacancySource
                     continue;
                 }
 
-                if (!$this->locationFilter->isEligible(
+                if (!$this->locationFilter->isEligibleForCollection(
                     $detailLocation,
                     $detailTitle,
                     $description,

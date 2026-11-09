@@ -85,7 +85,7 @@ class GreenhouseSource implements VacancySource
                 $description
             );
 
-            if (!$this->locationFilter->isEligible(
+            if (!$this->locationFilter->isEligibleForCollection(
                 $location,
                 $title,
                 $description,

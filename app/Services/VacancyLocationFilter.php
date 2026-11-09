@@ -105,6 +105,7 @@ class VacancyLocationFilter
     ): ?string {
         $titleText = $this->normalize($title);
         $locationText = $this->normalize($location);
+
         $descriptionText = $this->normalize(
             mb_substr($description ?? '', 0, 3000)
         );
@@ -182,6 +183,71 @@ class VacancyLocationFilter
         return null;
     }
 
+    /**
+     * Regra de coleta.
+     *
+     * Não limita a coleta à Região Metropolitana do Rio.
+     * A localização regional deve ser aplicada na exibição,
+     * depois que a vaga já estiver armazenada.
+     */
+    public function isEligibleForCollection(
+        ?string $location,
+        ?string $title,
+        ?string $description,
+        ?string $workModel
+    ): bool {
+        $locationText = $this->normalize($location);
+        $titleText = $this->normalize($title);
+        $descriptionText = $this->normalize($description);
+
+        $combinedText = implode(' ', [
+            $locationText,
+            $titleText,
+            $descriptionText,
+        ]);
+
+        if ($this->containsForeignCountry($locationText)) {
+            return false;
+        }
+
+        if (
+            $this->containsForeignCountry($titleText)
+            && !$this->containsAny($titleText, ['brazil', 'brasil'])
+        ) {
+            return false;
+        }
+
+        if ($workModel === 'Remoto') {
+            return $this->isBrazilCompatible(
+                $locationText,
+                $titleText,
+                $descriptionText
+            );
+        }
+
+        /*
+         * Para vagas presenciais, híbridas ou sem modalidade
+         * identificada, aceita localidades brasileiras.
+         *
+         * Uma localização vazia continua sendo rejeitada para
+         * evitar importar vagas sem qualquer referência geográfica.
+         */
+        if ($locationText === '') {
+            return $this->containsAny($combinedText, [
+                'brazil',
+                'brasil',
+            ]);
+        }
+
+        return !$this->containsForeignCountry($locationText);
+    }
+
+    /**
+     * Regra antiga de exibição regional do RJ.
+     *
+     * Mantida para não alterar inadvertidamente o comportamento
+     * atual enquanto a cobertura nacional é implementada.
+     */
     public function isEligible(
         ?string $location,
         ?string $title,
@@ -212,7 +278,6 @@ class VacancyLocationFilter
             ]
         );
 
-        // Vagas remotas podem ser de qualquer estado brasileiro.
         if (
             $workModel === 'Remoto'
             && ($brazilIsExplicit || $remoteIsExplicitForBrazil)
@@ -220,24 +285,18 @@ class VacancyLocationFilter
             return true;
         }
 
-        // Para vagas híbridas ou presenciais, não aceitamos
-        // localidades que não estejam na lista da região metropolitana.
         if (!in_array($workModel, ['Híbrido', 'Presencial', null], true)) {
             return false;
         }
 
         $titleCities = $this->findCitiesInTitle($titleText);
 
-        // Uma cidade fora da região permitida no título
-        // prevalece sobre uma localização genérica da fonte.
         foreach ($titleCities as $city) {
             if (in_array($city, self::NON_METRO_CITIES, true)) {
                 return false;
             }
         }
 
-        // Se o título identificou cidades, todas precisam
-        // pertencer à lista permitida.
         if ($titleCities !== []) {
             foreach ($titleCities as $city) {
                 if (!in_array($city, self::RJ_METRO_CITIES, true)) {
@@ -248,12 +307,31 @@ class VacancyLocationFilter
             return true;
         }
 
-        // Sem cidade específica no título, usamos a localização
-        // fornecida pela fonte.
         return $this->containsAny(
             $locationText,
             self::RJ_METRO_CITIES
         );
+    }
+
+    private function isBrazilCompatible(
+        string $location,
+        string $title,
+        string $description
+    ): bool {
+        if ($this->containsAny(
+            $location . ' ' . $title,
+            ['brazil', 'brasil']
+        )) {
+            return true;
+        }
+
+        return $this->containsAny($description, [
+            'work remotely from brazil',
+            'remote in brazil',
+            'trabalho remoto no brasil',
+            'vaga remota no brasil',
+            'posicao remota no brasil',
+        ]);
     }
 
     private function findCitiesInTitle(string $title): array

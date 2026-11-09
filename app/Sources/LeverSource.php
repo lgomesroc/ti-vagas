@@ -154,7 +154,7 @@ class LeverSource implements VacancySource
             );
         }
 
-        if (!$this->locationFilter->isEligible(
+        if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
             $description,
@@ -186,6 +186,9 @@ class LeverSource implements VacancySource
             'company' => $this->companyName,
             'description' => $description,
             'location' => $location !== '' ? $location : null,
+            'city' => null,
+            'state' => null,
+            'country' => $country !== '' ? $country : null,
             'work_model' => $workModel,
             'employment_type' => $this->normalizeEmploymentType(
                 $categories['commitment'] ?? ''

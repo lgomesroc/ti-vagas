@@ -11,8 +11,7 @@ use RuntimeException;
 
 class AshbySource implements VacancySource
 {
-    private const BASE_URL =
-        'https://api.ashbyhq.com/posting-api/job-board';
+    private const BASE_URL = 'https://api.ashbyhq.com/posting-api/job-board';
 
     private readonly VacancyLocationFilter $locationFilter;
 
@@ -108,11 +107,19 @@ class AshbySource implements VacancySource
 
         $address = $posting['address']['postalAddress'] ?? [];
 
+        if (!is_array($address)) {
+            $address = [];
+        }
+
+        $city = trim($address['addressLocality'] ?? '');
+        $state = trim($address['addressRegion'] ?? '');
         $country = trim($address['addressCountry'] ?? '');
         $locationText = trim($posting['location'] ?? '');
 
-        if (!$this->isBrazil($country) &&
-            !$this->hasBrazilLocation($locationText)) {
+        if (
+            !$this->isBrazil($country) &&
+            !$this->hasBrazilLocation($locationText)
+        ) {
             return null;
         }
 
@@ -129,7 +136,7 @@ class AshbySource implements VacancySource
             $workModel
         );
 
-        if (!$this->locationFilter->isEligible(
+        if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
             $description,
@@ -156,6 +163,9 @@ class AshbySource implements VacancySource
                 $posting
             ),
             'location' => $location !== '' ? $location : null,
+            'city' => $city !== '' ? $city : null,
+            'state' => $state !== '' ? $state : null,
+            'country' => $country !== '' ? $country : null,
             'work_model' => $workModel,
             'employment_type' => $this->normalizeEmploymentType(
                 $posting['employmentType'] ?? ''
