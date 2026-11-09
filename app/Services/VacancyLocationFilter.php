@@ -20,81 +20,58 @@ class VacancyLocationFilter
     ];
 
     private const NON_METRO_CITIES = [
-        'macae',
-        'santos',
-        'campos dos goytacazes',
-        'cabo frio',
-        'angra dos reis',
-        'petropolis',
-        'volta redonda',
-        'resende',
-        'itaperuna',
-        'teresopolis',
-        'nova friburgo',
-        'araruama',
-        'rio das ostras',
-        'buzios',
-        'sao paulo',
-        'curitiba',
-        'belo horizonte',
-        'porto alegre',
-        'florianopolis',
-        'brasilia',
-        'salvador',
-        'recife',
-        'fortaleza',
-        'goiania',
-        'manaus',
-        'belem',
+        'macae', 'santos', 'campos dos goytacazes',
+        'cabo frio', 'angra dos reis', 'petropolis',
+        'volta redonda', 'resende', 'itaperuna',
+        'teresopolis', 'nova friburgo', 'araruama',
+        'rio das ostras', 'buzios', 'sao paulo',
+        'curitiba', 'belo horizonte', 'porto alegre',
+        'florianopolis', 'brasilia', 'salvador',
+        'recife', 'fortaleza', 'goiania', 'manaus', 'belem',
+    ];
+
+    private const STATES = [
+        'ac' => 'AC', 'acre' => 'AC',
+        'al' => 'AL', 'alagoas' => 'AL',
+        'ap' => 'AP', 'amapa' => 'AP',
+        'am' => 'AM', 'amazonas' => 'AM',
+        'ba' => 'BA', 'bahia' => 'BA',
+        'ce' => 'CE', 'ceara' => 'CE',
+        'df' => 'DF', 'distrito federal' => 'DF',
+        'es' => 'ES', 'espirito santo' => 'ES',
+        'go' => 'GO', 'goias' => 'GO',
+        'ma' => 'MA', 'maranhao' => 'MA',
+        'mt' => 'MT', 'mato grosso' => 'MT',
+        'ms' => 'MS', 'mato grosso do sul' => 'MS',
+        'mg' => 'MG', 'minas gerais' => 'MG',
+        'pa' => 'PA', 'para' => 'PA',
+        'pb' => 'PB', 'paraiba' => 'PB',
+        'pr' => 'PR', 'parana' => 'PR',
+        'pe' => 'PE', 'pernambuco' => 'PE',
+        'pi' => 'PI', 'piaui' => 'PI',
+        'rj' => 'RJ', 'rio de janeiro' => 'RJ',
+        'rn' => 'RN', 'rio grande do norte' => 'RN',
+        'rs' => 'RS', 'rio grande do sul' => 'RS',
+        'ro' => 'RO', 'rondonia' => 'RO',
+        'rr' => 'RR', 'roraima' => 'RR',
+        'sc' => 'SC', 'santa catarina' => 'SC',
+        'sp' => 'SP', 'sao paulo' => 'SP',
+        'se' => 'SE', 'sergipe' => 'SE',
+        'to' => 'TO', 'tocantins' => 'TO',
     ];
 
     private const FOREIGN_COUNTRIES = [
-        'india',
-        'poland',
-        'united kingdom',
-        'great britain',
-        'england',
-        'scotland',
-        'wales',
-        'united states',
-        'usa',
-        'estados unidos',
-        'canada',
-        'germany',
-        'alemanha',
-        'singapore',
-        'singapura',
-        'hong kong',
-        'australia',
-        'ireland',
-        'irlanda',
-        'france',
-        'franca',
-        'spain',
-        'espanha',
-        'portugal',
-        'netherlands',
-        'pais es',
-        'paises baixos',
-        'switzerland',
-        'suica',
-        'mexico',
-        'argentina',
-        'chile',
-        'colombia',
-        'peru',
-        'japan',
-        'japao',
-        'china',
-        'south africa',
-        'africa do sul',
-        'czech republic',
-        'republica tcheca',
-        'romania',
-        'romenia',
-        'reino unido',
-        'gra bretanha',
-        'escocia',
+        'india', 'poland', 'united kingdom', 'great britain',
+        'england', 'scotland', 'wales', 'united states', 'usa',
+        'estados unidos', 'canada', 'germany', 'alemanha',
+        'singapore', 'singapura', 'hong kong', 'australia',
+        'ireland', 'irlanda', 'france', 'franca', 'spain',
+        'espanha', 'portugal', 'netherlands', 'pais es',
+        'paises baixos', 'switzerland', 'suica', 'mexico',
+        'argentina', 'chile', 'colombia', 'peru', 'japan',
+        'japao', 'china', 'south africa', 'africa do sul',
+        'czech republic', 'republica tcheca', 'romania',
+        'romenia', 'reino unido', 'gra bretanha', 'escocia',
         'pais de gales',
     ];
 
@@ -105,7 +82,6 @@ class VacancyLocationFilter
     ): ?string {
         $titleText = $this->normalize($title);
         $locationText = $this->normalize($location);
-
         $descriptionText = $this->normalize(
             mb_substr($description ?? '', 0, 3000)
         );
@@ -113,28 +89,19 @@ class VacancyLocationFilter
         $primaryText = $titleText . ' ' . $locationText;
 
         if ($this->containsAny($primaryText, [
-            'hibrido',
-            'hybrid',
-            'modelo hibrido',
-            'regime hibrido',
+            'hibrido', 'hybrid', 'modelo hibrido', 'regime hibrido',
         ])) {
             return 'Híbrido';
         }
 
         if ($this->containsAny($primaryText, [
-            'presencial',
-            'on-site',
-            'onsite',
-            'office based',
+            'presencial', 'on-site', 'onsite', 'office based',
         ])) {
             return 'Presencial';
         }
 
         if ($this->containsAny($primaryText, [
-            'remoto',
-            'remote',
-            'home office',
-            '100% home office',
+            'remoto', 'remote', 'home office', '100% home office',
             'fully remote',
         ])) {
             return 'Remoto';
@@ -183,13 +150,6 @@ class VacancyLocationFilter
         return null;
     }
 
-    /**
-     * Regra de coleta.
-     *
-     * Não limita a coleta à Região Metropolitana do Rio.
-     * A localização regional deve ser aplicada na exibição,
-     * depois que a vaga já estiver armazenada.
-     */
     public function isEligibleForCollection(
         ?string $location,
         ?string $title,
@@ -225,34 +185,50 @@ class VacancyLocationFilter
             );
         }
 
-        /*
-         * Para vagas presenciais, híbridas ou sem modalidade
-         * identificada, aceita localidades brasileiras.
-         *
-         * Uma localização vazia continua sendo rejeitada para
-         * evitar importar vagas sem qualquer referência geográfica.
-         */
         if ($locationText === '') {
-            return $this->containsAny($combinedText, [
-                'brazil',
-                'brasil',
-            ]);
+            return $this->containsAny($combinedText, ['brazil', 'brasil']);
         }
 
         return !$this->containsForeignCountry($locationText);
     }
 
     /**
-     * Regra antiga de exibição regional do RJ.
+     * Compatibilidade com chamadas antigas e testes existentes.
      *
-     * Mantida para não alterar inadvertidamente o comportamento
-     * atual enquanto a cobertura nacional é implementada.
+     * Considera o visitante como sendo do RJ, preservando a regra
+     * anterior da Região Metropolitana.
+     *
+     * O serviço não acessa a sessão do Laravel.
      */
     public function isEligible(
         ?string $location,
         ?string $title,
         ?string $description,
         ?string $workModel
+    ): bool {
+        return $this->isEligibleForVisitor(
+            $location,
+            $title,
+            $description,
+            $workModel,
+            'RJ'
+        );
+    }
+
+    /**
+     * Filtra a vaga conforme o estado informado do visitante.
+     *
+     * Remoto nacional: aparece para todos os estados.
+     * RJ: mantém a regra da Região Metropolitana.
+     * Outros estados: exige correspondência da UF.
+     * Sem UF: não exibe vagas locais.
+     */
+    public function isEligibleForVisitor(
+        ?string $location,
+        ?string $title,
+        ?string $description,
+        ?string $workModel,
+        ?string $visitorStateCode
     ): bool {
         $locationText = $this->normalize($location);
         $titleText = $this->normalize($title);
@@ -262,34 +238,47 @@ class VacancyLocationFilter
             return false;
         }
 
-        $brazilIsExplicit = $this->containsAny(
-            $locationText . ' ' . $titleText,
-            ['brazil', 'brasil']
-        );
-
-        $remoteIsExplicitForBrazil = $this->containsAny(
-            $descriptionText,
-            [
-                'work remotely from brazil',
-                'remote in brazil',
-                'trabalho remoto no brasil',
-                'vaga remota no brasil',
-                'posicao remota no brasil',
-            ]
-        );
-
-        if (
-            $workModel === 'Remoto'
-            && ($brazilIsExplicit || $remoteIsExplicitForBrazil)
-        ) {
-            return true;
+        if ($workModel === 'Remoto') {
+            return $this->isBrazilCompatible(
+                $locationText,
+                $titleText,
+                $descriptionText
+            );
         }
 
         if (!in_array($workModel, ['Híbrido', 'Presencial', null], true)) {
             return false;
         }
 
-        $titleCities = $this->findCitiesInTitle($titleText);
+        $visitorState = strtoupper(trim($visitorStateCode ?? ''));
+
+        // Sem UF identificada, não exibe vagas locais.
+        if (
+            $visitorState === ''
+            || !in_array($visitorState, array_values(self::STATES), true)
+        ) {
+            return false;
+        }
+
+        // Mantém a regra regional específica do RJ.
+        if ($visitorState === 'RJ') {
+            return $this->isEligibleForRioDeJaneiro(
+                $locationText,
+                $titleText
+            );
+        }
+
+        $vacancyState = $this->extractStateCode($locationText);
+
+        return $vacancyState !== null
+            && $vacancyState === $visitorState;
+    }
+
+    private function isEligibleForRioDeJaneiro(
+        string $location,
+        string $title
+    ): bool {
+        $titleCities = $this->findCitiesInTitle($title);
 
         foreach ($titleCities as $city) {
             if (in_array($city, self::NON_METRO_CITIES, true)) {
@@ -307,10 +296,40 @@ class VacancyLocationFilter
             return true;
         }
 
-        return $this->containsAny(
-            $locationText,
-            self::RJ_METRO_CITIES
-        );
+        return $this->containsAny($location, self::RJ_METRO_CITIES);
+    }
+
+    private function extractStateCode(string $location): ?string
+    {
+        $normalized = $this->normalize($location);
+
+        // Procura uma UF isolada, por exemplo: "Rio do Sul, SC, Brasil".
+        if (preg_match(
+            '/(?:^|[^a-z])([a-z]{2})(?:$|[^a-z])/',
+            $normalized,
+            $matches
+        )) {
+            $code = strtoupper($matches[1]);
+
+            if (in_array($code, array_values(self::STATES), true)) {
+                return $code;
+            }
+        }
+
+        // Procura o nome completo do estado.
+        foreach (self::STATES as $name => $code) {
+            if (
+                strlen($name) > 2
+                && preg_match(
+                    '/(^|[^a-z])' . preg_quote($name, '/') . '([^a-z]|$)/',
+                    $normalized
+                )
+            ) {
+                return $code;
+            }
+        }
+
+        return null;
     }
 
     private function isBrazilCompatible(

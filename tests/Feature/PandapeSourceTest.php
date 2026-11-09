@@ -16,13 +16,15 @@ class PandapeSourceTest extends TestCase
 
     private function makeSource(
         ?VacancyLocationFilter $locationFilter = null,
-        int $maxPages = 100
+        int $maxPages = 100,
+        ?string $caBundle = null
     ): PandapeSource {
         return new PandapeSource(
             companyKey: 'fiesc',
             companyName: 'FIESC',
             baseUrl: self::BASE_URL,
             companyId: 696,
+            caBundle: $caBundle,
             maxPages: $maxPages,
             locationFilter: $locationFilter
                 ?? Mockery::mock(VacancyLocationFilter::class)
@@ -84,7 +86,10 @@ class PandapeSourceTest extends TestCase
         bool $isLast = true
     ): void {
         Http::fake([
-            self::BASE_URL => Http::response('<html><body>FIESC</body></html>', 200),
+            self::BASE_URL => Http::response(
+                '<html><body>FIESC</body></html>',
+                200
+            ),
 
             self::BASE_URL . 'ListVacancies' => Http::response([
                 'view' => $html,
@@ -242,6 +247,39 @@ class PandapeSourceTest extends TestCase
         Http::assertSentCount(3);
     }
 
+    public function test_fetch_skips_titles_outside_technology_scope_without_requesting_details(): void
+    {
+        $html = $this->vacancyHtml(
+            '100',
+            'Analista Financeiro Júnior'
+        );
+
+        $this->mockHomeAndPage($html);
+
+        $vacancies = $this->makeSource()->fetch();
+
+        $this->assertSame([], $vacancies);
+
+        // Apenas home e listagem. Nenhum detalhe foi consultado.
+        Http::assertSentCount(2);
+    }
+
+    public function test_fetch_skips_senior_titles_without_requesting_details(): void
+    {
+        $html = $this->vacancyHtml(
+            '100',
+            'Desenvolvedor PHP Sênior'
+        );
+
+        $this->mockHomeAndPage($html);
+
+        $vacancies = $this->makeSource()->fetch();
+
+        $this->assertSame([], $vacancies);
+
+        Http::assertSentCount(2);
+    }
+
     public function test_fetch_ignores_details_without_job_posting(): void
     {
         $this->mockHomeAndPage($this->vacancyHtml('100'));
@@ -345,7 +383,7 @@ class PandapeSourceTest extends TestCase
         $this->assertSame([], $vacancies);
     }
 
-    public function test_fetch_throws_exception_when_maximum_page_limit_is_reached(): void
+    public function test_fetch_returns_partial_results_when_maximum_page_limit_is_reached(): void
     {
         Http::fake(function (Request $request) {
             if (
@@ -370,12 +408,15 @@ class PandapeSourceTest extends TestCase
             return Http::response('Not found', 404);
         });
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(
-            'O limite de 1 páginas do Pandapé foi atingido.'
+        $vacancies = $this->makeSource(maxPages: 1)->fetch();
+
+        $this->assertCount(1, $vacancies);
+        $this->assertSame(
+            'pandape:fiesc:100',
+            $vacancies[0]['external_id']
         );
 
-        $this->makeSource(maxPages: 1)->fetch();
+        Http::assertSentCount(3);
     }
 
     public function test_fetch_throws_exception_when_detail_request_fails(): void

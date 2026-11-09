@@ -34,9 +34,16 @@ class WelcomeController extends Controller
                 'numeric',
                 'between:-180,180',
             ],
+            'state_code' => [
+                'required_if:location_status,available',
+                'nullable',
+                'string',
+                'in:AC,AL,AP,AM,BA,CE,DF,ES,GO,MA,MT,MS,MG,PA,PB,PR,PE,PI,RJ,RN,RS,RO,RR,SC,SP,SE,TO',
+            ],
         ], [
             'terms.accepted' => 'Você precisa aceitar os Termos de Uso para continuar.',
             'location_status.required' => 'Informe se deseja utilizar a localização.',
+            'state_code.required_if' => 'Não foi possível identificar seu estado. Tente obter a localização novamente.',
         ]);
 
         $request->session()->put([
@@ -47,11 +54,13 @@ class WelcomeController extends Controller
             $request->session()->put([
                 'location_latitude' => (float) $validated['latitude'],
                 'location_longitude' => (float) $validated['longitude'],
+                'visitor_state_code' => strtoupper($validated['state_code']),
             ]);
         } else {
             $request->session()->forget([
                 'location_latitude',
                 'location_longitude',
+                'visitor_state_code',
             ]);
         }
 
@@ -71,9 +80,6 @@ class WelcomeController extends Controller
 
     public function acknowledgeCookies(Request $request): RedirectResponse
     {
-        $termsAccepted = $request->cookie('ti_vagas_terms_accepted')
-            === EnsureWelcomeAccepted::TERMS_VERSION;
-
         return redirect()
             ->back()
             ->withCookie(cookie()->forever(

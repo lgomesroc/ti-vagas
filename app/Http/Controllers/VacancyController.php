@@ -257,14 +257,21 @@ class VacancyController extends Controller
     ) {
     }
 
-    private function eligibleVacancies(): Collection
-    {
+    /**
+     * Retorna as vagas elegíveis para o estado do visitante.
+     *
+     * A UF é recebida explicitamente para que o serviço de localização
+     * não dependa do container de sessão do Laravel.
+     */
+    private function eligibleVacancies(
+        ?string $visitorStateCode = null
+    ): Collection {
         $vacancies = Vacancy::query()
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
             ->get()
-            ->filter(function (Vacancy $vacancy) {
+            ->filter(function (Vacancy $vacancy) use ($visitorStateCode) {
                 if ($this->availabilityDetector->isUnavailable(
                     $vacancy->title,
                     $vacancy->description
@@ -365,12 +372,12 @@ class VacancyController extends Controller
                 $vacancy->display_work_model = $workModel
                     ?? 'Não informado';
 
-                // Preserva as regras atuais de localização e modalidade.
-                return $this->locationFilter->isEligible(
+                return $this->locationFilter->isEligibleForVisitor(
                     $vacancy->location,
                     $vacancy->title,
                     $vacancy->description,
-                    $workModel
+                    $workModel,
+                    $visitorStateCode
                 );
             })
             ->values();
@@ -484,7 +491,14 @@ class VacancyController extends Controller
     {
         $search = trim($request->query('q', ''));
 
-        $eligibleVacancies = $this->eligibleVacancies();
+        $visitorStateCode = $request->session()->get('location_mode')
+            === 'available'
+                ? $request->session()->get('visitor_state_code')
+                : null;
+
+        $eligibleVacancies = $this->eligibleVacancies(
+            $visitorStateCode
+        );
 
         if ($search !== '') {
             $normalizedSearch = $this->normalize($search);
@@ -535,10 +549,18 @@ class VacancyController extends Controller
         ]);
     }
 
-    public function show(Vacancy $vacancy): View
-    {
-        $eligibleVacancy = $this->eligibleVacancies()
-            ->firstWhere('id', $vacancy->getKey());
+    public function show(
+        Request $request,
+        Vacancy $vacancy
+    ): View {
+        $visitorStateCode = $request->session()->get('location_mode')
+            === 'available'
+                ? $request->session()->get('visitor_state_code')
+                : null;
+
+        $eligibleVacancy = $this->eligibleVacancies(
+            $visitorStateCode
+        )->firstWhere('id', $vacancy->getKey());
 
         abort_unless($eligibleVacancy, 404);
 

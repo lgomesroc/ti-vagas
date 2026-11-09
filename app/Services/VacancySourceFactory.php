@@ -147,9 +147,7 @@ class VacancySourceFactory
         $derevo = config('vacancy_sources.derevo', []);
 
         $source = new DerevoSource(
-            caBundle: $derevo['ca_bundle']
-                ?? $greenhouse['ca_bundle']
-                ?? null,
+            caBundle: $derevo['ca_bundle'] ?? null,
             locationFilter: $this->locationFilter,
         );
 

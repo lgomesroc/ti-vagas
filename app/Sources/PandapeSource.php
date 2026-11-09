@@ -9,12 +9,209 @@ use DOMDocument;
 use DOMElement;
 use DOMXPath;
 use GuzzleHttp\Cookie\CookieJar;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class PandapeSource implements VacancySource
 {
     private readonly VacancyLocationFilter $locationFilter;
+
+    private const TECHNOLOGY_TERMS = [
+        // Desenvolvimento.
+        'desenvolvedor',
+        'developer',
+        'programador',
+        'software engineer',
+        'engenheiro de software',
+        'backend',
+        'back-end',
+        'frontend',
+        'front-end',
+        'full stack',
+        'fullstack',
+        'integration developer',
+        'php developer',
+        '.net developer',
+        'java developer',
+        'python developer',
+        'desenvolvedor de software',
+        'desenvolvedor de sistemas',
+        'desenvolvedor web',
+        'desenvolvedor mobile',
+        'desenvolvedor de aplicativos',
+        'software developer',
+        'web developer',
+        'mobile developer',
+        'application developer',
+        'analista de desenvolvimento',
+        'analista de sistemas de informacao',
+        'ios developer',
+        'android developer',
+
+        // QA e testes.
+        'qa',
+        'quality assurance',
+        'quality analyst',
+        'analista de qa',
+        'analista de testes',
+        'tester',
+        'software tester',
+        'test engineer',
+        'engenheiro de testes',
+        'automation tester',
+        'qa automation',
+
+        // Suporte.
+        'suporte tecnico',
+        'suporte de ti',
+        'suporte ti',
+        'analista de suporte',
+        'tecnico de informatica',
+        'tecnico de suporte',
+        'help desk',
+        'helpdesk',
+        'service desk',
+        'servicedesk',
+        'technical support',
+        'it support',
+        'field support',
+        'analista de service desk',
+        'analista de help desk',
+        'suporte ao usuario',
+        'suporte de sistemas',
+        'suporte a sistemas',
+        'suporte de informatica',
+        'assistente de suporte',
+        'auxiliar de suporte',
+        'analista de suporte de sistemas',
+        'analista de suporte tecnico',
+        'tecnico de suporte ti',
+        'tecnico de service desk',
+        'operador de service desk',
+        'field service',
+        'microinformatica',
+
+        // Infraestrutura, redes, cloud e segurança.
+        'infraestrutura',
+        'infrastructure',
+        'analista de redes',
+        'tecnico de redes',
+        'network engineer',
+        'network analyst',
+        'cloud engineer',
+        'devops',
+        'sysadmin',
+        'system administrator',
+        'administrador de sistemas',
+        'analista de sistemas',
+        'noc',
+        'analista de infraestrutura',
+        'tecnico de infraestrutura',
+        'assistente de infraestrutura',
+        'auxiliar de infraestrutura',
+        'administrador de redes',
+        'administrador de banco de dados',
+        'database administrator',
+        'dba',
+        'site reliability engineer',
+        'sre',
+        'network administrator',
+        'cloud administrator',
+        'analista de cloud',
+        'engenheiro de infraestrutura',
+        'security analyst',
+        'analista de seguranca da informacao',
+        'analista de seguranca',
+        'cybersecurity',
+        'ciberseguranca',
+        'soc analyst',
+    ];
+
+    private const EXCLUDED_TITLE_TERMS = [
+        // Senioridade e programas fora do escopo.
+        'pleno',
+        'senior',
+        'staff',
+        'principal',
+        'lead',
+        'manager',
+        'gerente',
+        'director',
+        'diretor',
+        'head',
+        'architect',
+        'arquiteto',
+        'especialista',
+        'coordenador',
+        'coordenadora',
+        'lider',
+        'supervisor',
+        'supervisora',
+        'trainee',
+        'estagio',
+        'estagiario',
+        'intern',
+        'internship',
+
+        // Áreas administrativas e comerciais.
+        'marketing',
+        'vendas',
+        'sales',
+        'juridico',
+        'legal',
+        'financeiro',
+        'financial',
+        'recruiter',
+        'recrutamento',
+        'recursos humanos',
+        'human resources',
+        'analista administrativo',
+        'analista de gestao',
+        'analista de operacoes',
+        'compras',
+        'procurement',
+        'contabilidade',
+        'accounting',
+        'logistica',
+        'logistics',
+        'comercial',
+        'customer success',
+        'customer experience',
+        'atendimento ao cliente',
+
+        // CRM, ERP e sistemas corporativos especializados.
+        'crm',
+        'erp',
+        'sap',
+        'abap',
+        'totvs',
+        'protheus',
+        'consultor funcional',
+        'analista funcional',
+        'implantacao de sistemas',
+        'implantador de sistemas',
+
+        // Dados e inteligência artificial.
+        'data analyst',
+        'data analytics',
+        'analytics engineer',
+        'analista de dados',
+        'engenheiro de dados',
+        'data engineer',
+        'cientista de dados',
+        'data scientist',
+        'business intelligence',
+        'business intelligence analyst',
+        'bi analyst',
+        'analista de bi',
+        'machine learning',
+        'deep learning',
+        'ml engineer',
+        'ai engineer',
+        'engenheiro de inteligencia artificial',
+        'especialista em inteligencia artificial',
+    ];
 
     public function __construct(
         private readonly string $companyKey,
@@ -38,7 +235,7 @@ class PandapeSource implements VacancySource
     {
         $cookieJar = new CookieJar();
 
-        $client = Http::timeout(60)
+        $listingClient = Http::timeout(60)
             ->withOptions([
                 'cookies' => $cookieJar,
                 'verify' => $this->caBundle ?: true,
@@ -49,7 +246,18 @@ class PandapeSource implements VacancySource
                 'X-Requested-With' => 'XMLHttpRequest',
             ]);
 
-        $homeResponse = $client->get($this->baseUrl);
+        // Cliente separado para detalhes, compartilhando os mesmos cookies.
+        $detailClient = Http::timeout(30)
+            ->withOptions([
+                'cookies' => $cookieJar,
+                'verify' => $this->caBundle ?: true,
+            ])
+            ->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (compatible; TI-Vagas/1.0)',
+                'Accept' => 'text/html',
+            ]);
+
+        $homeResponse = $listingClient->get($this->baseUrl);
 
         $homeResponse->throw();
 
@@ -63,7 +271,7 @@ class PandapeSource implements VacancySource
         $seenIds = [];
 
         for ($page = 1; $page <= $this->maxPages; $page++) {
-            $response = $client
+            $response = $listingClient
                 ->asForm()
                 ->post(
                     rtrim($this->baseUrl, '/') . '/ListVacancies',
@@ -104,7 +312,13 @@ class PandapeSource implements VacancySource
 
                 $seenIds[$id] = true;
 
+                // Evita consultar detalhes de anúncios fora do escopo.
+                if (!$this->isPotentialTechnologyRole($card['text'])) {
+                    continue;
+                }
+
                 $vacancy = $this->fetchVacancyDetails(
+                    $detailClient,
                     $id,
                     $card
                 );
@@ -114,18 +328,71 @@ class PandapeSource implements VacancySource
                 }
             }
 
-            if (($data['isLast'] ?? true) === true) {
+            $isLast = filter_var(
+                $data['isLast'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            if ($isLast) {
                 break;
             }
 
+            /*
+             * O limite de páginas é um limite operacional.
+             * Atingi-lo encerra a coleta parcial normalmente.
+             */
             if ($page === $this->maxPages) {
-                throw new RuntimeException(
-                    "O limite de {$this->maxPages} páginas do Pandapé foi atingido."
-                );
+                break;
             }
         }
 
         return $vacancies;
+    }
+
+    private function isPotentialTechnologyRole(string $title): bool
+    {
+        $normalizedTitle = $this->normalize($title);
+
+        if ($normalizedTitle === '') {
+            return false;
+        }
+
+        if ($this->containsAny(
+            $normalizedTitle,
+            self::EXCLUDED_TITLE_TERMS
+        )) {
+            return false;
+        }
+
+        return $this->containsAny(
+            $normalizedTitle,
+            self::TECHNOLOGY_TERMS
+        );
+    }
+
+    private function containsAny(string $text, array $terms): bool
+    {
+        foreach ($terms as $term) {
+            $normalizedTerm = $this->normalize($term);
+
+            if (preg_match(
+                '/(^|[^a-z0-9])'
+                . preg_quote($normalizedTerm, '/')
+                . '([^a-z0-9]|$)/',
+                $text
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalize(string $text): string
+    {
+        return \Illuminate\Support\Str::ascii(
+            mb_strtolower($text)
+        );
     }
 
     private function extractCards(string $html): array
@@ -168,6 +435,7 @@ class PandapeSource implements VacancySource
     }
 
     private function fetchVacancyDetails(
+        PendingRequest $client,
         string $id,
         array $card
     ): ?array {
@@ -175,15 +443,7 @@ class PandapeSource implements VacancySource
             . '/Detail/'
             . $id;
 
-        $response = Http::timeout(30)
-            ->withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (compatible; TI-Vagas/1.0)',
-                'Accept' => 'text/html',
-            ])
-            ->withOptions([
-                'verify' => $this->caBundle ?: true,
-            ])
-            ->get($url);
+        $response = $client->get($url);
 
         $response->throw();
 
@@ -238,7 +498,11 @@ class PandapeSource implements VacancySource
             )
         );
 
-        if ($title === '' || $description === '') {
+        if (
+            $title === ''
+            || $description === ''
+            || !$this->isPotentialTechnologyRole($title)
+        ) {
             return null;
         }
 
@@ -302,7 +566,10 @@ class PandapeSource implements VacancySource
             return $data;
         }
 
-        if (is_array($type) && in_array('JobPosting', $type, true)) {
+        if (
+            is_array($type)
+            && in_array('JobPosting', $type, true)
+        ) {
             return $data;
         }
 

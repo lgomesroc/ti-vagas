@@ -3,7 +3,7 @@
 
 return [
     'greenhouse' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
         'companies' => [
             'vtex' => 'VTEX',
@@ -23,11 +23,11 @@ return [
     ],
 
     'sensedia' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
     ],
 
     'workday' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -42,7 +42,7 @@ return [
     ],
 
     'lever' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -78,12 +78,12 @@ return [
     ],
 
     'ozy' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
     ],
 
     'workable' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -94,7 +94,7 @@ return [
     ],
 
     'inhire' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -108,7 +108,7 @@ return [
     ],
 
     'oracle_hcm' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 1000,
 
         'companies' => [
@@ -121,16 +121,16 @@ return [
     ],
 
     'radartec' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
     ],
 
     'derevo' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
     ],
 
     'ashby' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -153,12 +153,12 @@ return [
     ],
 
     'geekhunter' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 50,
     ],
 
     'recrutai' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
 
         'companies' => [
@@ -170,7 +170,10 @@ return [
     ],
 
     'pandape' => [
-        'ca_bundle' => env('GREENHOUSE_CA_BUNDLE'),
+        'ca_bundle' => env(
+            'PANDAPE_CA_BUNDLE',
+            env('VACANCY_CA_BUNDLE')
+        ),
         'max_pages' => 100,
 
         'companies' => [
