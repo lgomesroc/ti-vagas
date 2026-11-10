@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Municipality;
+use Illuminate\Support\Facades\DB;
 use App\Services\Geo\IbgeGeographyImporter;
 use Illuminate\Console\Command;
 use Throwable;
@@ -20,8 +20,9 @@ class ImportIbgeGeography extends Command
     {
         if (
             $this->option('if-empty')
-            && Municipality::query()
-                ->whereNotNull('intermediate_region_code')
+            && DB::table('geography_import_status')
+                ->where('source', 'ibge-localities')
+                ->whereNotNull('imported_at')
                 ->exists()
         ) {
             $this->info('Base territorial já importada. Nada a fazer.');
