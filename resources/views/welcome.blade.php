@@ -55,9 +55,11 @@
 
                 <p>
                     Se não autorizar ou se a localização estiver indisponível,
-                    você ainda poderá navegar pelo TI Vagas, mas terá uma
-                    experiência limitada: os recursos que dependem da
-                    localização não estarão disponíveis.
+                    o TI Vagas poderá consultar seu endereço IP em um serviço
+                    externo para estimar cidade e estado. Essa estimativa é
+                    aproximada, não substitui a autorização do navegador e
+                    não libera vagas presenciais ou híbridas. Você verá somente
+                    vagas remotas nacionais até ativar a localização.
                 </p>
 
                 <p>
@@ -283,6 +285,19 @@
                 e disponibilizar oportunidades da sua região. Nesta versão,
                 essas informações são mantidas na sessão de navegação
                 e não são utilizadas para criar um cadastro de usuário.
+            </p>
+
+            <p>
+                Se o usuário não autorizar a localização do navegador, o portal
+                poderá enviar o endereço IP ao serviço externo IPWho para obter
+                uma estimativa de cidade e estado. A localização por IP pode
+                estar incorreta, especialmente em redes móveis, corporativas
+                ou com VPN, e é utilizada somente para informar a estimativa
+                exibida na página. Ela nunca libera vagas locais. O TI Vagas
+                não grava o endereço IP em seu banco de dados; mantém em cache
+                o resultado aproximado associado a uma chave derivada do IP
+                por até 12 horas. O serviço IPWho recebe o IP e poderá tratá-lo
+                conforme sua própria política de privacidade.
             </p>
 
             <p>
