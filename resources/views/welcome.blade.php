@@ -133,7 +133,8 @@
                             name="terms"
                             value="1"
                             required
-                            @checked(old('terms'))
+                            @checked($termsAccepted || old('terms'))
+                            @disabled($termsAccepted)
                         >
 
                         <span>
@@ -332,6 +333,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const cityNameInput = document.getElementById('city-name');
 
     const message = document.getElementById('location-message');
+    const termsAlreadyAccepted = @json($termsAccepted);
 
     const stateCodes = {
         'acre': 'AC',
@@ -364,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function updateButtons() {
-        const accepted = termsCheckbox.checked;
+        const accepted = termsAlreadyAccepted || termsCheckbox.checked;
 
         locationButton.disabled = !accepted;
         limitedButton.disabled = !accepted;
@@ -458,6 +460,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     updateButtons();
+
+    if (termsAlreadyAccepted) {
+        message.textContent =
+            'Termos já aceitos. Você pode ativar a localização para liberar as vagas da sua região.';
+    }
 
     locationButton.addEventListener('click', function () {
         if (!termsCheckbox.checked) {
