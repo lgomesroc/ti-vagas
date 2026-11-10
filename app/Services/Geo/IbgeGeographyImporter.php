@@ -311,22 +311,18 @@ class IbgeGeographyImporter
 
         foreach ($regions as $index => $region) {
             if (!isset($region['municipios']) && isset($region['id'])) {
-                $detail = $this->client()
-                    ->get($baseUrl . '/v1/localidades/regioes-metropolitanas/' . $region['id'])
+                $members = $this->client()
+                    ->get($baseUrl . '/v1/localidades/regioes-metropolitanas/' . $region['id'] . '/municipios')
                     ->throw()
                     ->json();
 
-                if (is_array($detail[0] ?? null) && isset($detail[0]['municipios'])) {
-                    $detail = $detail[0];
-                }
-
-                if (!is_array($detail) || !isset($detail['municipios']) || !is_array($detail['municipios'])) {
+                if (!is_array($members)) {
                     throw new \RuntimeException(
-                        'O IBGE não retornou os municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . '.'
+                        'O IBGE não retornou uma lista válida de municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . '.'
                     );
                 }
 
-                $regions[$index]['municipios'] = $detail['municipios'];
+                $regions[$index]['municipios'] = $members;
             }
 
             if (!isset($regions[$index]['municipios']) || !is_array($regions[$index]['municipios'])) {
