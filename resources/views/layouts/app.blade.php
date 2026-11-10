@@ -703,11 +703,7 @@
         </div>
     </footer>
 
-    @if (
-        !request()->routeIs('welcome')
-        && request()->cookie('ti_vagas_terms_accepted') === \App\Http\Middleware\EnsureWelcomeAccepted::TERMS_VERSION
-        && request()->cookie('ti_vagas_cookie_notice') !== '1'
-    )
+    @if (\App\Http\Middleware\EnsureWelcomeAccepted::shouldShowCookieNotice(request()))
 
         <div
             class="cookie-modal-overlay"
