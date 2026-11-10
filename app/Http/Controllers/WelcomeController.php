@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
+use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WelcomeController extends Controller
 {
+    public function __construct(
+        private readonly VisitorLocationResolver $visitorLocationResolver
+    ) {
+    }
+
     public function show(Request $request): View
     {
         $termsAccepted = $request->cookie('ti_vagas_terms_accepted')
@@ -34,6 +40,7 @@ class WelcomeController extends Controller
                 'numeric',
                 'between:-180,180',
             ],
+            'city_name' => ['nullable', 'string', 'max:150'],
             'state_code' => [
                 'required_if:location_status,available',
                 'nullable',
@@ -46,21 +53,42 @@ class WelcomeController extends Controller
             'state_code.required_if' => 'Não foi possível identificar seu estado. Tente obter a localização novamente.',
         ]);
 
+        $municipality = null;
+
+        if ($validated['location_status'] === 'available') {
+            $municipality = $this->visitorLocationResolver->resolve(
+                (float) $validated['latitude'],
+                (float) $validated['longitude'],
+                $validated['city_name'] ?? null,
+                $validated['state_code']
+            );
+
+            if ($municipality === null) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'state_code' => 'Não foi possível identificar seu município. Tente obter a localização novamente.',
+                    ]);
+            }
+        }
+
         $request->session()->put([
             'location_mode' => $validated['location_status'],
         ]);
 
-        if ($validated['location_status'] === 'available') {
+        if ($municipality !== null) {
             $request->session()->put([
                 'location_latitude' => (float) $validated['latitude'],
                 'location_longitude' => (float) $validated['longitude'],
-                'visitor_state_code' => strtoupper($validated['state_code']),
+                'visitor_state_code' => $municipality['uf'],
+                'visitor_municipality_ibge' => $municipality['ibge'],
             ]);
         } else {
             $request->session()->forget([
                 'location_latitude',
                 'location_longitude',
                 'visitor_state_code',
+                'visitor_municipality_ibge',
             ]);
         }
 

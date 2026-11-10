@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Services\Geo\RegionScope;
 use App\Services\VacancyLocationFilter;
 use PHPUnit\Framework\TestCase;
 
@@ -71,14 +72,30 @@ class VacancyLocationFilterTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_accepts_remote_vacancy_in_another_brazilian_state(): void
+    private function scope(string $regionCode = 'RM-A'): RegionScope
+    {
+        return new RegionScope(RegionScope::UNIT, $regionCode, $regionCode);
+    }
+
+    private function municipality(string $regionCode = 'RM-A'): array
+    {
+        return [
+            'ibge' => '1111111',
+            'region_code' => $regionCode,
+            'intermediate_region_code' => '9999',
+        ];
+    }
+
+    public function test_accepts_remote_vacancy_for_visitor_without_location(): void
     {
         $this->assertTrue(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 'Sao Paulo, Brasil',
                 'Desenvolvedor Backend',
                 null,
-                'Remoto'
+                'Remoto',
+                null,
+                null
             )
         );
     }
@@ -86,11 +103,13 @@ class VacancyLocationFilterTest extends TestCase
     public function test_accepts_remote_vacancy_explicitly_available_in_brazil(): void
     {
         $this->assertTrue(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 'Sao Paulo',
                 'Desenvolvedor Backend',
                 'Remote in Brazil.',
-                'Remoto'
+                'Remoto',
+                $this->scope(),
+                null
             )
         );
     }
@@ -98,83 +117,71 @@ class VacancyLocationFilterTest extends TestCase
     public function test_rejects_remote_vacancy_without_brazil_confirmation(): void
     {
         $this->assertFalse(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 'Sao Paulo',
                 'Desenvolvedor Backend',
                 'Remote position.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_accepts_hybrid_vacancy_in_niteroi(): void
-    {
-        $this->assertTrue(
-            $this->filter->isEligible(
-                'Niteroi, RJ, Brasil',
-                'Desenvolvedor Backend',
-                null,
-                'Híbrido'
-            )
-        );
-    }
-
-    public function test_accepts_onsite_vacancy_in_duque_de_caxias(): void
-    {
-        $this->assertTrue(
-            $this->filter->isEligible(
-                'Duque de Caxias, RJ',
-                'Analista de Suporte',
-                null,
-                'Presencial'
-            )
-        );
-    }
-
-    public function test_accepts_vacancy_with_unknown_work_model_in_rio_metro(): void
-    {
-        $this->assertTrue(
-            $this->filter->isEligible(
-                'Sao Goncalo, RJ',
-                'Analista de Suporte',
-                null,
+                'Remoto',
+                $this->scope(),
                 null
             )
         );
     }
 
-    public function test_rejects_hybrid_vacancy_in_macae(): void
+    public function test_accepts_local_vacancy_in_the_visitor_region(): void
+    {
+        foreach (['Híbrido', 'Presencial', null] as $workModel) {
+            $this->assertTrue(
+                $this->filter->isEligibleForVisitor(
+                    'Niteroi, RJ, Brasil',
+                    'Desenvolvedor Backend',
+                    null,
+                    $workModel,
+                    $this->scope('RM-A'),
+                    $this->municipality('RM-A')
+                )
+            );
+        }
+    }
+
+    public function test_rejects_local_vacancy_outside_the_visitor_region(): void
     {
         $this->assertFalse(
-            $this->filter->isEligible(
-                'Macae, RJ',
+            $this->filter->isEligibleForVisitor(
+                'Sao Paulo, SP, Brasil',
+                'Analista de Suporte',
+                null,
+                'Presencial',
+                $this->scope('RM-A'),
+                $this->municipality('RM-B')
+            )
+        );
+    }
+
+    public function test_rejects_local_vacancy_when_visitor_has_no_location(): void
+    {
+        $this->assertFalse(
+            $this->filter->isEligibleForVisitor(
+                'Niteroi, RJ',
                 'Desenvolvedor Backend',
                 null,
-                'Híbrido'
+                'Presencial',
+                null,
+                $this->municipality()
             )
         );
     }
 
-    public function test_rejects_city_outside_allowed_region_when_title_overrides_generic_location(): void
+    public function test_rejects_local_vacancy_when_municipality_is_not_identified(): void
     {
         $this->assertFalse(
-            $this->filter->isEligible(
-                'Brasil - Rio de Janeiro',
-                'Desenvolvedor Backend - Nova Friburgo/RJ',
+            $this->filter->isEligibleForVisitor(
+                'Brasil',
+                'Desenvolvedor Backend',
                 null,
-                'Presencial'
-            )
-        );
-    }
-
-    public function test_accepts_allowed_city_in_title(): void
-    {
-        $this->assertTrue(
-            $this->filter->isEligible(
-                'Brasil - Rio de Janeiro',
-                'Analista de Suporte - Niteroi/RJ',
-                null,
-                'Presencial'
+                'Híbrido',
+                $this->scope(),
+                null
             )
         );
     }
@@ -182,11 +189,13 @@ class VacancyLocationFilterTest extends TestCase
     public function test_rejects_vacancy_in_foreign_country(): void
     {
         $this->assertFalse(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 'London, United Kingdom',
                 'Backend Developer',
                 null,
-                'Remoto'
+                'Remoto',
+                $this->scope(),
+                null
             )
         );
     }
@@ -194,131 +203,55 @@ class VacancyLocationFilterTest extends TestCase
     public function test_rejects_foreign_vacancy_even_when_description_mentions_brazil(): void
     {
         $this->assertFalse(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 'New York, United States',
                 'Backend Developer',
                 'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_hybrid_vacancy_with_only_generic_brazil_location(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Brasil',
-                'Desenvolvedor Backend',
-                null,
-                'Híbrido'
-            )
-        );
-    }
-
-    public function test_rejects_onsite_vacancy_in_another_brazilian_state(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Sao Paulo, SP, Brasil',
-                'Analista de Suporte',
-                null,
-                'Presencial'
-            )
-        );
-    }
-
-    public function test_rejects_united_states_written_in_portuguese(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Estados Unidos',
-                'Backend Developer',
-                'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_germany_written_in_portuguese(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Alemanha',
-                'Backend Developer',
-                'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_france_written_in_portuguese(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Franca',
-                'Backend Developer',
-                'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_spain_written_in_portuguese(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Espanha',
-                'Backend Developer',
-                'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_portugal_written_in_portuguese(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                'Portugal',
-                'Backend Developer',
-                'Remote in Brazil.',
-                'Remoto'
-            )
-        );
-    }
-
-    public function test_rejects_vacancy_with_empty_location_and_unknown_work_model(): void
-    {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                '',
-                'Desenvolvedor Backend',
-                null,
+                'Remoto',
+                $this->scope(),
                 null
             )
         );
     }
 
-    public function test_rejects_vacancy_with_null_location_and_unknown_work_model(): void
+    public function test_rejects_foreign_countries_written_in_portuguese(): void
     {
-        $this->assertFalse(
-            $this->filter->isEligible(
-                null,
-                'Desenvolvedor Backend',
-                null,
-                null
-            )
-        );
+        foreach (['Estados Unidos', 'Alemanha', 'Franca', 'Espanha', 'Portugal'] as $country) {
+            $this->assertFalse(
+                $this->filter->isEligibleForVisitor(
+                    $country,
+                    'Backend Developer',
+                    'Remote in Brazil.',
+                    'Remoto',
+                    $this->scope(),
+                    null
+                )
+            );
+        }
     }
 
     public function test_accepts_remote_vacancy_with_null_location_when_brazil_is_explicit_in_description(): void
     {
         $this->assertTrue(
-            $this->filter->isEligible(
+            $this->filter->isEligibleForVisitor(
                 null,
                 'Desenvolvedor Backend',
                 'Remote in Brazil.',
-                'Remoto'
+                'Remoto',
+                null,
+                null
+            )
+        );
+    }
+
+    public function test_collection_rejects_empty_location_without_brazil_mention(): void
+    {
+        $this->assertFalse(
+            $this->filter->isEligibleForCollection(
+                '',
+                'Desenvolvedor Backend',
+                null,
+                null
             )
         );
     }

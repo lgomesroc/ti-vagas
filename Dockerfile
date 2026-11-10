@@ -70,4 +70,4 @@ RUN mkdir -p storage/framework/cache \
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "php artisan migrate --force && apache2-foreground"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan geo:import-ibge --if-empty && apache2-foreground"]
