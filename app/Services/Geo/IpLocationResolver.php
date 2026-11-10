@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Services\\Geo;
+namespace App\Services\Geo;
 
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Cache;
-use Illuminate\\Support\\Facades\\Http;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class IpLocationResolver
