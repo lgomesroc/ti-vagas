@@ -319,20 +319,20 @@ class IbgeGeographyImporter
             ->json();
 
         if (!is_array($municipalities) || count($municipalities) < 5000) {
-            throw new \\RuntimeException(
+            throw new \RuntimeException(
                 'A API do IBGE não retornou a relação completa de municípios.'
             );
         }
 
         if (!is_array($regions) || $regions === []) {
-            throw new \\RuntimeException(
+            throw new \RuntimeException(
                 'A API do IBGE não retornou a relação de Regiões Metropolitanas.'
             );
         }
 
         foreach ($regions as $index => $region) {
             if (!isset($region['id'])) {
-                throw new \\RuntimeException(
+                throw new \RuntimeException(
                     'A API do IBGE retornou uma Região Metropolitana sem identificador.'
                 );
             }
