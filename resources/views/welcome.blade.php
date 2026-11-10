@@ -489,15 +489,21 @@ document.addEventListener('DOMContentLoaded', function () {
             'Termos já aceitos. Você pode ativar a localização para liberar as vagas da sua região.';
     }
 
-    // O botão de experiência limitada precisa descartar qualquer
-    // coordenada antiga reaproveitada após uma falha de validação.
-    limitedButton.addEventListener('click', function () {
+    function resetLocationFields() {
         statusInput.value = 'limited';
         latitudeInput.value = '';
         longitudeInput.value = '';
         stateCodeInput.value = '';
         cityNameInput.value = '';
-    });
+    }
+
+    function continueWithLimitedLocation() {
+        resetLocationFields();
+        form.requestSubmit();
+    }
+
+    // O botão manual e as falhas de localização usam o mesmo fluxo limitado.
+    limitedButton.addEventListener('click', resetLocationFields);
 
     locationButton.addEventListener('click', function () {
         if (!termsCheckbox.checked) {
@@ -507,7 +513,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!navigator.geolocation) {
             message.textContent =
-                'Seu navegador não disponibiliza localização. Você pode continuar com experiência limitada.';
+                'Seu navegador não disponibiliza localização. Continuando com experiência limitada...';
+            continueWithLimitedLocation();
             return;
         }
 
@@ -550,13 +557,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     stateCodeInput.value = '';
                     cityNameInput.value = '';
 
-                    locationButton.textContent =
-                        'Ativar localização e continuar';
-
-                    updateButtons();
-
                     message.textContent =
-                        'Não foi possível identificar sua localização. Tente novamente ou continue com experiência limitada.';
+                        'Não foi possível identificar sua localização. Continuando com experiência limitada...';
+
+                    continueWithLimitedLocation();
                 }
             },
             function (error) {
@@ -566,21 +570,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 stateCodeInput.value = '';
                 cityNameInput.value = '';
 
-                locationButton.textContent =
-                    'Ativar localização e continuar';
-
-                updateButtons();
-
                 if (error.code === error.PERMISSION_DENIED) {
                     message.textContent =
-                        'A localização não foi autorizada. Você pode continuar com experiência limitada ou tentar novamente.';
+                        'A localização não foi autorizada. Continuando com experiência limitada...';
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
                     message.textContent =
-                        'Não foi possível identificar sua localização. Você pode continuar com experiência limitada ou tentar novamente.';
+                        'Não foi possível identificar sua localização. Continuando com experiência limitada...';
                 } else {
                     message.textContent =
-                        'O tempo para obter a localização terminou. Você pode tentar novamente ou continuar com experiência limitada.';
+                        'O tempo para obter a localização terminou. Continuando com experiência limitada...';
                 }
+
+                continueWithLimitedLocation();
             },
             {
                 enableHighAccuracy: false,
