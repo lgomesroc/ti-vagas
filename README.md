@@ -81,16 +81,35 @@ Vagas sem senioridade claramente informada podem ser submetidas aos demais crit�
 
 ### Localização e modalidade de trabalho
 
-O portal prioriza oportunidades destinadas a profissionais residentes no Brasil.
+O portal prioriza oportunidades destinadas a profissionais residentes no Brasil e exibe vagas presenciais e híbridas **apenas para a região do visitante**, como acontece com a programação regional da televisão.
 
-- **Remoto:** oportunidades que permitem atuação remota no Brasil, independentemente do estado.
-- **Híbrido:** oportunidades em municípios da Região Metropolitana do Rio de Janeiro contemplados pelos filtros.
-- **Presencial:** oportunidades em municípios da Região Metropolitana do Rio de Janeiro contemplados pelos filtros.
-- **Modalidade não informada:** algumas oportunidades podem ser aceitas quando a localização atende aos critérios territoriais do projeto.
+- **Remoto:** oportunidades que permitem atuação remota no Brasil aparecem para todos, independentemente do local.
+- **Presencial, híbrido ou modalidade não informada:** aparecem somente para visitantes da mesma região da vaga.
+- O visitante precisa autorizar a localização no navegador. Sem autorização, apenas vagas remotas são exibidas.
 
-O sistema também verifica referências a localidades estrangeiras e cidades fora da região permitida, evitando apresentar oportunidades incompatíveis com a abrangência geográfica definida.
+#### Como a região é definida
 
-A ausência de informação sobre modalidade não significa que uma oportunidade seja remota.
+O município do visitante e o da vaga são identificados pelo código do IBGE. A região é definida em camadas:
+
+1. **Região Metropolitana (RM) ou RIDE:** se o município pertence a uma delas, o visitante vê apenas vagas dos municípios da mesma RM ou RIDE. Um visitante de Rio Bonito, por exemplo, vê vagas de Niterói e Nova Iguaçu, mas não de Teresópolis, de São Paulo ou de Campinas.
+2. **Região Geográfica Intermediária do IBGE (2017):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
+
+As vagas só são exibidas se o município puder ser identificado. Quando o texto informa uma cidade que não existe na UF indicada (por exemplo, "Santos, Rio de Janeiro"), a vaga não é associada a nenhum município.
+
+#### Base territorial
+
+- Municípios, UF e centroides: `database/data/municipios.csv`.
+- Regiões Imediatas, Intermediárias e RMs: API de localidades do IBGE.
+- Ajustes manuais (RM do Rio de Janeiro, RM de São Paulo, RM de Campinas, RIDE do Distrito Federal e Entorno, RIDE da Grande Teresina e RIDE do Polo Petrolina e Juazeiro): `config/geo_regions.php`. Esses ajustes substituem a RM de mesmo nome importada do IBGE.
+
+Após `php artisan migrate`, importe a base territorial:
+
+```bash
+php artisan geo:import-ibge
+php artisan vacancies:resolve-municipalities
+```
+
+O primeiro comando precisa acessar `servicodados.ibge.gov.br`. A opção `--offline` carrega apenas municípios e os ajustes de `config/geo_regions.php`. O segundo identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
 
 ## Coleta e integração de vagas
 

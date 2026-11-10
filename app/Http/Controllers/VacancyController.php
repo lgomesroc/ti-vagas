@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vacancy;
+use App\Services\Geo\RegionScope;
+use App\Services\Geo\VacancyLocationResolver;
+use App\Services\Geo\VisitorLocationResolver;
 use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
@@ -253,25 +256,27 @@ class VacancyController extends Controller
 
     public function __construct(
         private readonly VacancyLocationFilter $locationFilter,
-        private readonly VacancyAvailabilityDetector $availabilityDetector
+        private readonly VacancyAvailabilityDetector $availabilityDetector,
+        private readonly VacancyLocationResolver $vacancyLocationResolver,
+        private readonly VisitorLocationResolver $visitorLocationResolver
     ) {
     }
 
     /**
-     * Retorna as vagas elegíveis para o estado do visitante.
+     * Retorna as vagas elegíveis para a região do visitante.
      *
-     * A UF é recebida explicitamente para que o serviço de localização
+     * A região é recebida explicitamente para que o serviço de localização
      * não dependa do container de sessão do Laravel.
      */
     private function eligibleVacancies(
-        ?string $visitorStateCode = null
+        ?RegionScope $visitorScope = null
     ): Collection {
         $vacancies = Vacancy::query()
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
             ->get()
-            ->filter(function (Vacancy $vacancy) use ($visitorStateCode) {
+            ->filter(function (Vacancy $vacancy) use ($visitorScope) {
                 if ($this->availabilityDetector->isUnavailable(
                     $vacancy->title,
                     $vacancy->description
@@ -377,7 +382,10 @@ class VacancyController extends Controller
                     $vacancy->title,
                     $vacancy->description,
                     $workModel,
-                    $visitorStateCode
+                    $visitorScope,
+                    $this->vacancyLocationResolver->resolveForVacancy(
+                        $vacancy
+                    )
                 );
             })
             ->values();
@@ -491,13 +499,10 @@ class VacancyController extends Controller
     {
         $search = trim($request->query('q', ''));
 
-        $visitorStateCode = $request->session()->get('location_mode')
-            === 'available'
-                ? $request->session()->get('visitor_state_code')
-                : null;
-
         $eligibleVacancies = $this->eligibleVacancies(
-            $visitorStateCode
+            $this->visitorLocationResolver->scopeFromSession(
+                $request->session()
+            )
         );
 
         if ($search !== '') {
@@ -553,13 +558,10 @@ class VacancyController extends Controller
         Request $request,
         Vacancy $vacancy
     ): View {
-        $visitorStateCode = $request->session()->get('location_mode')
-            === 'available'
-                ? $request->session()->get('visitor_state_code')
-                : null;
-
         $eligibleVacancy = $this->eligibleVacancies(
-            $visitorStateCode
+            $this->visitorLocationResolver->scopeFromSession(
+                $request->session()
+            )
         )->firstWhere('id', $vacancy->getKey());
 
         abort_unless($eligibleVacancy, 404);
