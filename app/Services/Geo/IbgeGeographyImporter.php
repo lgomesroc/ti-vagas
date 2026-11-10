@@ -321,7 +321,7 @@ class IbgeGeographyImporter
                 }
 
                 if (!is_array($detail) || !isset($detail['municipios']) || !is_array($detail['municipios'])) {
-                    throw new \\RuntimeException(
+                    throw new \RuntimeException(
                         'O IBGE não retornou os municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . '.'
                     );
                 }
@@ -330,7 +330,7 @@ class IbgeGeographyImporter
             }
 
             if (!isset($regions[$index]['municipios']) || !is_array($regions[$index]['municipios'])) {
-                throw new \\RuntimeException(
+                throw new \RuntimeException(
                     'A lista de municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . ' está incompleta.'
                 );
             }
