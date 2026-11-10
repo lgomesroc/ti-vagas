@@ -307,9 +307,28 @@ class IbgeGeographyImporter
             ->throw()
             ->json();
 
-        $regions = is_array($regions) ? $regions : [];
+        if (!is_array($municipalities) || count($municipalities) < 5000) {
+            throw new \\RuntimeException(
+                'A API do IBGE não retornou a relação completa de municípios.'
+            );
+        }
+
+        if (!is_array($regions) || $regions === []) {
+            throw new \\RuntimeException(
+                'A API do IBGE não retornou a relação de Regiões Metropolitanas.'
+            );
+        }
 
         foreach ($regions as $index => $region) {
+            if (!isset($region['id'])) {
+                throw new \\RuntimeException(
+                    'A API do IBGE retornou uma Região Metropolitana sem identificador.'
+                );
+            }
+
+            if (isset($region['municipios']) && $region['municipios'] === []) {
+                unset($regions[$index]['municipios']);
+            }
             if (!isset($region['municipios']) && isset($region['id'])) {
                 $members = $this->client()
                     ->get($baseUrl . '/v1/localidades/regioes-metropolitanas/' . $region['id'] . '/municipios')
@@ -325,7 +344,7 @@ class IbgeGeographyImporter
                 $regions[$index]['municipios'] = $members;
             }
 
-            if (!isset($regions[$index]['municipios']) || !is_array($regions[$index]['municipios'])) {
+            if (!isset($regions[$index]['municipios']) || !is_array($regions[$index]['municipios']) || $regions[$index]['municipios'] === []) {
                 throw new \RuntimeException(
                     'A lista de municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . ' está incompleta.'
                 );
