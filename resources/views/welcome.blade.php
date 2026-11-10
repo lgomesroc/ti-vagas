@@ -128,6 +128,10 @@
                 >
 
                 <div class="terms-acceptance">
+                    @if ($termsAccepted)
+                        <input type="hidden" name="terms" value="1">
+                    @endif
+
                     <label>
                         <input
                             type="checkbox"
