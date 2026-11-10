@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Municipality;
+use Illuminate\Support\Facades\DB;
 use App\Services\Geo\IbgeGeographyImporter;
 use Illuminate\Console\Command;
 use Throwable;
@@ -20,7 +20,7 @@ class ImportIbgeGeography extends Command
     {
         if (
             $this->option('if-empty')
-            && \\Illuminate\\Support\\Facades\\DB::table('geography_import_status')
+            && DB::table('geography_import_status')
                 ->where('source', 'ibge-localities')
                 ->whereNotNull('imported_at')
                 ->exists()
