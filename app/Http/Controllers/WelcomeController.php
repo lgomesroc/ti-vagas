@@ -57,7 +57,7 @@ class WelcomeController extends Controller
         ]);
 
         $request->session()->put(
-            'terms_accepted_version',
+            EnsureWelcomeAccepted::TERMS_SESSION_KEY,
             EnsureWelcomeAccepted::TERMS_VERSION
         );
 
@@ -116,7 +116,7 @@ class WelcomeController extends Controller
             ->route('vacancies.index')
             ->with('location_notice', $notice)
             ->withCookie(cookie()->forever(
-                'ti_vagas_terms_accepted',
+                EnsureWelcomeAccepted::TERMS_COOKIE,
                 EnsureWelcomeAccepted::TERMS_VERSION,
                 '/',
                 null,
@@ -129,10 +129,16 @@ class WelcomeController extends Controller
 
     public function acknowledgeCookies(Request $request): RedirectResponse
     {
+        $request->session()->put(
+            EnsureWelcomeAccepted::COOKIE_NOTICE_SESSION_KEY,
+            true
+        );
+
+        // Sem Referer o visitante vai para a lista de vagas, não para as boas-vindas.
         return redirect()
-            ->back()
+            ->back(fallback: route('vacancies.index'))
             ->withCookie(cookie()->forever(
-                'ti_vagas_cookie_notice',
+                EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
                 '1',
                 '/',
                 null,
@@ -145,9 +151,6 @@ class WelcomeController extends Controller
 
     private function termsAccepted(Request $request): bool
     {
-        return $request->session()->get('terms_accepted_version')
-                === EnsureWelcomeAccepted::TERMS_VERSION
-            || $request->cookie('ti_vagas_terms_accepted')
-                === EnsureWelcomeAccepted::TERMS_VERSION;
+        return EnsureWelcomeAccepted::isAccepted($request);
     }
 }
