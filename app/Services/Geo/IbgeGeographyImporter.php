@@ -199,6 +199,17 @@ class IbgeGeographyImporter
         $updated = 0;
 
         DB::transaction(function () use ($regions, $superseded, &$updated): void {
+            // Sincronização completa: remove associações antigas de RMs que
+            // já não constam na resposta atual do IBGE. As unidades curadas
+            // são reaplicadas logo depois pelo comando geo:import-ibge.
+            Municipality::query()
+                ->where('region_type', 'RM')
+                ->update([
+                    'region_type' => null,
+                    'region_code' => null,
+                    'region_name' => null,
+                ]);
+
             foreach ($regions as $region) {
                 if (!isset($region['id'])) {
                     continue;
