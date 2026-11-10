@@ -62,9 +62,21 @@ jobs:
 
       - name: Processar fila de vagas
         run: |
-          php artisan queue:work database \
-            --queue=vacancies \
-            --stop-when-empty \
-            --tries=3 \
-            --timeout=120 \
-            --sleep=3
+          while true; do
+            php artisan queue:work database \
+              --queue=vacancies \
+              --stop-when-empty \
+              --tries=3 \
+              --timeout=0 \
+              --sleep=3 || echo "Worker encerrou com erro; verificando jobs pendentes para reiniciar."
+
+            pending="$(php artisan vacancies:queue-size)"
+            echo "Jobs pendentes na fila: $pending"
+
+            if [ "$pending" -eq 0 ]; then
+              break
+            fi
+
+            echo "Há jobs pendentes ou em backoff. Reiniciando o worker em 5 segundos..."
+            sleep 5
+          done
