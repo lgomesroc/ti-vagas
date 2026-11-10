@@ -313,21 +313,49 @@ class IbgeGeographyImporter
             if (!isset($region['municipios']) && isset($region['id'])) {
                 $detail = $this->client()
                     ->get($baseUrl . '/v1/localidades/regioes-metropolitanas/' . $region['id'])
+                    ->throw()
                     ->json();
 
-                if (is_array($detail) && isset($detail['municipios'])) {
-                    $regions[$index]['municipios'] = $detail['municipios'];
-                } elseif (is_array($detail[0] ?? null) && isset($detail[0]['municipios'])) {
-                    $regions[$index]['municipios'] = $detail[0]['municipios'];
+                if (is_array($detail[0] ?? null) && isset($detail[0]['municipios'])) {
+                    $detail = $detail[0];
                 }
+
+                if (!is_array($detail) || !isset($detail['municipios']) || !is_array($detail['municipios'])) {
+                    throw new \\RuntimeException(
+                        'O IBGE não retornou os municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . '.'
+                    );
+                }
+
+                $regions[$index]['municipios'] = $detail['municipios'];
+            }
+
+            if (!isset($regions[$index]['municipios']) || !is_array($regions[$index]['municipios'])) {
+                throw new \\RuntimeException(
+                    'A lista de municípios da região metropolitana ' . ($region['id'] ?? 'desconhecida') . ' está incompleta.'
+                );
             }
         }
 
+        $municipalityCount = $this->applyMunicipalityRegions(
+            is_array($municipalities) ? $municipalities : []
+        );
+
+        $metropolitanCount = $this->applyMetropolitanRegions($regions);
+
+        // Só registra a importação como concluída depois de receber e aplicar
+        // a lista completa de RMs e seus municípios. Se a API falhar, o
+        // próximo deploy tentará novamente em vez de considerar a base pronta.
+        DB::table('geography_import_status')->updateOrInsert(
+            ['source' => 'ibge-localities'],
+            [
+                'records_count' => count($regions),
+                'imported_at' => now(),
+            ]
+        );
+
         return [
-            'municipalities' => $this->applyMunicipalityRegions(
-                is_array($municipalities) ? $municipalities : []
-            ),
-            'metropolitan' => $this->applyMetropolitanRegions($regions),
+            'municipalities' => $municipalityCount,
+            'metropolitan' => $metropolitanCount,
         ];
     }
 
