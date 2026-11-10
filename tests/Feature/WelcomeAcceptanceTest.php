@@ -76,4 +76,151 @@ class WelcomeAcceptanceTest extends TestCase
             'location_mode' => 'limited',
         ])->get(route('vacancies.index'))->assertOk();
     }
+
+    public function test_cookie_acceptance_is_enough_to_pass_welcome_middleware_without_session(): void
+    {
+        $this->withCookie(
+            EnsureWelcomeAccepted::TERMS_COOKIE,
+            EnsureWelcomeAccepted::TERMS_VERSION
+        )->get(route('vacancies.index'))->assertOk();
+    }
+
+    public function test_visitor_without_acceptance_is_sent_to_welcome(): void
+    {
+        $this->get(route('vacancies.index'))
+            ->assertRedirect(route('welcome'));
+    }
+
+    public function test_accepting_with_precise_location_releases_site_and_sets_terms_cookie(): void
+    {
+        $this->mock(VisitorLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')
+                ->once()
+                ->andReturn([
+                    'ibge' => '3304557',
+                    'name' => 'Rio de Janeiro',
+                    'uf' => 'RJ',
+                ]);
+        });
+
+        $response = $this->post(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'available',
+            'latitude' => -22.9,
+            'longitude' => -43.2,
+            'state_code' => 'RJ',
+            'city_name' => 'Rio de Janeiro',
+        ]);
+
+        $response->assertRedirect(route('vacancies.index'));
+        $response->assertSessionHas('location_mode', 'available');
+        $response->assertSessionHas(
+            'terms_accepted_version',
+            EnsureWelcomeAccepted::TERMS_VERSION
+        );
+        $response->assertCookie(EnsureWelcomeAccepted::TERMS_COOKIE);
+    }
+
+    public function test_declining_location_also_sets_terms_cookie(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $this->post(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'limited',
+        ])
+            ->assertRedirect(route('vacancies.index'))
+            ->assertCookie(EnsureWelcomeAccepted::TERMS_COOKIE);
+    }
+
+    public function test_cookie_notice_is_shown_after_accepting_with_limited_location(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'location_mode' => 'limited',
+        ])->withCookie(
+            EnsureWelcomeAccepted::TERMS_COOKIE,
+            EnsureWelcomeAccepted::TERMS_VERSION
+        )->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertSee('Utilizamos cookies');
+    }
+
+    public function test_cookie_notice_is_shown_after_accepting_with_precise_location(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'location_mode' => 'available',
+        ])->withCookie(
+            EnsureWelcomeAccepted::TERMS_COOKIE,
+            EnsureWelcomeAccepted::TERMS_VERSION
+        )->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertSee('Utilizamos cookies');
+    }
+
+    public function test_cookie_notice_is_shown_even_when_only_the_session_holds_the_acceptance(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'location_mode' => 'limited',
+        ])->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertSee('Utilizamos cookies');
+    }
+
+    public function test_cookie_notice_is_hidden_once_acknowledged_by_cookie(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'location_mode' => 'limited',
+        ])->withCookie(
+            EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
+            '1'
+        )->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('Utilizamos cookies');
+    }
+
+    public function test_cookie_notice_is_hidden_once_acknowledged_by_session(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'cookie_notice_acknowledged' => true,
+            'location_mode' => 'limited',
+        ])->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('Utilizamos cookies');
+    }
+
+    public function test_cookie_notice_is_not_shown_on_the_welcome_page(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+        ])->get(route('welcome'))
+            ->assertOk()
+            ->assertDontSee('Utilizamos cookies');
+    }
+
+    public function test_acknowledging_cookies_stays_on_the_previous_page_and_stores_the_choice(): void
+    {
+        $response = $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+        ])->from(route('vacancies.index'))
+            ->post(route('cookies.acknowledge'));
+
+        $response->assertRedirect(route('vacancies.index'));
+        $response->assertSessionHas('cookie_notice_acknowledged', true);
+        $response->assertCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE);
+    }
+
+    public function test_acknowledging_cookies_without_referer_goes_to_vacancies_not_welcome(): void
+    {
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+        ])->post(route('cookies.acknowledge'))
+            ->assertRedirect(route('vacancies.index'));
+    }
 }

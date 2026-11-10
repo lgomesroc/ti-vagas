@@ -357,6 +357,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const message = document.getElementById('location-message');
     const termsAlreadyAccepted = @json($termsAccepted);
+    const REVERSE_GEOCODING_TIMEOUT_MS = 8000;
+
+    // Evita envio duplicado quando o visitante clica enquanto a localização
+    // ainda está sendo obtida.
+    let submitting = false;
 
     const stateCodes = {
         'acre': 'AC',
@@ -441,18 +446,31 @@ document.addEventListener('DOMContentLoaded', function () {
         url.searchParams.set('addressdetails', '1');
         url.searchParams.set('accept-language', 'pt-BR');
 
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
+        // Sem limite de tempo, uma consulta lenta deixaria o visitante preso.
+        const controller = new AbortController();
+        const timer = setTimeout(function () {
+            controller.abort();
+        }, REVERSE_GEOCODING_TIMEOUT_MS);
+
+        let data;
+
+        try {
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            if (!response.ok) {
+                throw new Error('Não foi possível identificar o estado.');
             }
-        });
 
-        if (!response.ok) {
-            throw new Error('Não foi possível identificar o estado.');
+            data = await response.json();
+        } finally {
+            clearTimeout(timer);
         }
-
-        const data = await response.json();
 
         if (!data.address) {
             throw new Error('A resposta de localização não contém endereço.');
@@ -497,9 +515,33 @@ document.addEventListener('DOMContentLoaded', function () {
         cityNameInput.value = '';
     }
 
+    form.addEventListener('submit', function () {
+        submitting = true;
+    });
+
+    // requestSubmit() não existe em navegadores antigos (Safari < 16);
+    // nesses casos o formulário é enviado com submit().
+    function submitForm() {
+        if (submitting) {
+            return;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return;
+        }
+
+        submitting = true;
+        form.submit();
+    }
+
     function continueWithLimitedLocation() {
+        if (submitting) {
+            return;
+        }
+
         resetLocationFields();
-        form.requestSubmit();
+        submitForm();
     }
 
     // O botão manual e as falhas de localização usam o mesmo fluxo limitado.
@@ -518,16 +560,22 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // O botão de experiência limitada continua disponível: se o navegador
+        // não responder ao pedido de permissão, o visitante ainda consegue entrar.
         locationButton.disabled = true;
-        limitedButton.disabled = true;
 
         locationButton.textContent = 'Obtendo localização...';
 
         message.textContent =
-            'Aguardando a autorização de localização do navegador.';
+            'Aguardando a autorização de localização do navegador. ' +
+            'Se preferir, continue com experiência limitada.';
 
         navigator.geolocation.getCurrentPosition(
             async function (position) {
+                if (submitting) {
+                    return;
+                }
+
                 const latitude = position.coords.latitude;
                 const longitude = position.coords.longitude;
 
@@ -546,16 +594,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     stateCodeInput.value = location.stateCode;
                     cityNameInput.value = location.cityName;
 
+                    if (submitting) {
+                        return;
+                    }
+
                     message.textContent =
                         'Localização identificada (' + location.stateCode + '). Continuando...';
 
-                    form.requestSubmit();
+                    submitForm();
                 } catch (error) {
-                    statusInput.value = 'limited';
-                    latitudeInput.value = '';
-                    longitudeInput.value = '';
-                    stateCodeInput.value = '';
-                    cityNameInput.value = '';
+                    resetLocationFields();
 
                     message.textContent =
                         'Não foi possível identificar sua localização. Continuando com experiência limitada...';
@@ -564,11 +612,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             },
             function (error) {
-                statusInput.value = 'limited';
-                latitudeInput.value = '';
-                longitudeInput.value = '';
-                stateCodeInput.value = '';
-                cityNameInput.value = '';
+                if (submitting) {
+                    return;
+                }
+
+                resetLocationFields();
 
                 if (error.code === error.PERMISSION_DENIED) {
                     message.textContent =
