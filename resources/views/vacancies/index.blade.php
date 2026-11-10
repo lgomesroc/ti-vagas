@@ -38,6 +38,25 @@
 <main class="main">
     <div class="container">
 
+        @if (($locationMode ?? 'limited') !== 'available')
+            <div class="welcome-information" role="status">
+                <h3>Localização não ativada</h3>
+                <p>
+                    @if (!empty($ipLocationLabel))
+                        Identificamos aproximadamente sua região pelo IP: <strong>{{ $ipLocationLabel }}</strong>.
+                    @else
+                        Não foi possível estimar sua região pelo IP.
+                    @endif
+                    Essa estimativa é imprecisa e não é usada para liberar vagas locais.
+                    Por enquanto, você verá somente vagas remotas nacionais.
+                </p>
+                <p>
+                    <a href="{{ route('welcome') }}">Ativar localização</a>
+                    para visualizar também oportunidades presenciais, híbridas ou sem modalidade informada da sua região.
+                </p>
+            </div>
+        @endif
+
         <div class="section-heading">
             @if ($search !== '')
                 <h2>Resultados da pesquisa</h2>
