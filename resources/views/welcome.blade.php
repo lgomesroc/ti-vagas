@@ -128,6 +128,10 @@
                 >
 
                 <div class="terms-acceptance">
+                    @if ($termsAccepted)
+                        <input type="hidden" name="terms" value="1">
+                    @endif
+
                     <label>
                         <input
                             type="checkbox"
@@ -197,6 +201,10 @@
                 @enderror
 
                 @error('state_code')
+                    <p class="form-error">{{ $message }}</p>
+                @enderror
+
+                @error('city_name')
                     <p class="form-error">{{ $message }}</p>
                 @enderror
 
@@ -480,6 +488,16 @@ document.addEventListener('DOMContentLoaded', function () {
         message.textContent =
             'Termos já aceitos. Você pode ativar a localização para liberar as vagas da sua região.';
     }
+
+    // O botão de experiência limitada precisa descartar qualquer
+    // coordenada antiga reaproveitada após uma falha de validação.
+    limitedButton.addEventListener('click', function () {
+        statusInput.value = 'limited';
+        latitudeInput.value = '';
+        longitudeInput.value = '';
+        stateCodeInput.value = '';
+        cityNameInput.value = '';
+    });
 
     locationButton.addEventListener('click', function () {
         if (!termsCheckbox.checked) {
