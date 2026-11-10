@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\VacancySource;
 use App\Models\Vacancy;
+use App\Services\Geo\VacancyLocationResolver;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use Throwable;
@@ -12,7 +13,8 @@ class VacancyImporter
 {
     public function __construct(
         private readonly VacancyAvailabilityDetector $availabilityDetector,
-        private readonly GeoLocationNormalizer $geoLocationNormalizer
+        private readonly GeoLocationNormalizer $geoLocationNormalizer,
+        private readonly VacancyLocationResolver $locationResolver
     ) {
     }
 
@@ -134,6 +136,19 @@ class VacancyImporter
 
             $geo = $this->geoLocationNormalizer->normalize($data);
 
+            // Identifica o município pela base do IBGE quando a fonte
+            // não informa o código.
+            $municipality = $geo['ibge_municipality_code'] === null
+                ? $this->locationResolver->resolve(
+                    is_string($data['location'] ?? null)
+                        ? $data['location']
+                        : null,
+                    $data['title'],
+                    $geo['city'],
+                    $geo['state_code']
+                )
+                : null;
+
             $vacancy->fill([
                 'title' => trim($data['title']),
                 'company' => trim($data['company']),
@@ -147,11 +162,17 @@ class VacancyImporter
                 'external_id' => $externalId,
                 'collected_at' => now(),
 
-                'city' => $geo['city'] ?? $vacancy->city,
+                'city' => $municipality['name']
+                    ?? $geo['city']
+                    ?? $vacancy->city,
                 'state' => $geo['state'] ?? $vacancy->state,
-                'state_code' => $geo['state_code'] ?? $vacancy->state_code,
-                'country_code' => $geo['country_code'] ?? $vacancy->country_code,
+                'state_code' => $municipality['uf']
+                    ?? $geo['state_code']
+                    ?? $vacancy->state_code,
+                'country_code' => $geo['country_code']
+                    ?? ($municipality !== null ? 'BR' : $vacancy->country_code),
                 'ibge_municipality_code' => $geo['ibge_municipality_code']
+                    ?? $municipality['ibge']
                     ?? $vacancy->ibge_municipality_code,
                 'latitude' => $geo['latitude'] ?? $vacancy->latitude,
                 'longitude' => $geo['longitude'] ?? $vacancy->longitude,

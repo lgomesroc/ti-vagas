@@ -46,9 +46,11 @@
 
                 <p>
                     As vagas remotas nacionais poderão ser exibidas
-                    independentemente do estado. Vagas presenciais,
+                    independentemente da localização. Vagas presenciais,
                     híbridas ou sem modalidade identificada serão
-                    filtradas conforme o estado da sua localização.
+                    exibidas apenas para a sua região: a região metropolitana
+                    (ou RIDE) do seu município ou, fora delas, a região
+                    geográfica intermediária do IBGE.
                 </p>
 
                 <p>
@@ -114,6 +116,13 @@
                     name="state_code"
                     id="state-code"
                     value="{{ old('state_code') }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="city_name"
+                    id="city-name"
+                    value="{{ old('city_name') }}"
                 >
 
                 <div class="terms-acceptance">
@@ -269,8 +278,8 @@
 
             <p>
                 Quando o usuário autoriza a localização pelo navegador,
-                as coordenadas são utilizadas para identificar o estado
-                e disponibilizar oportunidades regionais. Nesta versão,
+                as coordenadas são utilizadas para identificar o município
+                e disponibilizar oportunidades da sua região. Nesta versão,
                 essas informações são mantidas na sessão de navegação
                 e não são utilizadas para criar um cadastro de usuário.
             </p>
@@ -320,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const latitudeInput = document.getElementById('latitude');
     const longitudeInput = document.getElementById('longitude');
     const stateCodeInput = document.getElementById('state-code');
+    const cityNameInput = document.getElementById('city-name');
 
     const message = document.getElementById('location-message');
 
@@ -385,7 +395,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return stateCodes[stateName] || null;
     }
 
-    async function getStateCode(latitude, longitude) {
+    function identifyCityName(address) {
+        return address.city ||
+            address.town ||
+            address.municipality ||
+            address.village ||
+            address.city_district ||
+            '';
+    }
+
+    async function getLocation(latitude, longitude) {
         const url = new URL(
             'https://nominatim.openstreetmap.org/reverse'
         );
@@ -393,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
         url.searchParams.set('format', 'jsonv2');
         url.searchParams.set('lat', latitude);
         url.searchParams.set('lon', longitude);
-        url.searchParams.set('zoom', '5');
+        url.searchParams.set('zoom', '10');
         url.searchParams.set('addressdetails', '1');
         url.searchParams.set('accept-language', 'pt-BR');
 
@@ -420,7 +439,10 @@ document.addEventListener('DOMContentLoaded', function () {
             throw new Error('Não foi possível identificar a UF.');
         }
 
-        return stateCode;
+        return {
+            stateCode: stateCode,
+            cityName: identifyCityName(data.address)
+        };
     }
 
     termsCheckbox.addEventListener('change', function () {
@@ -464,9 +486,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     message.textContent =
-                        'Localização obtida. Identificando seu estado...';
+                        'Localização obtida. Identificando seu município...';
 
-                    const stateCode = await getStateCode(
+                    const location = await getLocation(
                         latitude,
                         longitude
                     );
@@ -474,10 +496,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     statusInput.value = 'available';
                     latitudeInput.value = latitude;
                     longitudeInput.value = longitude;
-                    stateCodeInput.value = stateCode;
+                    stateCodeInput.value = location.stateCode;
+                    cityNameInput.value = location.cityName;
 
                     message.textContent =
-                        'Localização identificada (' + stateCode + '). Continuando...';
+                        'Localização identificada (' + location.stateCode + '). Continuando...';
 
                     form.requestSubmit();
                 } catch (error) {
@@ -485,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     latitudeInput.value = '';
                     longitudeInput.value = '';
                     stateCodeInput.value = '';
+                    cityNameInput.value = '';
 
                     locationButton.textContent =
                         'Ativar localização e continuar';
@@ -492,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     updateButtons();
 
                     message.textContent =
-                        'Não foi possível identificar seu estado. Tente novamente ou continue com experiência limitada.';
+                        'Não foi possível identificar sua localização. Tente novamente ou continue com experiência limitada.';
                 }
             },
             function (error) {
@@ -500,6 +524,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 latitudeInput.value = '';
                 longitudeInput.value = '';
                 stateCodeInput.value = '';
+                cityNameInput.value = '';
 
                 locationButton.textContent =
                     'Ativar localização e continuar';
