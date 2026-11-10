@@ -12,9 +12,12 @@ class EnsureWelcomeAccepted
 
     public function handle(Request $request, Closure $next): Response
     {
-        $acceptedVersion = $request->cookie('ti_vagas_terms_accepted');
+        $acceptedByCookie = $request->cookie('ti_vagas_terms_accepted')
+            === self::TERMS_VERSION;
+        $acceptedBySession = $request->session()->get('terms_accepted_version')
+            === self::TERMS_VERSION;
 
-        if ($acceptedVersion !== self::TERMS_VERSION) {
+        if (!$acceptedByCookie && !$acceptedBySession) {
             return redirect()->route('welcome');
         }
 

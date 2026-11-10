@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
+use App\Services\Geo\IpLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,22 +12,24 @@ use Illuminate\View\View;
 class WelcomeController extends Controller
 {
     public function __construct(
-        private readonly VisitorLocationResolver $visitorLocationResolver
+        private readonly VisitorLocationResolver $visitorLocationResolver,
+        private readonly IpLocationResolver $ipLocationResolver
     ) {
     }
 
     public function show(Request $request): View
     {
-        $termsAccepted = $request->cookie('ti_vagas_terms_accepted')
-            === EnsureWelcomeAccepted::TERMS_VERSION;
+        $termsAccepted = $this->termsAccepted($request);
 
         return view('welcome', compact('termsAccepted'));
     }
 
     public function accept(Request $request): RedirectResponse
     {
+        $termsAlreadyAccepted = $this->termsAccepted($request);
+
         $validated = $request->validate([
-            'terms' => ['required', 'accepted'],
+            'terms' => [$termsAlreadyAccepted ? 'sometimes' : 'required', 'accepted'],
             'location_status' => ['required', 'in:available,limited'],
             'latitude' => [
                 'required_if:location_status,available',
@@ -50,12 +53,19 @@ class WelcomeController extends Controller
         ], [
             'terms.accepted' => 'Você precisa aceitar os Termos de Uso para continuar.',
             'location_status.required' => 'Informe se deseja utilizar a localização.',
-            'state_code.required_if' => 'Não foi possível identificar seu estado. Tente obter a localização novamente.',
+            'state_code.required_if' => 'Não foi possível identificar seu estado. Você pode continuar com experiência limitada.',
         ]);
 
+        $request->session()->put(
+            'terms_accepted_version',
+            EnsureWelcomeAccepted::TERMS_VERSION
+        );
+
+        $locationMode = $validated['location_status'];
+        $notice = null;
         $municipality = null;
 
-        if ($validated['location_status'] === 'available') {
+        if ($locationMode === 'available') {
             $municipality = $this->visitorLocationResolver->resolve(
                 (float) $validated['latitude'],
                 (float) $validated['longitude'],
@@ -64,17 +74,14 @@ class WelcomeController extends Controller
             );
 
             if ($municipality === null) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'state_code' => 'Não foi possível identificar seu município. Tente obter a localização novamente.',
-                    ]);
+                // A falha de geocodificação não pode bloquear o aceite nem
+                // mandar o visitante de volta à tela inicial.
+                $locationMode = 'limited';
+                $notice = 'Não foi possível confirmar seu município. Você continuará vendo apenas vagas remotas nacionais. Ative a localização novamente para liberar as vagas da sua região.';
             }
         }
 
-        $request->session()->put([
-            'location_mode' => $validated['location_status'],
-        ]);
+        $request->session()->put('location_mode', $locationMode);
 
         if ($municipality !== null) {
             $request->session()->put([
@@ -82,6 +89,8 @@ class WelcomeController extends Controller
                 'location_longitude' => (float) $validated['longitude'],
                 'visitor_state_code' => $municipality['uf'],
                 'visitor_municipality_ibge' => $municipality['ibge'],
+                'visitor_location_label' => $municipality['name'] . ' - ' . $municipality['uf'],
+                'ip_location_label' => null,
             ]);
         } else {
             $request->session()->forget([
@@ -90,10 +99,22 @@ class WelcomeController extends Controller
                 'visitor_state_code',
                 'visitor_municipality_ibge',
             ]);
+
+            $ipLocation = $this->ipLocationResolver->resolve($request);
+
+            $request->session()->put([
+                'visitor_location_label' => null,
+                'ip_location_label' => $ipLocation['label'] ?? null,
+            ]);
+
+            $notice ??= $ipLocation !== null
+                ? 'Localização aproximada pelo IP: ' . $ipLocation['label'] . '. Essa estimativa não libera vagas presenciais ou híbridas. Ative a localização para visualizar oportunidades da sua região.'
+                : 'A localização não foi ativada. No momento, você verá somente vagas remotas nacionais. Ative a localização para visualizar oportunidades da sua região.';
         }
 
         return redirect()
             ->route('vacancies.index')
+            ->with('location_notice', $notice)
             ->withCookie(cookie()->forever(
                 'ti_vagas_terms_accepted',
                 EnsureWelcomeAccepted::TERMS_VERSION,
@@ -120,5 +141,13 @@ class WelcomeController extends Controller
                 false,
                 'lax'
             ));
+    }
+
+    private function termsAccepted(Request $request): bool
+    {
+        return $request->session()->get('terms_accepted_version')
+                === EnsureWelcomeAccepted::TERMS_VERSION
+            || $request->cookie('ti_vagas_terms_accepted')
+                === EnsureWelcomeAccepted::TERMS_VERSION;
     }
 }

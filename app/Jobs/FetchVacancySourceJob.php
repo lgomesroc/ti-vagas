@@ -27,14 +27,14 @@ class FetchVacancySourceJob implements ShouldQueue
     public int $tries = 3;
 
     /**
-     * Tempo máximo de execução de uma fonte.
+     * Sem limite rígido por fonte; o timeout fica sob controle dos clientes HTTP.
      */
-    public int $timeout = 120;
+    public int $timeout = 0;
 
     /**
      * Considera timeout como falha definitiva após esgotar o processamento.
      */
-    public bool $failOnTimeout = true;
+    public bool $failOnTimeout = false;
 
     public function __construct(
         public readonly string $sourceName

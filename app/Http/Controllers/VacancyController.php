@@ -551,6 +551,8 @@ class VacancyController extends Controller
         return view('vacancies.index', [
             'vacancies' => $vacancies,
             'search' => $search,
+            'locationMode' => $request->session()->get('location_mode', 'limited'),
+            'ipLocationLabel' => $request->session()->get('ip_location_label'),
         ]);
     }
 
