@@ -8,9 +8,11 @@ Route::get('/boas-vindas', [WelcomeController::class, 'show'])
     ->name('welcome');
 
 Route::post('/boas-vindas/aceitar', [WelcomeController::class, 'accept'])
+    ->middleware('throttle:welcome')
     ->name('welcome.accept');
 
 Route::post('/cookies/aceitar', [WelcomeController::class, 'acknowledgeCookies'])
+    ->middleware('throttle:welcome')
     ->name('cookies.acknowledge');
 
 Route::middleware('welcome.accepted')->group(function (): void {

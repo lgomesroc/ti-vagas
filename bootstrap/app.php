@@ -13,8 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // TRUSTED_PROXIES: "*" (padrão, comportamento anterior) ou uma lista de
+        // IPs/CIDRs separados por vírgula. Com "*", o cabeçalho X-Forwarded-For
+        // pode ser escolhido por quem acessa o servidor sem passar pelo proxy.
+        $trustedProxies = trim((string) env('TRUSTED_PROXIES', '*'));
+
         $middleware->trustProxies(
-            at: '*',
+            at: $trustedProxies === '*' || $trustedProxies === ''
+                ? '*'
+                : array_values(array_filter(array_map('trim', explode(',', $trustedProxies)))),
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_HOST
                 | Request::HEADER_X_FORWARDED_PORT
