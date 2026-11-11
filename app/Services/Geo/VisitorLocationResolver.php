@@ -28,6 +28,20 @@ class VisitorLocationResolver
 
     public const MAX_DISTANCE_KM_WITH_REGION = 100.0;
 
+    /**
+     * Precisão máxima (coords.accuracy, em metros) para atualizar a região
+     * automaticamente. Acima disso a posição é vaga demais (Wi-Fi/IP) e a
+     * região não é alterada.
+     */
+    public const MAX_ACCURACY_METERS = 5000.0;
+
+    /**
+     * Deslocamento mínimo (km) em relação à posição que definiu a região
+     * atual para que uma região diferente seja aceita. Evita oscilação entre
+     * municípios vizinhos quando o visitante está parado.
+     */
+    public const MIN_MOVE_KM = 5.0;
+
     public function __construct(
         private readonly MunicipalityDirectory $directory
     ) {
@@ -116,6 +130,49 @@ class VisitorLocationResolver
         return $municipality !== null
             ? $this->directory->scopeFor($municipality)
             : null;
+    }
+
+    /**
+     * Grava na sessão a localização verificada do visitante.
+     *
+     * @param array<string, mixed> $municipality
+     */
+    public function rememberInSession(
+        Session $session,
+        array $municipality,
+        float $latitude,
+        float $longitude
+    ): void {
+        $session->put([
+            'location_mode' => 'available',
+            'location_latitude' => $latitude,
+            'location_longitude' => $longitude,
+            'visitor_state_code' => $municipality['uf'],
+            'visitor_municipality_ibge' => $municipality['ibge'],
+            'visitor_location_label' => $municipality['name'] . ' - ' . $municipality['uf'],
+            'ip_location_label' => null,
+        ]);
+    }
+
+    /**
+     * Distância (km) entre as coordenadas e a posição que definiu a região
+     * guardada na sessão, ou null se a sessão não tem coordenadas.
+     */
+    public function distanceFromSessionKm(
+        Session $session,
+        float $latitude,
+        float $longitude
+    ): ?float {
+        if (!$session->has('location_latitude') || !$session->has('location_longitude')) {
+            return null;
+        }
+
+        return $this->directory->distanceKm(
+            (float) $session->get('location_latitude'),
+            (float) $session->get('location_longitude'),
+            $latitude,
+            $longitude
+        );
     }
 
     /**

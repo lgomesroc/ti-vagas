@@ -760,5 +760,13 @@
 
     @endif
 
+    @if (
+        !request()->routeIs('welcome')
+        && \App\Http\Middleware\EnsureWelcomeAccepted::isAccepted(request())
+        && session('location_mode') === 'available'
+    )
+        @include('partials.location-refresh')
+    @endif
+
 </body>
 </html>
