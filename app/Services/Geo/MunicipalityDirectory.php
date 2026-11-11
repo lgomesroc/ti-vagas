@@ -141,6 +141,24 @@ class MunicipalityDirectory
         );
     }
 
+    /**
+     * Distância, em km, entre as coordenadas e o centroide do município.
+     *
+     * @param array<string, mixed> $municipality
+     */
+    public function distanceToKm(
+        array $municipality,
+        float $latitude,
+        float $longitude
+    ): float {
+        return $this->distanceKm(
+            $latitude,
+            $longitude,
+            (float) $municipality['latitude'],
+            (float) $municipality['longitude']
+        );
+    }
+
     private function distanceKm(
         float $lat1,
         float $lon1,
