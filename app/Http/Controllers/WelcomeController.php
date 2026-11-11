@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class WelcomeController extends Controller
 {
@@ -19,11 +19,15 @@ class WelcomeController extends Controller
     ) {
     }
 
-    public function show(Request $request): View
+    public function show(Request $request): Response
     {
         $termsAccepted = $this->termsAccepted($request);
 
-        return view('welcome', compact('termsAccepted'));
+        // A página carrega o token CSRF da sessão do visitante: não pode ser
+        // guardada em cache compartilhado.
+        return EnsureWelcomeAccepted::withoutCaching(
+            response()->view('welcome', compact('termsAccepted'))
+        );
     }
 
     public function accept(Request $request): RedirectResponse|JsonResponse
@@ -140,18 +144,22 @@ class WelcomeController extends Controller
             'expects_json' => $request->expectsJson(),
             'cookie_secure' => $request->isSecure(),
             'location_mode' => $locationMode,
-        ]);
+        ] + EnsureWelcomeAccepted::requestDiagnostics($request));
 
         if ($request->expectsJson()) {
-            return response()
-                ->json(['redirect' => route('vacancies.index')])
-                ->withCookie($termsCookie);
+            return EnsureWelcomeAccepted::withoutCaching(
+                response()
+                    ->json(['redirect' => route('vacancies.index')])
+                    ->withCookie($termsCookie)
+            );
         }
 
-        return redirect()
-            ->route('vacancies.index')
-            ->with('location_notice', $notice)
-            ->withCookie($termsCookie);
+        return EnsureWelcomeAccepted::withoutCaching(
+            redirect()
+                ->route('vacancies.index')
+                ->with('location_notice', $notice)
+                ->withCookie($termsCookie)
+        );
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse
