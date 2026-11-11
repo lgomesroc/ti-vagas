@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Municipality;
 use App\Models\Vacancy;
 use App\Services\Geo\IbgeGeographyImporter;
+use App\Services\Geo\IpLocationResolver;
 use App\Services\Geo\MunicipalityDirectory;
 use App\Services\Geo\VacancyLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
@@ -215,6 +216,159 @@ class RegionalizationTest extends TestCase
         $this->assertNull($resolver->resolve(40.71, -74.0, null, null));
     }
 
+    public function test_declared_city_must_match_the_coordinates(): void
+    {
+        $resolver = app(VisitorLocationResolver::class);
+
+        // Coordenadas do Rio de Janeiro dizendo ser Goiânia/GO.
+        $this->assertNotSame(
+            'Goiânia',
+            $resolver->resolve(-22.9068, -43.1729, 'Goiânia', 'GO')['name'] ?? null
+        );
+        $this->assertNull($resolver->resolve(-22.9068, -43.1729, 'Goiânia', 'GO'));
+
+        // Coordenadas do Rio dizendo ser Porto Alegre/RS.
+        $this->assertNull($resolver->resolve(-22.9068, -43.1729, 'Porto Alegre', 'RS'));
+
+        // Sem cidade, com UF forjada: o centroide mais próximo dentro de SP
+        // fica longe demais.
+        $this->assertNull($resolver->resolve(-22.9068, -43.1729, null, 'GO'));
+
+        // O caso legítimo continua funcionando.
+        $this->assertSame(
+            'Rio de Janeiro',
+            $resolver->resolve(-22.9068, -43.1729, 'Rio de Janeiro', 'RJ')['name']
+        );
+    }
+
+    public function test_coordinates_outside_brazil_are_never_accepted(): void
+    {
+        $resolver = app(VisitorLocationResolver::class);
+
+        // Oceano (0, 0) e Paris, mesmo com cidade e UF válidas.
+        $this->assertNull($resolver->resolve(0.0, 0.0, 'Porto Alegre', 'RS'));
+        $this->assertNull($resolver->resolve(48.85, 2.35, 'Niterói', 'RJ'));
+        $this->assertNull($resolver->resolve(48.85, 2.35, null, 'RJ'));
+        $this->assertNull($resolver->resolve(48.85, 2.35, null, null));
+    }
+
+    public function test_distance_limit_depends_on_the_municipality_having_rm_or_ride(): void
+    {
+        $resolver = app(VisitorLocationResolver::class);
+        $directory = app(MunicipalityDirectory::class);
+
+        $withRegion = $directory->find($this->ibge('Niterói', 'RJ'));
+        $withoutRegion = $directory->find($this->ibge('Pelotas', 'RS'));
+
+        $this->assertNotEmpty($withRegion['region_code']);
+        $this->assertEmpty($withoutRegion['region_code']);
+
+        // Um ponto a ~150 km a oeste do centroide de cada município.
+        $offset = fn (array $m): array => [
+            $m['latitude'],
+            $m['longitude'] - (150 / (111.32 * cos(deg2rad($m['latitude'])))),
+        ];
+
+        // Sem RM/RIDE: 150 km está dentro do limite de 200 km.
+        [$lat, $lon] = $offset($withoutRegion);
+        $this->assertSame(
+            'Pelotas',
+            $resolver->resolve($lat, $lon, 'Pelotas', 'RS')['name']
+        );
+
+        // Com RM/RIDE: os mesmos 150 km passam do limite de 100 km.
+        [$lat, $lon] = $offset($withRegion);
+        $found = $resolver->resolve($lat, $lon, 'Niterói', 'RJ');
+        $this->assertNotSame('Niterói', $found['name'] ?? null);
+    }
+
+    public function test_forged_post_does_not_grant_a_region(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->andReturn(null);
+        });
+
+        // Oceano (0, 0) dizendo ser Goiânia/GO.
+        $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'available',
+            'latitude' => 0,
+            'longitude' => 0,
+            'state_code' => 'GO',
+            'city_name' => 'Goiânia',
+        ])
+            ->assertOk()
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge')
+            ->assertSessionMissing('location_latitude');
+
+        // Coordenadas de Paris dizendo ser Niterói/RJ.
+        $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'available',
+            'latitude' => 48.85,
+            'longitude' => 2.35,
+            'state_code' => 'RJ',
+            'city_name' => 'Niterói',
+        ])
+            ->assertOk()
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge');
+    }
+
+    public function test_forged_post_never_exposes_local_vacancies(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->andReturn(null);
+        });
+
+        $vacancy = Vacancy::create([
+            'title' => 'Desenvolvedor PHP Junior Goiania',
+            'company' => 'Empresa Goiania',
+            'description' => 'Vaga para desenvolvedor junior com Laravel.',
+            'location' => 'Goiânia, GO (Presencial)',
+            'application_url' => 'https://example.com/candidatar',
+            'source' => 'test',
+            'external_id' => uniqid('v-', true),
+            'original_published_at' => now()->subDays(3),
+            'collected_at' => now(),
+        ]);
+
+        $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'available',
+            'latitude' => -22.9068,
+            'longitude' => -43.1729,
+            'state_code' => 'GO',
+            'city_name' => 'Goiânia',
+        ])->assertOk();
+
+        $this->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee($vacancy->title);
+
+        $this->get(route('vacancies.show', $vacancy))->assertNotFound();
+    }
+
+    public function test_honest_post_grants_the_visitors_region(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->andReturn(null);
+        });
+
+        $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'available',
+            'latitude' => -22.7081,
+            'longitude' => -42.6150,
+            'state_code' => 'RJ',
+            'city_name' => 'Rio Bonito',
+        ])
+            ->assertOk()
+            ->assertSessionHas('location_mode', 'available')
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Rio Bonito', 'RJ'));
+    }
+
     public function test_vacancies_are_listed_only_for_the_visitors_region(): void
     {
         $make = fn (string $location, string $title): Vacancy => Vacancy::create([
@@ -318,8 +472,15 @@ class RegionalizationTest extends TestCase
 
     public function test_ibge_api_payload_is_applied_and_curated_units_replace_ibge_rms(): void
     {
+        // O importador recusa respostas com menos de 5.000 municípios. Os
+        // itens de enchimento não têm região imediata e são ignorados.
+        $filler = array_map(
+            fn (int $id): array => ['id' => 9000000 + $id],
+            range(1, 5000)
+        );
+
         Http::fake([
-            '*/v1/localidades/municipios' => Http::response([
+            '*/v1/localidades/municipios' => Http::response(array_merge([
                 [
                     'id' => (int) $this->ibge('Teresópolis', 'RJ'),
                     'nome' => 'Teresópolis',
@@ -332,7 +493,7 @@ class RegionalizationTest extends TestCase
                         ],
                     ],
                 ],
-            ]),
+            ], $filler)),
             '*/v1/localidades/regioes-metropolitanas' => Http::response([
                 [
                     'id' => '3301',
