@@ -223,4 +223,34 @@ class WelcomeAcceptanceTest extends TestCase
         ])->post(route('cookies.acknowledge'))
             ->assertRedirect(route('vacancies.index'));
     }
+
+    public function test_background_submission_returns_the_destination_instead_of_a_redirect_page(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $response = $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'limited',
+        ]);
+
+        $response->assertOk();
+        $response->assertExactJson(['redirect' => route('vacancies.index')]);
+        $response->assertSessionHas(
+            'terms_accepted_version',
+            EnsureWelcomeAccepted::TERMS_VERSION
+        );
+        $response->assertSessionHas('location_notice');
+        $response->assertCookie(EnsureWelcomeAccepted::TERMS_COOKIE);
+    }
+
+    public function test_background_submission_reports_validation_errors_as_json(): void
+    {
+        $this->postJson(route('welcome.accept'), [
+            'location_status' => 'limited',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('terms');
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Services\Geo\IpLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,7 +25,7 @@ class WelcomeController extends Controller
         return view('welcome', compact('termsAccepted'));
     }
 
-    public function accept(Request $request): RedirectResponse
+    public function accept(Request $request): RedirectResponse|JsonResponse
     {
         $termsAlreadyAccepted = $this->termsAccepted($request);
 
@@ -112,19 +113,32 @@ class WelcomeController extends Controller
                 : 'A localização não foi ativada. No momento, você verá somente vagas remotas nacionais. Ative a localização para visualizar oportunidades da sua região.';
         }
 
+        $termsCookie = cookie()->forever(
+            EnsureWelcomeAccepted::TERMS_COOKIE,
+            EnsureWelcomeAccepted::TERMS_VERSION,
+            '/',
+            null,
+            $request->isSecure(),
+            true,
+            false,
+            'lax'
+        );
+
+        // A tela de boas-vindas envia o formulário em segundo plano e pede JSON.
+        // Assim o navegador nunca fica parado na página "Redirecting to ...":
+        // ele recebe o destino e navega por conta própria.
+        if ($request->expectsJson()) {
+            $request->session()->flash('location_notice', $notice);
+
+            return response()
+                ->json(['redirect' => route('vacancies.index')])
+                ->withCookie($termsCookie);
+        }
+
         return redirect()
             ->route('vacancies.index')
             ->with('location_notice', $notice)
-            ->withCookie(cookie()->forever(
-                EnsureWelcomeAccepted::TERMS_COOKIE,
-                EnsureWelcomeAccepted::TERMS_VERSION,
-                '/',
-                null,
-                $request->isSecure(),
-                true,
-                false,
-                'lax'
-            ));
+            ->withCookie($termsCookie);
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse
