@@ -23,7 +23,6 @@ class PandapeSourceTest extends TestCase
             companyKey: 'fiesc',
             companyName: 'FIESC',
             baseUrl: self::BASE_URL,
-            companyId: 696,
             caBundle: $caBundle,
             maxPages: $maxPages,
             locationFilter: $locationFilter

@@ -217,7 +217,6 @@ class PandapeSource implements VacancySource
         private readonly string $companyKey,
         private readonly string $companyName,
         private readonly string $baseUrl,
-        private readonly int $companyId,
         private readonly ?string $caBundle = null,
         private readonly int $maxPages = 100,
         ?VacancyLocationFilter $locationFilter = null,
