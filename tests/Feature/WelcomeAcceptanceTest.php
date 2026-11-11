@@ -253,4 +253,54 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('terms');
     }
+
+    public function test_cookie_returned_by_accept_releases_the_home_page_for_a_fresh_session(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $accept = $this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'limited',
+        ]);
+
+        $accept->assertOk();
+
+        // O navegador devolve exatamente o valor que recebeu; a sessão é nova.
+        $rawCookie = $accept->getCookie(EnsureWelcomeAccepted::TERMS_COOKIE, false)->getValue();
+
+        $this->flushSession();
+
+        $this->withUnencryptedCookie(EnsureWelcomeAccepted::TERMS_COOKIE, $rawCookie)
+            ->get(route('vacancies.index'))
+            ->assertOk();
+    }
+
+    public function test_responses_tied_to_the_visitor_are_never_cacheable(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $redirect = $this->get(route('vacancies.index'));
+        $redirect->assertRedirect(route('welcome'));
+        $this->assertNoStore($redirect);
+
+        $this->assertNoStore($this->get(route('welcome')));
+
+        $this->assertNoStore($this->postJson(route('welcome.accept'), [
+            'terms' => '1',
+            'location_status' => 'limited',
+        ]));
+    }
+
+    private function assertNoStore($response): void
+    {
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('Cookie', (string) $response->headers->get('Vary'));
+    }
 }

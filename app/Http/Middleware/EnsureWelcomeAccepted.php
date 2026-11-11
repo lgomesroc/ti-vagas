@@ -33,14 +33,68 @@ class EnsureWelcomeAccepted
                 'session_driver' => config('session.driver'),
                 'secure_request' => $request->isSecure(),
                 'session_available' => $request->hasSession(),
-            ]);
+            ] + self::requestDiagnostics($request));
         }
 
         if (!$accepted) {
-            return redirect()->route('welcome');
+            // Esta resposta depende do cookie/sessão de cada visitante: nenhum
+            // cache (navegador, CDN ou proxy) pode reaproveitá-la para outro.
+            return self::withoutCaching(redirect()->route('welcome'));
         }
 
         return $next($request);
+    }
+
+    /**
+     * Impede que respostas ligadas ao cookie/sessão do visitante sejam
+     * guardadas ou reaproveitadas por navegador, CDN ou proxy.
+     *
+     * @template T of Response
+     *
+     * @param  T  $response
+     * @return T
+     */
+    public static function withoutCaching(Response $response): Response
+    {
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Vary', 'Cookie');
+
+        return $response;
+    }
+
+    /**
+     * Dados para descobrir onde o cookie ou a resposta se perde em produção.
+     * Registra somente nomes de cookies e cabeçalhos de infraestrutura, nunca
+     * valores de cookies, IP ou identificador completo da sessão.
+     *
+     * @return array<string, mixed>
+     */
+    public static function requestDiagnostics(Request $request): array
+    {
+        $sessionCookie = (string) config('session.cookie');
+        $sessionId = $request->hasSession() ? $request->session()->getId() : '';
+
+        return [
+            'method' => $request->method(),
+            'host' => $request->getHost(),
+            'cookie_names' => array_keys($request->cookies->all()),
+            'session_cookie_name' => $sessionCookie,
+            'session_cookie_received' => $request->cookies->has($sessionCookie),
+            'session_id_hash' => $sessionId !== '' ? substr(hash('sha256', $sessionId), 0, 8) : null,
+            'sec_fetch' => [
+                'site' => $request->header('sec-fetch-site'),
+                'mode' => $request->header('sec-fetch-mode'),
+                'dest' => $request->header('sec-fetch-dest'),
+            ],
+            'edge' => [
+                'cf_ray' => $request->header('cf-ray'),
+                'cf_cache_status' => $request->header('cf-cache-status'),
+                'via' => $request->header('via'),
+                'x_forwarded_proto' => $request->header('x-forwarded-proto'),
+                'x_forwarded_host' => $request->header('x-forwarded-host'),
+            ],
+        ];
     }
 
     /**
