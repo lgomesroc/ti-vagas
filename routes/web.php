@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LocationRefreshController;
 use App\Http\Controllers\VacancyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
@@ -19,4 +20,8 @@ Route::middleware('welcome.accepted')->group(function (): void {
 
     Route::get('/vagas/{vacancy}', [VacancyController::class, 'show'])
         ->name('vacancies.show');
+
+    Route::post('/localizacao/atualizar', [LocationRefreshController::class, 'refresh'])
+        ->middleware('throttle:6,1')
+        ->name('location.refresh');
 });

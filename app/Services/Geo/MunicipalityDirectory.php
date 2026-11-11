@@ -159,7 +159,7 @@ class MunicipalityDirectory
         );
     }
 
-    private function distanceKm(
+    public function distanceKm(
         float $lat1,
         float $lon1,
         float $lat2,

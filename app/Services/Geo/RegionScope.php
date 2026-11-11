@@ -25,6 +25,16 @@ final class RegionScope
     }
 
     /**
+     * Duas regiões são a mesma quando têm o mesmo tipo e a mesma chave.
+     */
+    public function equals(?self $other): bool
+    {
+        return $other !== null
+            && $this->type === $other->type
+            && $this->key === $other->key;
+    }
+
+    /**
      * @param array<string, mixed> $municipality
      */
     public function includes(array $municipality): bool
