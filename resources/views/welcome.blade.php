@@ -515,24 +515,62 @@ document.addEventListener('DOMContentLoaded', function () {
         cityNameInput.value = '';
     }
 
-    form.addEventListener('submit', function () {
-        submitting = true;
-    });
-
-    // requestSubmit() não existe em navegadores antigos (Safari < 16);
-    // nesses casos o formulário é enviado com submit().
-    function submitForm() {
+    // Envia o formulário em segundo plano e navega para o destino informado
+    // pelo servidor, sem passar pela página "Redirecting to ...". Se algo
+    // falhar, usa o envio tradicional como reserva.
+    async function sendForm() {
         if (submitting) {
             return;
         }
 
-        if (typeof form.requestSubmit === 'function') {
-            form.requestSubmit();
-            return;
+        submitting = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                window.location.assign(data.redirect || '/');
+                return;
+            }
+
+            if (response.status === 422) {
+                const data = await response.json();
+                const firstError = Object.values(data.errors || {})[0];
+
+                message.textContent =
+                    (firstError && firstError[0]) ||
+                    data.message ||
+                    'Não foi possível continuar. Revise os dados e tente novamente.';
+
+                submitting = false;
+                locationButton.textContent = 'Ativar localização e continuar';
+                updateButtons();
+                return;
+            }
+        } catch (error) {
+            // Segue para o envio tradicional abaixo.
         }
 
-        submitting = true;
         form.submit();
+    }
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        sendForm();
+    });
+
+    function submitForm() {
+        sendForm();
     }
 
     function continueWithLimitedLocation() {
