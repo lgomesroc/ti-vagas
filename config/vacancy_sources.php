@@ -180,7 +180,10 @@ return [
             'fiesc' => [
                 'name' => 'FIESC',
                 'url' => 'https://fiesc.pandape.infojobs.com.br/',
-                'company_id' => 696,
+            ],
+            'sonda' => [
+                'name' => 'SONDA IT',
+                'url' => 'https://sondait.pandape.infojobs.com.br/',
             ],
         ],
     ],

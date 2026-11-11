@@ -16,7 +16,6 @@ use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
-use App\Sources\ZohoRecruitSource;
 use InvalidArgumentException;
 
 class VacancySourceFactory
@@ -148,7 +147,9 @@ class VacancySourceFactory
         $derevo = config('vacancy_sources.derevo', []);
 
         $source = new DerevoSource(
-            caBundle: $derevo['ca_bundle'] ?? null,
+            caBundle: $derevo['ca_bundle']
+                ?? $greenhouse['ca_bundle']
+                ?? null,
             locationFilter: $this->locationFilter,
         );
 
@@ -199,25 +200,8 @@ class VacancySourceFactory
                 companyKey: $companyKey,
                 companyName: $company['name'] ?? $companyKey,
                 baseUrl: $company['url'],
-                companyId: (int) $company['company_id'],
                 caBundle: $pandape['ca_bundle'] ?? null,
                 maxPages: (int) ($pandape['max_pages'] ?? 100),
-                locationFilter: $this->locationFilter,
-            );
-
-            $sources[$source->name()] = $source;
-        }
-
-        $zohoRecruit = config('vacancy_sources.zoho_recruit', []);
-
-        foreach ($zohoRecruit['companies'] ?? [] as $subdomain => $company) {
-            $source = new ZohoRecruitSource(
-                subdomain: $subdomain,
-                pageName: $company['page_name'],
-                companyName: $company['name'] ?? $subdomain,
-                remoteCountry: $company['remote_country'] ?? null,
-                caBundle: $zohoRecruit['ca_bundle'] ?? null,
-                maxJobs: (int) ($zohoRecruit['max_jobs'] ?? 200),
                 locationFilter: $this->locationFilter,
             );
 

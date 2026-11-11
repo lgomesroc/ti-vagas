@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureWelcomeAccepted
@@ -20,7 +21,22 @@ class EnsureWelcomeAccepted
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (!self::isAccepted($request)) {
+        $accepted = self::isAccepted($request);
+
+        // Diagnóstico temporário: registrar somente o acesso à página inicial.
+        if ($request->is('/')) {
+            Log::warning('TI_VAGAS_WELCOME_DIAGNOSTIC', [
+                'accepted' => $accepted,
+                'terms_cookie_received' => $request->cookie(self::TERMS_COOKIE) === self::TERMS_VERSION,
+                'terms_session_received' => $request->hasSession()
+                    && $request->session()->get(self::TERMS_SESSION_KEY) === self::TERMS_VERSION,
+                'session_driver' => config('session.driver'),
+                'secure_request' => $request->isSecure(),
+                'session_available' => $request->hasSession(),
+            ]);
+        }
+
+        if (!$accepted) {
             return redirect()->route('welcome');
         }
 
