@@ -8,7 +8,8 @@ use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class WelcomeController extends Controller
 {
@@ -18,11 +19,15 @@ class WelcomeController extends Controller
     ) {
     }
 
-    public function show(Request $request): View
+    public function show(Request $request): Response
     {
         $termsAccepted = $this->termsAccepted($request);
 
-        return view('welcome', compact('termsAccepted'));
+        // A página carrega o token CSRF da sessão do visitante: não pode ser
+        // guardada em cache compartilhado.
+        return EnsureWelcomeAccepted::withoutCaching(
+            response()->view('welcome', compact('termsAccepted'))
+        );
     }
 
     public function accept(Request $request): RedirectResponse|JsonResponse
@@ -75,8 +80,6 @@ class WelcomeController extends Controller
             );
 
             if ($municipality === null) {
-                // A falha de geocodificação não pode bloquear o aceite nem
-                // mandar o visitante de volta à tela inicial.
                 $locationMode = 'limited';
                 $notice = 'Não foi possível confirmar seu município. Você continuará vendo apenas vagas remotas nacionais. Ative a localização novamente para liberar as vagas da sua região.';
             }
@@ -124,21 +127,39 @@ class WelcomeController extends Controller
             'lax'
         );
 
-        // A tela de boas-vindas envia o formulário em segundo plano e pede JSON.
-        // Assim o navegador nunca fica parado na página "Redirecting to ...":
-        // ele recebe o destino e navega por conta própria.
         if ($request->expectsJson()) {
             $request->session()->flash('location_notice', $notice);
-
-            return response()
-                ->json(['redirect' => route('vacancies.index')])
-                ->withCookie($termsCookie);
         }
 
-        return redirect()
-            ->route('vacancies.index')
-            ->with('location_notice', $notice)
-            ->withCookie($termsCookie);
+        // Diagnóstico temporário: registrar o resultado do aceite.
+        Log::warning('TI_VAGAS_WELCOME_ACCEPT', [
+            'terms_already_accepted' => $termsAlreadyAccepted,
+            'terms_session_after_write' => $request->session()->get(
+                EnsureWelcomeAccepted::TERMS_SESSION_KEY
+            ) === EnsureWelcomeAccepted::TERMS_VERSION,
+            'session_available' => $request->hasSession(),
+            'session_driver' => config('session.driver'),
+            'request_secure' => $request->isSecure(),
+            'forwarded_proto' => $request->header('x-forwarded-proto'),
+            'expects_json' => $request->expectsJson(),
+            'cookie_secure' => $request->isSecure(),
+            'location_mode' => $locationMode,
+        ] + EnsureWelcomeAccepted::requestDiagnostics($request));
+
+        if ($request->expectsJson()) {
+            return EnsureWelcomeAccepted::withoutCaching(
+                response()
+                    ->json(['redirect' => route('vacancies.index')])
+                    ->withCookie($termsCookie)
+            );
+        }
+
+        return EnsureWelcomeAccepted::withoutCaching(
+            redirect()
+                ->route('vacancies.index')
+                ->with('location_notice', $notice)
+                ->withCookie($termsCookie)
+        );
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse
@@ -148,7 +169,6 @@ class WelcomeController extends Controller
             true
         );
 
-        // Sem Referer o visitante vai para a lista de vagas, não para as boas-vindas.
         return redirect()
             ->back(fallback: route('vacancies.index'))
             ->withCookie(cookie()->forever(
