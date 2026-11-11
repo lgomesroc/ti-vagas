@@ -17,14 +17,30 @@ class VisitorLocationResolver
         'max_lon' => -28.0,
     ];
 
+    /**
+     * Distância máxima aceita entre as coordenadas informadas e o centroide
+     * do município, conforme a região de atuação que ele libera.
+     *
+     * Município sem RM nem RIDE tem tolerância maior: costuma ser grande ou
+     * rural, e seu centroide fica longe de quem mora em outra ponta dele.
+     */
+    public const MAX_DISTANCE_KM_WITHOUT_REGION = 200.0;
+
+    public const MAX_DISTANCE_KM_WITH_REGION = 100.0;
+
     public function __construct(
         private readonly MunicipalityDirectory $directory
     ) {
     }
 
     /**
-     * Usa o nome do município informado pela geocodificação e, se ele não
-     * for encontrado, o município de centroide mais próximo.
+     * Descobre o município do visitante sem confiar no que o navegador diz.
+     *
+     * O nome e a UF vêm do navegador (podem ser forjados), por isso só valem
+     * se forem coerentes com as coordenadas: o município declarado precisa
+     * estar dentro da distância máxima. Se não estiver, usa o município de
+     * centroide mais próximo das coordenadas, também dentro do limite.
+     * Coordenadas fora do Brasil ou sem município plausível devolvem null.
      *
      * @return array<string, mixed>|null
      */
@@ -34,23 +50,39 @@ class VisitorLocationResolver
         ?string $cityName = null,
         ?string $stateCode = null
     ): ?array {
+        if (!$this->isInsideBrazil($latitude, $longitude)) {
+            return null;
+        }
+
         $stateCode = $stateCode !== null && $stateCode !== ''
             ? strtoupper($stateCode)
             : null;
 
         if ($cityName !== null && trim($cityName) !== '') {
-            $matches = $this->directory->findByName($cityName, $stateCode);
+            $declared = $this->closestTo(
+                $this->directory->findByName($cityName, $stateCode),
+                $latitude,
+                $longitude
+            );
 
-            if (count($matches) === 1) {
-                return $matches[0];
+            if (
+                $declared !== null
+                && $this->isWithinLimit($declared, $latitude, $longitude)
+            ) {
+                return $declared;
             }
         }
 
-        if ($stateCode === null && !$this->isInsideBrazil($latitude, $longitude)) {
-            return null;
+        $nearest = $this->directory->nearest($latitude, $longitude, $stateCode);
+
+        if (
+            $nearest !== null
+            && $this->isWithinLimit($nearest, $latitude, $longitude)
+        ) {
+            return $nearest;
         }
 
-        return $this->directory->nearest($latitude, $longitude, $stateCode);
+        return null;
     }
 
     /**
@@ -84,6 +116,53 @@ class VisitorLocationResolver
         return $municipality !== null
             ? $this->directory->scopeFor($municipality)
             : null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $municipalities
+     * @return array<string, mixed>|null
+     */
+    private function closestTo(
+        array $municipalities,
+        float $latitude,
+        float $longitude
+    ): ?array {
+        $best = null;
+        $bestDistance = INF;
+
+        foreach ($municipalities as $municipality) {
+            $distance = $this->directory->distanceToKm(
+                $municipality,
+                $latitude,
+                $longitude
+            );
+
+            if ($distance < $bestDistance) {
+                $bestDistance = $distance;
+                $best = $municipality;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * @param array<string, mixed> $municipality
+     */
+    private function isWithinLimit(
+        array $municipality,
+        float $latitude,
+        float $longitude
+    ): bool {
+        $limit = empty($municipality['region_code'])
+            ? self::MAX_DISTANCE_KM_WITHOUT_REGION
+            : self::MAX_DISTANCE_KM_WITH_REGION;
+
+        return $this->directory->distanceToKm(
+            $municipality,
+            $latitude,
+            $longitude
+        ) <= $limit;
     }
 
     private function isInsideBrazil(float $latitude, float $longitude): bool
