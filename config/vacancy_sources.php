@@ -184,4 +184,17 @@ return [
             ],
         ],
     ],
+
+    'zoho_recruit' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'spassu' => [
+                'name' => 'Spassu',
+                'page_name' => 'Careers',
+                'remote_country' => 'BR',
+            ],
+        ],
+    ],
 ];
