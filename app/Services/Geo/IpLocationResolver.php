@@ -5,10 +5,15 @@ namespace App\Services\Geo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 class IpLocationResolver
 {
+    private const LOOKUP_LIMITER = 'geo.ip-lookup';
+
+    private const LOOKUPS_PER_MINUTE = 60;
+
     public function __construct(
         private readonly VisitorLocationResolver $visitorLocationResolver
     ) {
@@ -30,6 +35,15 @@ class IpLocationResolver
         $cacheKey = 'geo.ip-location.' . hash('sha256', $ip);
 
         return Cache::remember($cacheKey, now()->addHours(12), function () use ($ip): ?array {
+            // Trava global, independente do IP informado pelo visitante: mesmo
+            // com X-Forwarded-For forjado, o serviço externo recebe poucas
+            // consultas por minuto. Acima disso, o aviso por IP é omitido.
+            if (RateLimiter::tooManyAttempts(self::LOOKUP_LIMITER, self::LOOKUPS_PER_MINUTE)) {
+                return null;
+            }
+
+            RateLimiter::hit(self::LOOKUP_LIMITER, 60);
+
             try {
                 $response = Http::timeout(4)
                     ->connectTimeout(2)
