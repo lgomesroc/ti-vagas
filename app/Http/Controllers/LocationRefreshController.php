@@ -25,9 +25,10 @@ class LocationRefreshController extends Controller
 
         $session = $request->session();
 
-        // A localização automática só pode atualizar sessões
-        // em que o visitante autorizou o compartilhamento.
-        if ($session->get('location_mode') !== 'available') {
+        // Permite a primeira localização em modo limitado. A sessão só será
+        // promovida para available depois que as coordenadas forem validadas
+        // e um município brasileiro plausível for resolvido.
+        if (!in_array($session->get('location_mode'), ['limited', 'available'], true)) {
             return $this->unchanged('disabled');
         }
 
