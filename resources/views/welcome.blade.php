@@ -1,3 +1,4 @@
+
 @extends('layouts.app')
 
 @section('title', 'Boas-vindas | TI Vagas')
@@ -359,8 +360,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const termsAlreadyAccepted = @json($termsAccepted);
     const REVERSE_GEOCODING_TIMEOUT_MS = 8000;
 
-    // Evita envio duplicado quando o visitante clica enquanto a localização
-    // ainda está sendo obtida.
     let submitting = false;
 
     const stateCodes = {
@@ -376,6 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
         'maranhao': 'MA',
         'mato grosso': 'MT',
         'mato grosso do sul': 'MS',
+        'minas gerais': 'MG',
         'minas gerais': 'MG',
         'para': 'PA',
         'paraiba': 'PB',
@@ -446,7 +446,6 @@ document.addEventListener('DOMContentLoaded', function () {
         url.searchParams.set('addressdetails', '1');
         url.searchParams.set('accept-language', 'pt-BR');
 
-        // Sem limite de tempo, uma consulta lenta deixaria o visitante preso.
         const controller = new AbortController();
         const timer = setTimeout(function () {
             controller.abort();
@@ -515,62 +514,13 @@ document.addEventListener('DOMContentLoaded', function () {
         cityNameInput.value = '';
     }
 
-    // Envia o formulário em segundo plano e navega para o destino informado
-    // pelo servidor, sem passar pela página "Redirecting to ...". Se algo
-    // falhar, usa o envio tradicional como reserva.
-    async function sendForm() {
+    function submitForm() {
         if (submitting) {
             return;
         }
 
         submitting = true;
-
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-
-                window.location.assign(data.redirect || '/');
-                return;
-            }
-
-            if (response.status === 422) {
-                const data = await response.json();
-                const firstError = Object.values(data.errors || {})[0];
-
-                message.textContent =
-                    (firstError && firstError[0]) ||
-                    data.message ||
-                    'Não foi possível continuar. Revise os dados e tente novamente.';
-
-                submitting = false;
-                locationButton.textContent = 'Ativar localização e continuar';
-                updateButtons();
-                return;
-            }
-        } catch (error) {
-            // Segue para o envio tradicional abaixo.
-        }
-
         form.submit();
-    }
-
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        sendForm();
-    });
-
-    function submitForm() {
-        sendForm();
     }
 
     function continueWithLimitedLocation() {
@@ -582,11 +532,10 @@ document.addEventListener('DOMContentLoaded', function () {
         submitForm();
     }
 
-    // O botão manual e as falhas de localização usam o mesmo fluxo limitado.
     limitedButton.addEventListener('click', resetLocationFields);
 
     locationButton.addEventListener('click', function () {
-        if (!termsCheckbox.checked) {
+        if (!termsAlreadyAccepted && !termsCheckbox.checked) {
             termsCheckbox.reportValidity();
             return;
         }
@@ -598,10 +547,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // O botão de experiência limitada continua disponível: se o navegador
-        // não responder ao pedido de permissão, o visitante ainda consegue entrar.
         locationButton.disabled = true;
-
         locationButton.textContent = 'Obtendo localização...';
 
         message.textContent =
