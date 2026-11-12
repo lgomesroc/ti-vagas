@@ -67,6 +67,8 @@ class WelcomeController extends Controller
             );
         }
 
+        $secureCookie = config('session.secure') ?? $request->isSecure();
+
         Cookie::queue(
             cookie(
                 EnsureWelcomeAccepted::TERMS_COOKIE,
@@ -74,7 +76,7 @@ class WelcomeController extends Controller
                 60 * 24 * 365 * 5,
                 config('session.path', '/'),
                 config('session.domain'),
-                $request->isSecure(),
+                $secureCookie,
                 config('session.http_only', true),
                 false,
                 config('session.same_site', 'lax')
@@ -99,6 +101,8 @@ class WelcomeController extends Controller
             EnsureWelcomeAccepted::COOKIE_NOTICE_SESSION_KEY,
             true
         );
+
+        $secureCookie = config('session.secure') ?? $request->isSecure();
 
         Cookie::queue(
             cookie(
