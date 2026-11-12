@@ -34,37 +34,40 @@
                 <h3>Localização</h3>
 
                 <p>
-                    A localização permite identificar oportunidades
-                    próximas e oferecer recursos regionais.
+                    Ao entrar na página de vagas, seu navegador poderá
+                    solicitar autorização para acessar sua localização.
+                    Essa informação permite identificar seu município
+                    e exibir oportunidades da sua região.
                 </p>
 
                 <p>
-                    Ao autorizar o acesso à localização pelo navegador,
-                    você terá acesso à experiência completa dos recursos
-                    que dependem dessa informação.
+                    Se autorizar, você poderá visualizar vagas remotas,
+                    híbridas e presenciais conforme a região identificada.
                 </p>
 
                 <p>
-                    As vagas remotas nacionais poderão ser exibidas
-                    independentemente da localização. Vagas presenciais,
-                    híbridas ou sem modalidade identificada serão
-                    exibidas apenas para a sua região: a região metropolitana
-                    (ou RIDE) do seu município ou, fora delas, a região
-                    geográfica intermediária do IBGE.
+                    Se escolher permitir somente desta vez, o navegador
+                    poderá solicitar autorização novamente quando essa
+                    permissão temporária expirar.
                 </p>
 
                 <p>
-                    Se não autorizar ou se a localização estiver indisponível,
-                    o TI Vagas poderá consultar seu endereço IP em um serviço
-                    externo para estimar cidade e estado. Essa estimativa é
-                    aproximada, não substitui a autorização do navegador e
-                    não libera vagas presenciais ou híbridas. Você verá somente
-                    vagas remotas nacionais até ativar a localização.
+                    Se negar a localização ou ela estiver indisponível,
+                    você continuará navegando normalmente, mas visualizará
+                    somente vagas remotas nacionais. O portal não ficará
+                    solicitando novamente enquanto a permissão permanecer
+                    negada ou sem alteração.
                 </p>
 
                 <p>
-                    O TI Vagas não oferece uma lista de cidades para substituir
-                    a autorização de localização nesta versão.
+                    Para permitir novamente o acesso, será necessário
+                    alterar ou redefinir a permissão de localização
+                    nas configurações do navegador.
+                </p>
+
+                <p>
+                    O TI Vagas não oferece uma lista de cidades para
+                    substituir a autorização de localização nesta versão.
                 </p>
             </div>
 
@@ -92,46 +95,7 @@
             >
                 @csrf
 
-                <input
-                    type="hidden"
-                    name="location_status"
-                    id="location-status"
-                    value="{{ old('location_status', 'limited') }}"
-                >
-
-                <input
-                    type="hidden"
-                    name="latitude"
-                    id="latitude"
-                    value="{{ old('latitude') }}"
-                >
-
-                <input
-                    type="hidden"
-                    name="longitude"
-                    id="longitude"
-                    value="{{ old('longitude') }}"
-                >
-
-                <input
-                    type="hidden"
-                    name="state_code"
-                    id="state-code"
-                    value="{{ old('state_code') }}"
-                >
-
-                <input
-                    type="hidden"
-                    name="city_name"
-                    id="city-name"
-                    value="{{ old('city_name') }}"
-                >
-
                 <div class="terms-acceptance">
-                    @if ($termsAccepted)
-                        <input type="hidden" name="terms" value="1">
-                    @endif
-
                     <label>
                         <input
                             type="checkbox"
@@ -139,8 +103,7 @@
                             name="terms"
                             value="1"
                             required
-                            @checked($termsAccepted || old('terms'))
-                            @disabled($termsAccepted)
+                            @checked(old('terms'))
                         >
 
                         <span>
@@ -157,25 +120,14 @@
                 </div>
 
                 <div class="location-actions">
-
                     <button
-                        type="button"
-                        id="enable-location"
+                        type="submit"
+                        id="continue-button"
                         class="button welcome-primary-button"
                         disabled
                     >
-                        Ativar localização e continuar
+                        Aceitar os termos e continuar
                     </button>
-
-                    <button
-                        type="submit"
-                        id="continue-limited"
-                        class="button welcome-secondary-button"
-                        disabled
-                    >
-                        Continuar com experiência limitada
-                    </button>
-
                 </div>
 
                 <p
@@ -184,30 +136,8 @@
                     role="status"
                     aria-live="polite"
                 >
-                    Marque a opção de aceite dos termos para habilitar
-                    os botões e continuar.
+                    Aceite os termos para continuar para as vagas.
                 </p>
-
-                @error('location_status')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-
-                @error('latitude')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-
-                @error('longitude')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-
-                @error('state_code')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-
-                @error('city_name')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-
             </form>
 
         </section>
@@ -290,9 +220,9 @@
             <p>
                 Quando o usuário autoriza a localização pelo navegador,
                 as coordenadas são utilizadas para identificar o município
-                e disponibilizar oportunidades da sua região. Nesta versão,
-                essas informações são mantidas na sessão de navegação
-                e não são utilizadas para criar um cadastro de usuário.
+                e disponibilizar oportunidades da sua região. Essas
+                informações são mantidas na sessão de navegação e não são
+                utilizadas para criar um cadastro de usuário.
             </p>
 
             <p>
@@ -343,339 +273,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('welcome-form');
-    const termsCheckbox = document.getElementById('terms-accepted');
-
-    const locationButton = document.getElementById('enable-location');
-    const limitedButton = document.getElementById('continue-limited');
-
-    const statusInput = document.getElementById('location-status');
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-    const stateCodeInput = document.getElementById('state-code');
-    const cityNameInput = document.getElementById('city-name');
-
+    const checkbox = document.getElementById('terms-accepted');
+    const button = document.getElementById('continue-button');
     const message = document.getElementById('location-message');
-    const termsAlreadyAccepted = @json($termsAccepted);
-    const REVERSE_GEOCODING_TIMEOUT_MS = 8000;
 
-    // Evita envio duplicado quando o visitante clica enquanto a localização
-    // ainda está sendo obtida.
-    let submitting = false;
+    function updateButton() {
+        button.disabled = !checkbox.checked;
 
-    const stateCodes = {
-        'acre': 'AC',
-        'alagoas': 'AL',
-        'amapa': 'AP',
-        'amazonas': 'AM',
-        'bahia': 'BA',
-        'ceara': 'CE',
-        'distrito federal': 'DF',
-        'espirito santo': 'ES',
-        'goias': 'GO',
-        'maranhao': 'MA',
-        'mato grosso': 'MT',
-        'mato grosso do sul': 'MS',
-        'minas gerais': 'MG',
-        'para': 'PA',
-        'paraiba': 'PB',
-        'parana': 'PR',
-        'pernambuco': 'PE',
-        'piaui': 'PI',
-        'rio de janeiro': 'RJ',
-        'rio grande do norte': 'RN',
-        'rio grande do sul': 'RS',
-        'rondonia': 'RO',
-        'roraima': 'RR',
-        'santa catarina': 'SC',
-        'sao paulo': 'SP',
-        'sergipe': 'SE',
-        'tocantins': 'TO'
-    };
-
-    function updateButtons() {
-        const accepted = termsAlreadyAccepted || termsCheckbox.checked;
-
-        locationButton.disabled = !accepted;
-        limitedButton.disabled = !accepted;
+        message.textContent = checkbox.checked
+            ? 'Termos aceitos. Você já pode continuar para as vagas.'
+            : 'Aceite os termos para continuar para as vagas.';
     }
 
-    function normalizeText(value) {
-        return String(value || '')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .trim()
-            .toLowerCase();
-    }
+    checkbox.addEventListener('change', updateButton);
 
-    function identifyStateCode(address) {
-        const isoCode =
-            address['ISO3166-2-lvl4'] ||
-            address['ISO3166-2-lvl3'] ||
-            '';
-
-        const isoMatch = String(isoCode).match(/BR-([A-Z]{2})/i);
-
-        if (isoMatch) {
-            return isoMatch[1].toUpperCase();
-        }
-
-        const stateName = normalizeText(address.state);
-
-        return stateCodes[stateName] || null;
-    }
-
-    function identifyCityName(address) {
-        return address.city ||
-            address.town ||
-            address.municipality ||
-            address.village ||
-            address.city_district ||
-            '';
-    }
-
-    async function getLocation(latitude, longitude) {
-        const url = new URL(
-            'https://nominatim.openstreetmap.org/reverse'
-        );
-
-        url.searchParams.set('format', 'jsonv2');
-        url.searchParams.set('lat', latitude);
-        url.searchParams.set('lon', longitude);
-        url.searchParams.set('zoom', '10');
-        url.searchParams.set('addressdetails', '1');
-        url.searchParams.set('accept-language', 'pt-BR');
-
-        // Sem limite de tempo, uma consulta lenta deixaria o visitante preso.
-        const controller = new AbortController();
-        const timer = setTimeout(function () {
-            controller.abort();
-        }, REVERSE_GEOCODING_TIMEOUT_MS);
-
-        let data;
-
-        try {
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                },
-                signal: controller.signal
-            });
-
-            if (!response.ok) {
-                throw new Error('Não foi possível identificar o estado.');
-            }
-
-            data = await response.json();
-        } finally {
-            clearTimeout(timer);
-        }
-
-        if (!data.address) {
-            throw new Error('A resposta de localização não contém endereço.');
-        }
-
-        const stateCode = identifyStateCode(data.address);
-
-        if (!stateCode) {
-            throw new Error('Não foi possível identificar a UF.');
-        }
-
-        return {
-            stateCode: stateCode,
-            cityName: identifyCityName(data.address)
-        };
-    }
-
-    termsCheckbox.addEventListener('change', function () {
-        updateButtons();
-
-        if (termsCheckbox.checked) {
-            message.textContent =
-                'Termos aceitos. Agora você pode escolher como deseja continuar.';
-        } else {
-            message.textContent =
-                'Marque a opção de aceite dos termos para habilitar os botões e continuar.';
-        }
-    });
-
-    updateButtons();
-
-    if (termsAlreadyAccepted) {
-        message.textContent =
-            'Termos já aceitos. Você pode ativar a localização para liberar as vagas da sua região.';
-    }
-
-    function resetLocationFields() {
-        statusInput.value = 'limited';
-        latitudeInput.value = '';
-        longitudeInput.value = '';
-        stateCodeInput.value = '';
-        cityNameInput.value = '';
-    }
-
-    // Envia o formulário em segundo plano e navega para o destino informado
-    // pelo servidor, sem passar pela página "Redirecting to ...". Se algo
-    // falhar, usa o envio tradicional como reserva.
-    async function sendForm() {
-        if (submitting) {
-            return;
-        }
-
-        submitting = true;
-
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-
-                window.location.assign(data.redirect || '/');
-                return;
-            }
-
-            if (response.status === 422) {
-                const data = await response.json();
-                const firstError = Object.values(data.errors || {})[0];
-
-                message.textContent =
-                    (firstError && firstError[0]) ||
-                    data.message ||
-                    'Não foi possível continuar. Revise os dados e tente novamente.';
-
-                submitting = false;
-                locationButton.textContent = 'Ativar localização e continuar';
-                updateButtons();
-                return;
-            }
-        } catch (error) {
-            // Segue para o envio tradicional abaixo.
-        }
-
-        form.submit();
-    }
-
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        sendForm();
-    });
-
-    function submitForm() {
-        sendForm();
-    }
-
-    function continueWithLimitedLocation() {
-        if (submitting) {
-            return;
-        }
-
-        resetLocationFields();
-        submitForm();
-    }
-
-    // O botão manual e as falhas de localização usam o mesmo fluxo limitado.
-    limitedButton.addEventListener('click', resetLocationFields);
-
-    locationButton.addEventListener('click', function () {
-        if (!termsCheckbox.checked) {
-            termsCheckbox.reportValidity();
-            return;
-        }
-
-        if (!navigator.geolocation) {
-            message.textContent =
-                'Seu navegador não disponibiliza localização. Continuando com experiência limitada...';
-            continueWithLimitedLocation();
-            return;
-        }
-
-        // O botão de experiência limitada continua disponível: se o navegador
-        // não responder ao pedido de permissão, o visitante ainda consegue entrar.
-        locationButton.disabled = true;
-
-        locationButton.textContent = 'Obtendo localização...';
-
-        message.textContent =
-            'Aguardando a autorização de localização do navegador. ' +
-            'Se preferir, continue com experiência limitada.';
-
-        navigator.geolocation.getCurrentPosition(
-            async function (position) {
-                if (submitting) {
-                    return;
-                }
-
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-
-                try {
-                    message.textContent =
-                        'Localização obtida. Identificando seu município...';
-
-                    const location = await getLocation(
-                        latitude,
-                        longitude
-                    );
-
-                    statusInput.value = 'available';
-                    latitudeInput.value = latitude;
-                    longitudeInput.value = longitude;
-                    stateCodeInput.value = location.stateCode;
-                    cityNameInput.value = location.cityName;
-
-                    if (submitting) {
-                        return;
-                    }
-
-                    message.textContent =
-                        'Localização identificada (' + location.stateCode + '). Continuando...';
-
-                    submitForm();
-                } catch (error) {
-                    resetLocationFields();
-
-                    message.textContent =
-                        'Não foi possível identificar sua localização. Continuando com experiência limitada...';
-
-                    continueWithLimitedLocation();
-                }
-            },
-            function (error) {
-                if (submitting) {
-                    return;
-                }
-
-                resetLocationFields();
-
-                if (error.code === error.PERMISSION_DENIED) {
-                    message.textContent =
-                        'A localização não foi autorizada. Continuando com experiência limitada...';
-                } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    message.textContent =
-                        'Não foi possível identificar sua localização. Continuando com experiência limitada...';
-                } else {
-                    message.textContent =
-                        'O tempo para obter a localização terminou. Continuando com experiência limitada...';
-                }
-
-                continueWithLimitedLocation();
-            },
-            {
-                enableHighAccuracy: false,
-                timeout: 12000,
-                maximumAge: 300000
-            }
-        );
-    });
+    updateButton();
 });
 </script>
 
