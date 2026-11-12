@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Services;
@@ -243,10 +242,10 @@ class VacancySourceFactory
 
         $zohoRecruit = config('vacancy_sources.zoho_recruit', []);
 
-        foreach ($zohoRecruit['companies'] ?? [] as $companyKey => $company) {
+        foreach ($zohoRecruit['companies'] ?? [] as $subdomain => $company) {
             $source = new ZohoRecruitSource(
-                companyKey: $companyKey,
-                companyName: $company['name'] ?? $companyKey,
+                subdomain: $subdomain,
+                companyName: $company['name'] ?? $subdomain,
                 pageName: $company['page_name'] ?? 'Careers',
                 caBundle: $zohoRecruit['ca_bundle'] ?? null,
                 maxJobs: (int) ($zohoRecruit['max_jobs'] ?? 200),
