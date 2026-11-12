@@ -22,9 +22,7 @@ class EnsureWelcomeAccepted
     {
         if (!self::isAccepted($request)) {
             return self::withoutCaching(
-                response()->view('welcome', [
-                    'termsAccepted' => false,
-                ])
+                redirect()->route('welcome')
             );
         }
 

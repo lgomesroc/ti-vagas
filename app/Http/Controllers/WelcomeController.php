@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Services\Geo\IpLocationResolver;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,9 +31,9 @@ class WelcomeController extends Controller
             ->header('Pragma', 'no-cache');
     }
 
-    public function accept(Request $request): RedirectResponse
+    public function accept(Request $request): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
+        $request->validate([
             'terms' => ['required', 'accepted'],
         ]);
 
@@ -79,6 +80,13 @@ class WelcomeController extends Controller
                 'lax'
             )
         );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'accepted' => true,
+                'redirect' => route('vacancies.index'),
+            ]);
+        }
 
         return redirect()
             ->route('vacancies.index')

@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Services;
@@ -6,6 +7,7 @@ use App\Sources\AshbySource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
+use App\Sources\GupySource;
 use App\Sources\InhireSource;
 use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
@@ -14,8 +16,10 @@ use App\Sources\PandapeSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
+use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
+use App\Sources\ZohoRecruitSource;
 use InvalidArgumentException;
 
 class VacancySourceFactory
@@ -119,6 +123,20 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+        $gupy = config('vacancy_sources.gupy', []);
+
+        foreach ($gupy['companies'] ?? [] as $subdomain => $company) {
+            $source = new GupySource(
+                subdomain: $subdomain,
+                companyName: $company['name'] ?? $subdomain,
+                caBundle: $gupy['ca_bundle'] ?? null,
+                maxJobs: (int) ($gupy['max_jobs'] ?? 200),
+                baseUrl: $company['url'] ?? null,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $oracle = config('vacancy_sources.oracle_hcm', []);
 
         foreach ($oracle['companies'] ?? [] as $companyKey => $company) {
@@ -202,6 +220,37 @@ class VacancySourceFactory
                 baseUrl: $company['url'],
                 caBundle: $pandape['ca_bundle'] ?? null,
                 maxPages: (int) ($pandape['max_pages'] ?? 100),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $totvsAts = config('vacancy_sources.totvs_ats', []);
+
+        foreach ($totvsAts['companies'] ?? [] as $companyKey => $company) {
+            $source = new TotvsAtsSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $totvsAts['ca_bundle'] ?? null,
+                maxJobs: (int) ($totvsAts['max_jobs'] ?? 500),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $zohoRecruit = config('vacancy_sources.zoho_recruit', []);
+
+        foreach ($zohoRecruit['companies'] ?? [] as $companyKey => $company) {
+            $source = new ZohoRecruitSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                pageName: $company['page_name'] ?? 'Careers',
+                caBundle: $zohoRecruit['ca_bundle'] ?? null,
+                maxJobs: (int) ($zohoRecruit['max_jobs'] ?? 200),
+                remoteCountry: $company['remote_country'] ?? 'BR',
                 locationFilter: $this->locationFilter,
             );
 

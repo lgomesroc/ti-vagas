@@ -25,6 +25,12 @@ class LocationRefreshController extends Controller
 
         $session = $request->session();
 
+        // A localização automática só pode atualizar sessões
+        // em que o visitante autorizou o compartilhamento.
+        if ($session->get('location_mode') !== 'available') {
+            return $this->unchanged('disabled');
+        }
+
         if (
             (float) $data['accuracy']
             > VisitorLocationResolver::MAX_ACCURACY_METERS
@@ -94,6 +100,6 @@ class LocationRefreshController extends Controller
     {
         return response()
             ->json($payload)
-            ->header('Cache-Control', 'no-store');
+            ->header('Cache-Control', 'no-store, private');
     }
 }

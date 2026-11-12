@@ -107,6 +107,33 @@ return [
         ],
     ],
 
+    'gupy' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'montreal' => [
+                'name' => 'Montreal',
+                'url' => 'https://montreal.gupy.io/',
+            ],
+
+            'claro' => [
+                'name' => 'Claro',
+                'url' => 'https://vempraclaro.gupy.io/',
+            ],
+
+            'azzas' => [
+                'name' => 'AZZAS 2154',
+                'url' => 'https://azzasfashion.gupy.io/',
+            ],
+
+            'cepel' => [
+                'name' => 'CEPEL',
+                'url' => 'https://cepel.gupy.io/',
+            ],
+        ],
+    ],
+
     'oracle_hcm' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 1000,
@@ -197,6 +224,43 @@ return [
                 'name' => 'Spassu',
                 'page_name' => 'Careers',
                 'remote_country' => 'BR',
+            ],
+        ],
+    ],
+
+    'totvs_ats' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 500,
+
+        'companies' => [
+            'vempratotvs' => [
+                'name' => 'TOTVS',
+                'url' => 'https://atracaodetalentos.totvs.app/vempratotvs/extended',
+            ],
+
+            'elotech' => [
+                'name' => 'Elotech',
+                'url' => 'https://atracaodetalentos.totvs.app/elotech/extended',
+            ],
+
+            'vagasnetfive' => [
+                'name' => 'Netfive',
+                'url' => 'https://atracaodetalentos.totvs.app/vagasnetfive',
+            ],
+
+            'vagasolor' => [
+                'name' => 'Solor Tecnologia',
+                'url' => 'https://atracaodetalentos.totvs.app/vagasolor',
+            ],
+
+            'performait' => [
+                'name' => 'PERFORMA_IT',
+                'url' => 'https://atracaodetalentos.totvs.app/performait/extended',
+            ],
+
+            'v8carreira' => [
+                'name' => 'V8.TECH',
+                'url' => 'https://atracaodetalentos.totvs.app/v8carreira',
             ],
         ],
     ],
