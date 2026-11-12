@@ -96,6 +96,30 @@ O município do visitante e o da vaga são identificados pelo código do IBGE. A
 
 As vagas só são exibidas se o município puder ser identificado. Quando o texto informa uma cidade que não existe na UF indicada (por exemplo, "Santos, Rio de Janeiro"), a vaga não é associada a nenhum município.
 
+#### Proteção contra falsificação de localização
+
+A região usada para filtrar as vagas é decidida **no servidor**. O navegador apenas informa coordenadas; ele nunca escolhe o município, a UF nem a região.
+
+O que o servidor faz:
+
+- **Região só pela sessão.** A listagem e a página da vaga leem a região exclusivamente da sessão. Parâmetros de URL, campos de formulário/JSON e cookies com nome de localização (`uf`, `city`, `ibge`, `lat`, `lng`, `region`, `location_mode` etc., lista em `config/location_guard.php`) são removidos pelo middleware `location.overrides` antes de chegarem aos controllers e **registrados como tentativa suspeita**. Isso também impede que apareçam nos links de paginação.
+- **Cidade e UF enviadas pelo navegador são ignoradas** na atualização automática: o município sai somente das coordenadas, dentro de uma distância máxima do centroide (`VisitorLocationResolver`). Coordenadas fora do Brasil ou sem município plausível não alteram nada.
+- **Selo de integridade na sessão** (`LocationProof`). Município e coordenadas são gravados com um HMAC feito com a `APP_KEY`. Dados de localização sem selo, ou com qualquer campo alterado depois, não liberam vagas regionais: o visitante volta ao modo limitado (somente remotas) até enviar uma posição válida.
+- **Detecção de sinais de GPS falso** (`LocationSpoofingDetector`). Cada sinal tem um peso (`config/location_guard.php`); a posição é recusada quando a soma de uma tentativa chega a `reject_score`:
+  - deslocamento impossível ou muito rápido em relação à última posição aceita (tempo medido pelo servidor);
+  - coordenadas idênticas ao centroide de um município (o CSV é público no repositório);
+  - precisão igual a zero ou perfeita demais, e coordenadas "redondas" (até 2 casas decimais);
+  - hora da leitura do GPS muito diferente da hora do servidor (reenvio de posição antiga);
+  - UF do GPS diferente da UF estimada pelo IP (sinal fraco: VPN e operadoras móveis também causam isso);
+  - payload fora do formato que o navegador legítimo envia.
+- **Reincidência e troca excessiva de região.** Tentativas suspeitas se acumulam na sessão (com decaimento); ao atingir `lock_score`, a região atual fica congelada por `lock_minutes`. Há ainda um limite de trocas de região por hora, por sessão e por IP, para impedir que alguém "percorra" várias regiões enviando coordenadas em sequência.
+- **Registro sem dado pessoal.** Os eventos vão para o log como `location_guard.suspicious`, com motivos e pontuação. Coordenadas, IP e identificador de sessão não são gravados em claro (apenas resumos).
+- A resposta ao navegador não revela o motivo da recusa (`reason: unverified`).
+
+**Limites, sem rodeios:** não existe proteção absoluta contra falsificação de localização. O navegador e o dispositivo do visitante estão sob o controle dele, e as ferramentas de desenvolvedor, extensões e aplicativos de GPS falso permitem simular uma posição. Quem informar coordenadas plausíveis, com ruído realista, a partir de um ponto que não coincide com nenhum centroide e sem trocar de região rápido demais, **não será detectado**. Estas regras tornam o abuso mais trabalhoso, limitado e registrável; elas não provam que o visitante está onde diz estar. Por isso a região libera apenas a exibição de vagas, nunca algo que dependa de a presença física ser comprovada.
+
+Ajustes por variável de ambiente: `LOCATION_GUARD_ENABLED`, `LOCATION_GUARD_LOG_CHANNEL` e `LOCATION_GUARD_IP_CROSSCHECK`. Em produção, defina `TRUSTED_PROXIES` com os proxies reais, ou o IP usado nos limites e no cruzamento com o GPS pode ser forjado por quem envia o cabeçalho `X-Forwarded-For`.
+
 #### Base territorial
 
 - Municípios, UF e centroides: `database/data/municipios.csv`.

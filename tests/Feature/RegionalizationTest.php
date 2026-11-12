@@ -11,6 +11,7 @@ use App\Services\Geo\VacancyLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\BuildsVerifiedLocationSession;
 use Tests\Concerns\SeedsGeography;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ class RegionalizationTest extends TestCase
 {
     use RefreshDatabase;
     use SeedsGeography;
+    use BuildsVerifiedLocationSession;
 
     protected function setUp(): void
     {
@@ -387,10 +389,9 @@ class RegionalizationTest extends TestCase
         $nfriburgo = $make('Nova Friburgo, RJ', 'Desenvolvedor PHP Junior Friburgo');
         $paulinia = $make('Paulínia, SP', 'Desenvolvedor PHP Junior Paulinia');
 
-        $session = fn (string $name, string $uf) => [
-            'location_mode' => 'available',
-            'visitor_municipality_ibge' => $this->ibge($name, $uf),
-        ];
+        $session = fn (string $name, string $uf) => $this->verifiedLocationSession(
+            $this->ibge($name, $uf)
+        );
 
         $rioBonito = $this->withCookie('ti_vagas_terms_accepted', '1.0')
             ->withSession($session('Rio Bonito', 'RJ'))
@@ -445,7 +446,7 @@ class RegionalizationTest extends TestCase
         );
     }
 
-    public function test_old_sessions_with_only_coordinates_are_still_resolved(): void
+    public function test_sessions_without_the_integrity_proof_never_release_regional_vacancies(): void
     {
         $vacancy = Vacancy::create([
             'title' => 'Desenvolvedor PHP Junior Niteroi',
@@ -454,11 +455,13 @@ class RegionalizationTest extends TestCase
             'location' => 'Niterói, RJ (Presencial)',
             'application_url' => 'https://example.com/candidatar',
             'source' => 'test',
-            'external_id' => 'old-session',
+            'external_id' => 'unsigned-session',
             'original_published_at' => now()->subDays(3),
             'collected_at' => now(),
         ]);
 
+        // Sessão de versão anterior (só coordenadas e UF) ou escrita por
+        // outro caminho: sem selo, não vale como localização verificada.
         $this->withCookie('ti_vagas_terms_accepted', '1.0')
             ->withSession([
                 'location_mode' => 'available',
@@ -467,7 +470,15 @@ class RegionalizationTest extends TestCase
                 'visitor_state_code' => 'RJ',
             ])
             ->get(route('vacancies.index'))
-            ->assertSee($vacancy->title);
+            ->assertDontSee($vacancy->title);
+
+        $this->withCookie('ti_vagas_terms_accepted', '1.0')
+            ->withSession([
+                'location_mode' => 'available',
+                'visitor_municipality_ibge' => $this->ibge('Niterói', 'RJ'),
+            ])
+            ->get(route('vacancies.index'))
+            ->assertDontSee($vacancy->title);
     }
 
     public function test_ibge_api_payload_is_applied_and_curated_units_replace_ibge_rms(): void
