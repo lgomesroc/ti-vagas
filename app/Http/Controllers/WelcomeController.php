@@ -72,12 +72,12 @@ class WelcomeController extends Controller
                 EnsureWelcomeAccepted::TERMS_COOKIE,
                 EnsureWelcomeAccepted::TERMS_VERSION,
                 60 * 24 * 365 * 5,
-                '/',
-                null,
+                config('session.path', '/'),
+                config('session.domain'),
                 $request->isSecure(),
-                true,
+                config('session.http_only', true),
                 false,
-                'lax'
+                config('session.same_site', 'lax')
             )
         );
 
@@ -105,12 +105,12 @@ class WelcomeController extends Controller
                 EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
                 '1',
                 60 * 24 * 365,
-                '/',
-                null,
+                config('session.path', '/'),
+                config('session.domain'),
                 $request->isSecure(),
-                true,
+                config('session.http_only', true),
                 false,
-                'lax'
+                config('session.same_site', 'lax')
             )
         );
 
