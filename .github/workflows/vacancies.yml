@@ -60,6 +60,11 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: php artisan vacancies:collect
 
+      - name: Atualizar listas de redes suspeitas (manual)
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: php artisan network:update-lists
+
       - name: Processar fila de vagas
         run: |
           while true; do

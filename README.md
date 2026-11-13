@@ -325,6 +325,25 @@ O projeto possui workflows separados:
 
 A automação de vagas utiliza processamento de filas para executar as tarefas de coleta.
 
+## Detecção de VPN, proxy e redes suspeitas
+
+O acesso é avaliado pelo tipo de rede de origem, **sem substituir a geolocalização do navegador**:
+
+| Origem | Tratamento |
+|---|---|
+| Internet residencial, dados móveis e Wi-Fi público (cafeterias, restaurantes, hotéis, aeroportos) | Permitir |
+| VPN identificada | Avaliar; restringe se o IP se comportar como robô |
+| Proxy anônimo e Tor | Restringir (configurável para bloquear) |
+| Datacenter | Avaliar comportamento e risco |
+| Endereço associado a abuso (Spamhaus DROP) | Bloquear |
+
+- IPs públicos e compartilhados **não são tratados como suspeitos**: só entra na política o IP que aparece em alguma lista.
+- Todas as fontes são gratuitas (lista oficial do Tor, faixas da AWS e do Google Cloud, listas comunitárias); o AbuseIPDB é opcional.
+- Publique primeiro com `NETWORK_SECURITY_MODE=monitor` e observe os logs `network.access`.
+- As listas são atualizadas a cada seis horas por `php artisan network:update-lists`; `php artisan network:check <ip>` mostra como um IP seria classificado.
+
+Funcionamento, configuração, **limitações e possíveis falsos positivos de cada mecanismo**: [docs/deteccao-de-redes-suspeitas.md](docs/deteccao-de-redes-suspeitas.md).
+
 ## Executando o projeto localmente
 
 ### Requisitos
