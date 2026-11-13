@@ -28,7 +28,8 @@ class WelcomeController extends Controller
                 'termsAccepted' => false,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
-            ->header('Pragma', 'no-cache');
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function accept(Request $request): JsonResponse|RedirectResponse
@@ -46,14 +47,23 @@ class WelcomeController extends Controller
         // Até que o visitante autorize, a experiência fica limitada às vagas remotas.
         $request->session()->put('location_mode', 'limited');
 
+        // Limpa tanto as chaves atuais quanto nomes legados usados por versões anteriores.
+        // O estado do LocationGuard não é apagado aqui: aceitar os termos novamente
+        // não pode funcionar como mecanismo para contornar uma trava antifraude.
         $request->session()->forget([
+            'location_latitude',
+            'location_longitude',
+            'visitor_state_code',
+            'visitor_municipality_ibge',
+            'visitor_location_label',
+            'ip_location_label',
+            'visitor_ip_region_label',
             'visitor_latitude',
             'visitor_longitude',
-            'visitor_state_code',
             'visitor_ibge_code',
             'visitor_city_name',
             'visitor_region_label',
-            'visitor_ip_region_label',
+            \App\Services\Geo\Security\LocationProof::SESSION_KEY,
         ]);
 
         // A estimativa por IP é apenas informativa.
@@ -62,7 +72,7 @@ class WelcomeController extends Controller
 
         if ($ipLocation !== null) {
             $request->session()->put(
-                'visitor_ip_region_label',
+                'ip_location_label',
                 $ipLocation['label']
             );
         }
@@ -87,12 +97,18 @@ class WelcomeController extends Controller
             return response()->json([
                 'accepted' => true,
                 'redirect' => route('vacancies.index'),
-            ]);
+            ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+                ->header('Pragma', 'no-cache')
+                ->header('Vary', 'Cookie');
         }
 
         return redirect()
             ->route('vacancies.index')
-            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.');
+            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse

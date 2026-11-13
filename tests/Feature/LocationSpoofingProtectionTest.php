@@ -35,13 +35,13 @@ class LocationSpoofingProtectionTest extends TestCase
         $this->assertSame([], $this->seedGeography());
     }
 
-    private function vacancy(string $location, string $title): Vacancy
+    private function vacancy(string $location, string $title, string $workModel = 'Presencial'): Vacancy
     {
         return Vacancy::create([
             'title' => $title,
             'company' => 'Empresa ' . $location,
             'description' => 'Vaga para desenvolvedor junior com Laravel.',
-            'location' => $location . ' (Presencial)',
+            'location' => $location . ' (' . $workModel . ')',
             'application_url' => 'https://example.com/candidatar',
             'source' => 'test',
             'external_id' => uniqid('v-', true),
@@ -70,6 +70,32 @@ class LocationSpoofingProtectionTest extends TestCase
             'accuracy' => $accuracy,
             ...$extra,
         ]);
+    }
+
+    public function test_rio_metropolitan_area_shows_onsite_and_hybrid_vacancies_from_the_same_region(): void
+    {
+        $rioOnsite = $this->vacancy(
+            'Rio de Janeiro, RJ',
+            'Desenvolvedor PHP Junior - Presencial Rio',
+            'Presencial'
+        );
+        $niteroiHybrid = $this->vacancy(
+            'Niterói, RJ',
+            'Desenvolvedor Backend Junior - Híbrido Niterói',
+            'Híbrido'
+        );
+        $outsideRegion = $this->vacancy(
+            'Porto Alegre, RS',
+            'Desenvolvedor PHP Junior - Presencial Porto Alegre',
+            'Presencial'
+        );
+
+        $this->withSession($this->niteroiSession())
+            ->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertSee($rioOnsite->title)
+            ->assertSee($niteroiHybrid->title)
+            ->assertDontSee($outsideRegion->title);
     }
 
     // ---------------------------------------------------------------------
