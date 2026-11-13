@@ -28,7 +28,8 @@ class WelcomeController extends Controller
                 'termsAccepted' => false,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
-            ->header('Pragma', 'no-cache');
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function accept(Request $request): JsonResponse|RedirectResponse
