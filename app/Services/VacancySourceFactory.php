@@ -8,6 +8,7 @@ use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\GupySource;
 use App\Sources\InhireSource;
+use App\Sources\JobConvoSource;
 use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
@@ -250,6 +251,22 @@ class VacancySourceFactory
                 caBundle: $zohoRecruit['ca_bundle'] ?? null,
                 maxJobs: (int) ($zohoRecruit['max_jobs'] ?? 200),
                 remoteCountry: $company['remote_country'] ?? 'BR',
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $jobconvo = config('vacancy_sources.jobconvo', []);
+
+        foreach ($jobconvo['companies'] ?? [] as $companyKey => $company) {
+            $source = new JobConvoSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                baseUrl: $company['url'],
+                careerPageId: $company['career_page_id'],
+                caBundle: $jobconvo['ca_bundle'] ?? null,
+                maxPages: (int) ($jobconvo['max_pages'] ?? 110),
                 locationFilter: $this->locationFilter,
             );
 
