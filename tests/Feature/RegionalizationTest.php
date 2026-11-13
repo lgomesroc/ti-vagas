@@ -200,6 +200,40 @@ class RegionalizationTest extends TestCase
         $this->assertSame('Pelotas', $found['name']);
     }
 
+    public function test_structured_state_accepts_abbreviation_and_full_name(): void
+    {
+        $resolver = app(VacancyLocationResolver::class);
+
+        $cases = [
+            ['Niteroi', 'RJ'],
+            ['Niteroi', 'Rio de Janeiro'],
+            ['Niteroi', 'rio de janeiro'],
+        ];
+
+        foreach ($cases as [$city, $state]) {
+            $found = $resolver->resolve(
+                'Brasil',
+                'Desenvolvedor Backend',
+                $city,
+                $state
+            );
+
+            $this->assertSame('Niterói', $found['name'] ?? null);
+        }
+    }
+
+    public function test_free_text_resolver_accepts_full_state_name_as_hint(): void
+    {
+        $resolver = app(VacancyLocationResolver::class);
+
+        $found = $resolver->resolveFromText(
+            'Niterói',
+            'Rio de Janeiro'
+        );
+
+        $this->assertSame('Niterói', $found['name'] ?? null);
+    }
+
     public function test_visitor_is_resolved_by_city_name_and_by_nearest_centroid(): void
     {
         $resolver = app(VisitorLocationResolver::class);
