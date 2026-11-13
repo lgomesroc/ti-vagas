@@ -151,7 +151,8 @@
             body: JSON.stringify({
                 latitude: coords.latitude,
                 longitude: coords.longitude,
-                accuracy: coords.accuracy
+                accuracy: coords.accuracy,
+                captured_at: position.timestamp
             })
         })
         .then(function (response) {

@@ -5,17 +5,20 @@ namespace Tests\Feature;
 use App\Models\Vacancy;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BuildsVerifiedLocationSession;
 use Tests\Concerns\SeedsGeography;
 use Tests\TestCase;
 
 class LocationRefreshTest extends TestCase
 {
-    use RefreshDatabase, SeedsGeography;
+    use RefreshDatabase, SeedsGeography, BuildsVerifiedLocationSession;
 
-    // Centroides aproximados.
-    private const NITEROI = [-22.8833, -43.1036];
-    private const RIO = [-22.9068, -43.1729];
-    private const PORTO_ALEGRE = [-30.0346, -51.2177];
+    // Posições a cerca de 500 m do centro de cada cidade. Não podem ser o
+    // centroide do IBGE: GPS real nunca cai exatamente nesse ponto, e o guard
+    // recusa coordenadas que coincidem com ele (ver LocationSpoofingGuardTest).
+    private const NITEROI = [-22.8791, -43.1042];
+    private const RIO = [-22.9112, -43.1685];
+    private const PORTO_ALEGRE = [-30.0412, -51.2231];
     private const PARIS = [48.85, 2.35];
 
     protected function setUp(): void
@@ -29,11 +32,8 @@ class LocationRefreshTest extends TestCase
     {
         return [
             'terms_accepted_version' => '1.0',
+            ...$this->verifiedLocationSession($this->ibge($city, $uf), $coords),
             'location_mode' => $mode,
-            'location_latitude' => $coords[0],
-            'location_longitude' => $coords[1],
-            'visitor_state_code' => $uf,
-            'visitor_municipality_ibge' => $this->ibge($city, $uf),
         ];
     }
 
