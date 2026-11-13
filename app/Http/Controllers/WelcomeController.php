@@ -97,12 +97,18 @@ class WelcomeController extends Controller
             return response()->json([
                 'accepted' => true,
                 'redirect' => route('vacancies.index'),
-            ]);
+            ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+                ->header('Pragma', 'no-cache')
+                ->header('Vary', 'Cookie');
         }
 
         return redirect()
             ->route('vacancies.index')
-            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.');
+            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse
