@@ -240,6 +240,8 @@ class LocationRefreshTest extends TestCase
             ->assertSee('id="location-refresh"', false)
             ->assertSee(json_encode(route('location.refresh')), false)
             ->assertSee('getCurrentPosition(', false)
+            ->assertSee('enableHighAccuracy: true', false)
+            ->assertSee('timeout: 20000', false)
             // Nenhuma chamada de rastreamento contínuo (o comentário não conta).
             ->assertDontSee('watchPosition(', false);
 
