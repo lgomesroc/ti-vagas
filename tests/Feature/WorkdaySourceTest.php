@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\WorkdaySource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Sources\WorkdaySource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class WorkdaySourceTest extends TestCase
 {
