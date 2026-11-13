@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Services\Geo\IpLocationResolver;
-use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
