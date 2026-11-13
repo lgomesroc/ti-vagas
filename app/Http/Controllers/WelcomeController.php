@@ -62,7 +62,7 @@ class WelcomeController extends Controller
             'visitor_ibge_code',
             'visitor_city_name',
             'visitor_region_label',
-            \\App\\Services\\Geo\\Security\\LocationProof::SESSION_KEY,
+            \App\Services\Geo\Security\LocationProof::SESSION_KEY,
         ]);
 
         // A estimativa por IP é apenas informativa.
