@@ -366,14 +366,14 @@ class RegionalizationTest extends TestCase
             ->assertSessionMissing('visitor_municipality_ibge');
 
         $this->postJson(route('location.refresh'), [
-            'latitude' => -22.7081,
-            'longitude' => -42.6150,
+            'latitude' => -22.8791,
+            'longitude' => -43.1042,
             'accuracy' => 50,
         ])
             ->assertOk()
             ->assertJson(['updated' => true])
             ->assertSessionHas('location_mode', 'available')
-            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Rio Bonito', 'RJ'));
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Niterói', 'RJ'));
     }
 
     public function test_vacancies_are_listed_only_for_the_visitors_region(): void
