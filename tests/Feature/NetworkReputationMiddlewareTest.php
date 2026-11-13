@@ -397,7 +397,7 @@ class NetworkReputationMiddlewareTest extends TestCase
             $response = $this->fromIp($ip)->postJson(route('welcome.accept'), ['terms' => '1']);
 
             $response->assertOk()->assertJsonPath('accepted', true);
-            $response->assertSessionMissing('visitor_ip_region_label');
+            $response->assertSessionMissing('ip_location_label');
         }
     }
 
@@ -410,7 +410,7 @@ class NetworkReputationMiddlewareTest extends TestCase
         $this->fromIp(self::ORDINARY)
             ->postJson(route('welcome.accept'), ['terms' => '1'])
             ->assertOk()
-            ->assertSessionHas('visitor_ip_region_label', 'São Paulo - SP');
+            ->assertSessionHas('ip_location_label', 'São Paulo - SP');
     }
 
     public function test_network_classification_never_grants_or_changes_the_visitor_location(): void
