@@ -352,7 +352,7 @@ class RegionalizationTest extends TestCase
         $this->get(route('vacancies.show', $vacancy))->assertNotFound();
     }
 
-    public function test_honest_post_grants_the_visitors_region(): void
+    public function test_honest_location_refresh_grants_the_visitors_region_after_terms_acceptance(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
             $mock->shouldReceive('resolve')->andReturn(null);
@@ -360,13 +360,18 @@ class RegionalizationTest extends TestCase
 
         $this->postJson(route('welcome.accept'), [
             'terms' => '1',
-            'location_status' => 'available',
-            'latitude' => -22.7081,
-            'longitude' => -42.6150,
-            'state_code' => 'RJ',
-            'city_name' => 'Rio Bonito',
         ])
             ->assertOk()
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge');
+
+        $this->postJson(route('location.refresh'), [
+            'latitude' => -22.7081,
+            'longitude' => -42.6150,
+            'accuracy' => 50,
+        ])
+            ->assertOk()
+            ->assertJson(['updated' => true])
             ->assertSessionHas('location_mode', 'available')
             ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Rio Bonito', 'RJ'));
     }
@@ -428,22 +433,24 @@ class RegionalizationTest extends TestCase
         $limited->assertDontSee($niteroi->title);
     }
 
-    public function test_welcome_stores_the_visitor_municipality_in_the_session(): void
+    public function test_welcome_defers_visitor_municipality_until_location_is_verified(): void
     {
-        $response = $this->post(route('welcome.accept'), [
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->andReturn(null);
+        });
+
+        $this->post(route('welcome.accept'), [
             'terms' => '1',
             'location_status' => 'available',
             'latitude' => -22.7081,
             'longitude' => -42.6150,
             'state_code' => 'RJ',
             'city_name' => 'Rio Bonito',
-        ]);
-
-        $response->assertRedirect(route('vacancies.index'));
-        $response->assertSessionHas(
-            'visitor_municipality_ibge',
-            $this->ibge('Rio Bonito', 'RJ')
-        );
+        ])
+            ->assertRedirect(route('vacancies.index'))
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge')
+            ->assertSessionMissing('location_latitude');
     }
 
     public function test_sessions_without_the_integrity_proof_never_release_regional_vacancies(): void
