@@ -139,13 +139,26 @@ class LocationRefreshTest extends TestCase
             ->assertJson(['updated' => false]);
     }
 
-    public function test_limited_mode_is_never_promoted_automatically(): void
+    public function test_first_valid_location_promotes_limited_session_to_available(): void
     {
         $this->refresh($this->sessionData('limited'), self::PORTO_ALEGRE)
             ->assertOk()
-            ->assertExactJson(['updated' => false, 'reason' => 'disabled'])
-            ->assertSessionHas('location_mode', 'limited')
-            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Niterói', 'RJ'));
+            ->assertJson(['updated' => true])
+            ->assertSessionHas('location_mode', 'available')
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Porto Alegre', 'RS'));
+    }
+
+    public function test_invalid_location_keeps_limited_session_limited(): void
+    {
+        $this->refresh($this->sessionData('limited'), self::PARIS)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'unresolved'])
+            ->assertSessionHas('location_mode', 'limited');
+
+        $this->refresh($this->sessionData('limited'), self::PORTO_ALEGRE, VisitorLocationResolver::MAX_ACCURACY_METERS + 1)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'inaccurate'])
+            ->assertSessionHas('location_mode', 'limited');
     }
 
     public function test_a_different_region_close_to_the_reference_position_is_ignored(): void
@@ -200,7 +213,8 @@ class LocationRefreshTest extends TestCase
 
         $this->withSession($this->sessionData('limited'))
             ->get(route('vacancies.index'))
-            ->assertDontSee('id="location-refresh"', false);
+            ->assertSee('id="location-refresh"', false)
+            ->assertSee('var LOCATION_MODE = "limited"', false);
 
         $this->withSession($this->sessionData('available'))
             ->get(route('welcome'))

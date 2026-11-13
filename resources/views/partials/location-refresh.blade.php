@@ -16,6 +16,7 @@
     var MIN_INTERVAL_MS = 5 * 60 * 1000;
     var PERIODIC_MS = 15 * 60 * 1000;
     var MIN_MOVE_KM = 1;
+    var LOCATION_MODE = @json(session('location_mode', 'limited'));
 
     var STORAGE_KEY = 'ti_vagas_location_refresh';
 
@@ -129,6 +130,7 @@
         if (
             typeof state.lat === 'number'
             && typeof state.lon === 'number'
+            && LOCATION_MODE === 'available'
             && distanceKm(
                 state.lat,
                 state.lon,
@@ -175,6 +177,7 @@
             writeState(next);
 
             if (result.updated) {
+                LOCATION_MODE = 'available';
                 notifyAndReload(result.region);
             }
         })
