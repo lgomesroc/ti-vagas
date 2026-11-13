@@ -65,7 +65,7 @@ class GupySourceTest extends TestCase
     {
         $baseUrl = 'https://empresa-teste.gupy.io';
         $listing = '<script id="__NEXT_DATA__" type="application/json">'
-            . json_encode(['props' => ['pageProps' => ['jobs' => [['id' => 789]]]])
+            . json_encode(['props' => ['pageProps' => ['jobs' => [['id' => 789]]]]])
             . '</script><a href="/jobs/789">Vaga</a>';
         $posting = [
             '@type' => 'JobPosting',
