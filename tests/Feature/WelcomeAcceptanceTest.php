@@ -91,16 +91,10 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertRedirect(route('welcome'));
     }
 
-    public function test_accepting_with_precise_location_releases_site_and_sets_terms_cookie(): void
+    public function test_accepting_terms_defers_precise_location_until_the_vacancies_page(): void
     {
-        $this->mock(VisitorLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn([
-                    'ibge' => '3304557',
-                    'name' => 'Rio de Janeiro',
-                    'uf' => 'RJ',
-                ]);
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -113,7 +107,7 @@ class WelcomeAcceptanceTest extends TestCase
         ]);
 
         $response->assertRedirect(route('vacancies.index'));
-        $response->assertSessionHas('location_mode', 'available');
+        $response->assertSessionHas('location_mode', 'limited');
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
@@ -236,12 +230,15 @@ class WelcomeAcceptanceTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertExactJson(['redirect' => route('vacancies.index')]);
+        $response->assertExactJson([
+            'accepted' => true,
+            'redirect' => route('vacancies.index'),
+        ]);
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
         );
-        $response->assertSessionHas('location_notice');
+        $response->assertSessionMissing('location_notice');
         $response->assertCookie(EnsureWelcomeAccepted::TERMS_COOKIE);
     }
 
