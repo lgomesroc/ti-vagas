@@ -1,4 +1,3 @@
-
 <?php
 
 return [
@@ -211,6 +210,10 @@ return [
             'sonda' => [
                 'name' => 'SONDA IT',
                 'url' => 'https://sondait.pandape.infojobs.com.br/',
+            ],
+            'adecco' => [
+                'name' => 'Adecco',
+                'url' => 'https://adecco.pandape.infojobs.com.br/',
             ],
         ],
     ],
