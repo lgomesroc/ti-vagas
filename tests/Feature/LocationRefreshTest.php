@@ -139,6 +139,38 @@ class LocationRefreshTest extends TestCase
             ->assertJson(['updated' => false]);
     }
 
+    public function test_active_location_guard_lock_blocks_limited_to_available_promotion(): void
+    {
+        $session = $this->sessionData('limited');
+        $session['location_guard'] = [
+            'score' => 9.0,
+            'score_at' => time(),
+            'locked_until' => time() + 1800,
+        ];
+
+        $this->refresh($session, self::PORTO_ALEGRE)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'unverified'])
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionHas('location_guard.locked_until');
+    }
+
+    public function test_expired_location_guard_lock_allows_limited_to_available_promotion(): void
+    {
+        $session = $this->sessionData('limited');
+        $session['location_guard'] = [
+            'score' => 9.0,
+            'score_at' => time() - 7200,
+            'locked_until' => time() - 60,
+        ];
+
+        $this->refresh($session, self::PORTO_ALEGRE)
+            ->assertOk()
+            ->assertJson(['updated' => true])
+            ->assertSessionHas('location_mode', 'available')
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Porto Alegre', 'RS'));
+    }
+
     public function test_first_valid_location_promotes_limited_session_to_available(): void
     {
         $this->refresh($this->sessionData('limited'), self::PORTO_ALEGRE)
