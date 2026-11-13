@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\TotvsAtsSource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Sources\TotvsAtsSource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class TotvsAtsSourceTest extends TestCase
 {
