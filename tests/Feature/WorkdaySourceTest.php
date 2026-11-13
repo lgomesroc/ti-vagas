@@ -9,7 +9,7 @@ use Tests\TestCase;
 class WorkdaySourceTest extends TestCase
 {
     private const ENDPOINT =
-        'https://pwc.wd3.myworkdayjobs.com/wday/cxs/pwc/pwc/Global_Experienced_Careers/jobs';
+        'https://pwc.wd3.myworkdayjobs.com/wday/cxs/pwc/Global_Experienced_Careers/jobs';
 
     public function test_it_collects_a_junior_vacancy_and_fetches_its_details(): void
     {
@@ -23,7 +23,7 @@ class WorkdaySourceTest extends TestCase
                         'locationsText' => 'Rio de Janeiro, Brazil',
                     ]],
                 ]),
-                'https://pwc.wd3.myworkdayjobs.com/wday/cxs/pwc/pwc/Global_Experienced_Careers/job/Rio-de-Janeiro/123'
+                'https://pwc.wd3.myworkdayjobs.com/wday/cxs/pwc/Global_Experienced_Careers/job/Rio-de-Janeiro/123'
                     => Http::response([
                         'jobPostingInfo' => [
                             'title' => 'Desenvolvedor C# Júnior',
