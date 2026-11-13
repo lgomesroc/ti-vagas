@@ -295,6 +295,50 @@ class WelcomeAcceptanceTest extends TestCase
         ]));
     }
 
+    public function test_accepting_terms_clears_current_and_legacy_location_keys_but_keeps_guard_state(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $this->withSession([
+            'location_mode' => 'available',
+            'location_latitude' => -22.9,
+            'location_longitude' => -43.2,
+            'visitor_state_code' => 'RJ',
+            'visitor_municipality_ibge' => '3304557',
+            'visitor_location_label' => 'Rio de Janeiro - RJ',
+            'ip_location_label' => 'Niterói - RJ',
+            'visitor_ip_region_label' => 'Nova Iguaçu - RJ',
+            'visitor_latitude' => -22.7,
+            'visitor_longitude' => -43.4,
+            'visitor_ibge_code' => '3303500',
+            'visitor_city_name' => 'Nova Iguaçu',
+            'visitor_region_label' => 'Nova Iguaçu - RJ',
+            'location_proof' => 'stale-proof',
+            'location_guard' => [
+                'score' => 8.0,
+                'locked_until' => time() + 120,
+            ],
+        ])->post(route('welcome.accept'), ['terms' => '1'])
+            ->assertRedirect(route('vacancies.index'))
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('location_latitude')
+            ->assertSessionMissing('location_longitude')
+            ->assertSessionMissing('visitor_state_code')
+            ->assertSessionMissing('visitor_municipality_ibge')
+            ->assertSessionMissing('visitor_location_label')
+            ->assertSessionMissing('ip_location_label')
+            ->assertSessionMissing('visitor_ip_region_label')
+            ->assertSessionMissing('visitor_latitude')
+            ->assertSessionMissing('visitor_longitude')
+            ->assertSessionMissing('visitor_ibge_code')
+            ->assertSessionMissing('visitor_city_name')
+            ->assertSessionMissing('visitor_region_label')
+            ->assertSessionMissing('location_proof')
+            ->assertSessionHas('location_guard.locked_until');
+    }
+
     private function assertNoStore($response): void
     {
         $cacheControl = (string) $response->headers->get('Cache-Control');
