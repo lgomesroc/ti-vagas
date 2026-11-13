@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
+use App\Http\Middleware\EvaluateNetworkReputation;
 use App\Services\Geo\IpLocationResolver;
+use App\Services\Network\NetworkAssessment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,8 +16,7 @@ class WelcomeController extends Controller
 {
     public function __construct(
         private readonly IpLocationResolver $ipLocationResolver
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): Response|RedirectResponse
     {
@@ -58,7 +59,13 @@ class WelcomeController extends Controller
 
         // A estimativa por IP é apenas informativa.
         // Ela não habilita vagas presenciais ou híbridas.
-        $ipLocation = $this->ipLocationResolver->resolve($request);
+        // Em VPN, proxy, Tor ou datacenter o IP é o do ponto de saída, não o
+        // do visitante: nesses casos a estimativa seria enganosa e é omitida.
+        $assessment = $request->attributes->get(EvaluateNetworkReputation::ATTRIBUTE);
+
+        $ipLocation = ! $assessment instanceof NetworkAssessment || $assessment->isOrdinary()
+            ? $this->ipLocationResolver->resolve($request)
+            : null;
 
         if ($ipLocation !== null) {
             $request->session()->put(
