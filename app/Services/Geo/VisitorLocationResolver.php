@@ -2,6 +2,7 @@
 
 namespace App\Services\Geo;
 
+use App\Services\Geo\Security\LocationProof;
 use Illuminate\Contracts\Session\Session;
 
 /**
@@ -43,7 +44,8 @@ class VisitorLocationResolver
     public const MIN_MOVE_KM = 5.0;
 
     public function __construct(
-        private readonly MunicipalityDirectory $directory
+        private readonly MunicipalityDirectory $directory,
+        private readonly LocationProof $proof
     ) {
     }
 
@@ -102,7 +104,11 @@ class VisitorLocationResolver
     /**
      * Região do visitante guardada na sessão.
      *
-     * Sessões antigas, que só têm coordenadas e UF, também são resolvidas.
+     * Só vale se a sessão trouxer o selo de integridade gravado por
+     * {@see rememberInSession()}. Dados sem selo ou com selo inválido (por
+     * exemplo, gravados por outro caminho ou de uma versão anterior) são
+     * ignorados: o visitante volta ao modo limitado até a próxima posição
+     * validada, em vez de receber uma região que ninguém verificou.
      */
     public function scopeFromSession(Session $session): ?RegionScope
     {
@@ -110,22 +116,13 @@ class VisitorLocationResolver
             return null;
         }
 
+        if (!$this->proof->verify($session)) {
+            return null;
+        }
+
         $municipality = $this->directory->find(
             $session->get('visitor_municipality_ibge')
         );
-
-        if (
-            $municipality === null
-            && $session->has('location_latitude')
-            && $session->has('location_longitude')
-        ) {
-            $municipality = $this->resolve(
-                (float) $session->get('location_latitude'),
-                (float) $session->get('location_longitude'),
-                null,
-                $session->get('visitor_state_code')
-            );
-        }
 
         return $municipality !== null
             ? $this->directory->scopeFor($municipality)
@@ -151,6 +148,11 @@ class VisitorLocationResolver
             'visitor_municipality_ibge' => $municipality['ibge'],
             'visitor_location_label' => $municipality['name'] . ' - ' . $municipality['uf'],
             'ip_location_label' => null,
+            LocationProof::SESSION_KEY => $this->proof->issue(
+                $municipality,
+                $latitude,
+                $longitude
+            ),
         ]);
     }
 
