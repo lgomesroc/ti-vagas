@@ -37,18 +37,10 @@ class WelcomeAcceptanceTest extends TestCase
         $response->assertSessionHas('ip_location_label', 'Nova Iguaçu - RJ');
     }
 
-    public function test_failed_precise_location_does_not_return_to_welcome_and_falls_back_to_limited_mode(): void
+    public function test_accepting_terms_defers_coordinates_until_the_location_refresh_endpoint(): void
     {
-        $this->mock(VisitorLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn(null);
-        });
-
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn(null);
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -62,6 +54,8 @@ class WelcomeAcceptanceTest extends TestCase
 
         $response->assertRedirect(route('vacancies.index'));
         $response->assertSessionHas('location_mode', 'limited');
+        $response->assertSessionMissing('visitor_municipality_ibge');
+        $response->assertSessionMissing('location_latitude');
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
@@ -190,9 +184,7 @@ class WelcomeAcceptanceTest extends TestCase
 
     public function test_cookie_notice_is_not_shown_on_the_welcome_page(): void
     {
-        $this->withSession([
-            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
-        ])->get(route('welcome'))
+        $this->get(route('welcome'))
             ->assertOk()
             ->assertDontSee('Utilizamos cookies');
     }
