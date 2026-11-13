@@ -29,7 +29,8 @@ class WelcomeController extends Controller
                 'termsAccepted' => false,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
-            ->header('Pragma', 'no-cache');
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function accept(Request $request): JsonResponse|RedirectResponse
@@ -47,14 +48,23 @@ class WelcomeController extends Controller
         // Até que o visitante autorize, a experiência fica limitada às vagas remotas.
         $request->session()->put('location_mode', 'limited');
 
+        // Limpa tanto as chaves atuais quanto nomes legados usados por versões anteriores.
+        // O estado do LocationGuard não é apagado aqui: aceitar os termos novamente
+        // não pode funcionar como mecanismo para contornar uma trava antifraude.
         $request->session()->forget([
+            'location_latitude',
+            'location_longitude',
+            'visitor_state_code',
+            'visitor_municipality_ibge',
+            'visitor_location_label',
+            'ip_location_label',
+            'visitor_ip_region_label',
             'visitor_latitude',
             'visitor_longitude',
-            'visitor_state_code',
             'visitor_ibge_code',
             'visitor_city_name',
             'visitor_region_label',
-            'visitor_ip_region_label',
+            \App\Services\Geo\Security\LocationProof::SESSION_KEY,
         ]);
 
         // A estimativa por IP é apenas informativa.
@@ -69,22 +79,24 @@ class WelcomeController extends Controller
 
         if ($ipLocation !== null) {
             $request->session()->put(
-                'visitor_ip_region_label',
+                'ip_location_label',
                 $ipLocation['label']
             );
         }
+
+        $secureCookie = config('session.secure') ?? $request->isSecure();
 
         Cookie::queue(
             cookie(
                 EnsureWelcomeAccepted::TERMS_COOKIE,
                 EnsureWelcomeAccepted::TERMS_VERSION,
                 60 * 24 * 365 * 5,
-                '/',
-                null,
-                $request->isSecure(),
-                true,
+                config('session.path', '/'),
+                config('session.domain'),
+                $secureCookie,
+                config('session.http_only', true),
                 false,
-                'lax'
+                config('session.same_site', 'lax')
             )
         );
 
@@ -92,12 +104,18 @@ class WelcomeController extends Controller
             return response()->json([
                 'accepted' => true,
                 'redirect' => route('vacancies.index'),
-            ]);
+            ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+                ->header('Pragma', 'no-cache')
+                ->header('Vary', 'Cookie');
         }
 
         return redirect()
             ->route('vacancies.index')
-            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.');
+            ->with('welcome_notice', 'Termos aceitos. Você já pode consultar as vagas.')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private')
+            ->header('Pragma', 'no-cache')
+            ->header('Vary', 'Cookie');
     }
 
     public function acknowledgeCookies(Request $request): RedirectResponse
@@ -107,17 +125,19 @@ class WelcomeController extends Controller
             true
         );
 
+        $secureCookie = config('session.secure') ?? $request->isSecure();
+
         Cookie::queue(
             cookie(
                 EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
                 '1',
                 60 * 24 * 365,
-                '/',
-                null,
+                config('session.path', '/'),
+                config('session.domain'),
                 $request->isSecure(),
-                true,
+                config('session.http_only', true),
                 false,
-                'lax'
+                config('session.same_site', 'lax')
             )
         );
 

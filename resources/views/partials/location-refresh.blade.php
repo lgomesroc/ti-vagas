@@ -16,12 +16,60 @@
     var MIN_INTERVAL_MS = 5 * 60 * 1000;
     var PERIODIC_MS = 15 * 60 * 1000;
     var MIN_MOVE_KM = 1;
+    var LOCATION_MODE = @json(session('location_mode', 'limited'));
 
     var STORAGE_KEY = 'ti_vagas_location_refresh';
 
     var running = false;
     var attemptedThisPage = false;
     var memoryState = {};
+    var statusElement = null;
+    var retryButton = null;
+
+    function showStatus(message, canRetry) {
+        if (!statusElement) {
+            statusElement = document.createElement('div');
+            statusElement.id = 'location-refresh-status';
+            statusElement.setAttribute('role', 'status');
+            statusElement.style.cssText =
+                'position:fixed;left:16px;right:16px;bottom:16px;'
+                + 'z-index:9998;margin:0 auto;max-width:560px;'
+                + 'padding:12px 14px;background:#fff;color:#202938;'
+                + 'border:1px solid #cbd5e1;border-radius:8px;'
+                + 'box-shadow:0 4px 16px rgba(0,0,0,.12);'
+                + 'font-size:14px;display:flex;gap:12px;'
+                + 'align-items:center;justify-content:space-between;';
+            document.body.appendChild(statusElement);
+        }
+
+        statusElement.textContent = message;
+
+        if (canRetry) {
+            retryButton = document.createElement('button');
+            retryButton.type = 'button';
+            retryButton.textContent = 'Tentar novamente';
+            retryButton.style.cssText =
+                'flex:none;border:0;border-radius:6px;padding:8px 12px;'
+                + 'background:#2563eb;color:#fff;cursor:pointer;';
+            retryButton.addEventListener('click', function () {
+                attemptedThisPage = false;
+                requestLocation('granted', true);
+            });
+            statusElement.appendChild(retryButton);
+        } else if (retryButton && retryButton.parentNode) {
+            retryButton.parentNode.removeChild(retryButton);
+            retryButton = null;
+        }
+    }
+
+    function clearStatus() {
+        if (statusElement && statusElement.parentNode) {
+            statusElement.parentNode.removeChild(statusElement);
+        }
+
+        statusElement = null;
+        retryButton = null;
+    }
 
     function readState() {
         try {
@@ -121,6 +169,12 @@
         var coords = position.coords;
 
         if (!(coords.accuracy <= MAX_ACCURACY_METERS)) {
+            showStatus(
+                'A precisão informada pelo dispositivo é de '
+                + Math.round(coords.accuracy).toLocaleString('pt-BR')
+                + ' m. Precisamos de até 5.000 m para mostrar vagas presenciais e híbridas.',
+                true
+            );
             return Promise.resolve();
         }
 
@@ -129,6 +183,7 @@
         if (
             typeof state.lat === 'number'
             && typeof state.lon === 'number'
+            && LOCATION_MODE === 'available'
             && distanceKm(
                 state.lat,
                 state.lon,
@@ -151,7 +206,8 @@
             body: JSON.stringify({
                 latitude: coords.latitude,
                 longitude: coords.longitude,
-                accuracy: coords.accuracy
+                accuracy: coords.accuracy,
+                captured_at: position.timestamp
             })
         })
         .then(function (response) {
@@ -174,7 +230,13 @@
             writeState(next);
 
             if (result.updated) {
+                LOCATION_MODE = 'available';
+                clearStatus();
                 notifyAndReload(result.region);
+            } else if (result.reason === 'inaccurate') {
+                showStatus('A localização veio com precisão acima de 5.000 m. Tente novamente em alguns instantes.', true);
+            } else if (result.reason === 'unverified') {
+                showStatus('Não foi possível validar esta leitura de localização. Tente novamente após alguns instantes.', true);
             }
         })
         .catch(function () {
@@ -182,20 +244,8 @@
         });
     }
 
-    function blockCurrentPermissionState(permissionState) {
-        return getPermissionState().then(function (status) {
-            var state = readState();
-
-            state.blockedPermissionState = status
-                ? status.state
-                : permissionState;
-
-            writeState(state);
-        });
-    }
-
-    function requestLocation(permissionState) {
-        if (running || attemptedThisPage) {
+    function requestLocation(permissionState, force) {
+        if (running || (attemptedThisPage && !force)) {
             return;
         }
 
@@ -216,16 +266,22 @@
                     running = false;
                 });
             },
-            function () {
-                blockCurrentPermissionState(
-                    permissionState
-                ).then(function () {
-                    running = false;
-                });
+            function (error) {
+                running = false;
+
+                if (error && error.code === error.PERMISSION_DENIED) {
+                    showStatus('A permissão de localização foi negada. Altere a permissão deste site nas configurações do navegador para habilitar vagas locais.', false);
+                    return;
+                }
+
+                var state = readState();
+                state.checkedAt = Date.now();
+                writeState(state);
+                showStatus('Não conseguimos obter uma localização precisa agora. Confira o GPS/localização do dispositivo e tente novamente.', true);
             },
             {
-                enableHighAccuracy: false,
-                timeout: 10000,
+                enableHighAccuracy: true,
+                timeout: 20000,
                 maximumAge: 0
             }
         );
@@ -253,14 +309,6 @@
 
             var state = readState();
 
-            // Uma falha anterior bloqueia novas tentativas enquanto
-            // o estado da permissão continuar igual.
-            if (
-                state.blockedPermissionState === permissionState
-            ) {
-                return;
-            }
-
             var now = Date.now();
 
             // Para permissões concedidas, respeita o intervalo mínimo.
@@ -276,7 +324,7 @@
             // Em prompt, solicita no máximo uma vez por carregamento
             // da página. Se o usuário escolher "somente desta vez",
             // uma próxima visita poderá solicitar novamente.
-            requestLocation(permissionState);
+            requestLocation(permissionState, false);
         });
     }
 

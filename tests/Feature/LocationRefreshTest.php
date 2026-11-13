@@ -5,17 +5,20 @@ namespace Tests\Feature;
 use App\Models\Vacancy;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BuildsVerifiedLocationSession;
 use Tests\Concerns\SeedsGeography;
 use Tests\TestCase;
 
 class LocationRefreshTest extends TestCase
 {
-    use RefreshDatabase, SeedsGeography;
+    use RefreshDatabase, SeedsGeography, BuildsVerifiedLocationSession;
 
-    // Centroides aproximados.
-    private const NITEROI = [-22.8833, -43.1036];
-    private const RIO = [-22.9068, -43.1729];
-    private const PORTO_ALEGRE = [-30.0346, -51.2177];
+    // Posições a cerca de 500 m do centro de cada cidade. Não podem ser o
+    // centroide do IBGE: GPS real nunca cai exatamente nesse ponto, e o guard
+    // recusa coordenadas que coincidem com ele (ver LocationSpoofingGuardTest).
+    private const NITEROI = [-22.8791, -43.1042];
+    private const RIO = [-22.9112, -43.1685];
+    private const PORTO_ALEGRE = [-30.0412, -51.2231];
     private const PARIS = [48.85, 2.35];
 
     protected function setUp(): void
@@ -29,11 +32,8 @@ class LocationRefreshTest extends TestCase
     {
         return [
             'terms_accepted_version' => '1.0',
+            ...$this->verifiedLocationSession($this->ibge($city, $uf), $coords),
             'location_mode' => $mode,
-            'location_latitude' => $coords[0],
-            'location_longitude' => $coords[1],
-            'visitor_state_code' => $uf,
-            'visitor_municipality_ibge' => $this->ibge($city, $uf),
         ];
     }
 
@@ -139,13 +139,58 @@ class LocationRefreshTest extends TestCase
             ->assertJson(['updated' => false]);
     }
 
-    public function test_limited_mode_is_never_promoted_automatically(): void
+    public function test_active_location_guard_lock_blocks_limited_to_available_promotion(): void
+    {
+        $session = $this->sessionData('limited');
+        $session['location_guard'] = [
+            'score' => 9.0,
+            'score_at' => time(),
+            'locked_until' => time() + 1800,
+        ];
+
+        $this->refresh($session, self::PORTO_ALEGRE)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'unverified'])
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionHas('location_guard.locked_until');
+    }
+
+    public function test_expired_location_guard_lock_allows_limited_to_available_promotion(): void
+    {
+        $session = $this->sessionData('limited');
+        $session['location_guard'] = [
+            'score' => 9.0,
+            'score_at' => time() - 7200,
+            'locked_until' => time() - 60,
+        ];
+
+        $this->refresh($session, self::PORTO_ALEGRE)
+            ->assertOk()
+            ->assertJson(['updated' => true])
+            ->assertSessionHas('location_mode', 'available')
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Porto Alegre', 'RS'));
+    }
+
+    public function test_first_valid_location_promotes_limited_session_to_available(): void
     {
         $this->refresh($this->sessionData('limited'), self::PORTO_ALEGRE)
             ->assertOk()
-            ->assertExactJson(['updated' => false, 'reason' => 'disabled'])
-            ->assertSessionHas('location_mode', 'limited')
-            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Niterói', 'RJ'));
+            ->assertJson(['updated' => true])
+            ->assertSessionHas('location_mode', 'available')
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Porto Alegre', 'RS'));
+    }
+
+    public function test_invalid_location_keeps_limited_session_limited(): void
+    {
+        $this->refresh($this->sessionData('limited'), self::PARIS)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'unresolved'])
+            ->assertSessionHas('location_mode', 'limited');
+
+        $this->refresh($this->sessionData('limited'), self::PORTO_ALEGRE, VisitorLocationResolver::MAX_ACCURACY_METERS + 1)
+            ->assertOk()
+            ->assertExactJson(['updated' => false, 'reason' => 'inaccurate'])
+            ->assertSessionHas('location_mode', 'limited');
     }
 
     public function test_a_different_region_close_to_the_reference_position_is_ignored(): void
@@ -195,12 +240,15 @@ class LocationRefreshTest extends TestCase
             ->assertSee('id="location-refresh"', false)
             ->assertSee(json_encode(route('location.refresh')), false)
             ->assertSee('getCurrentPosition(', false)
+            ->assertSee('enableHighAccuracy: true', false)
+            ->assertSee('timeout: 20000', false)
             // Nenhuma chamada de rastreamento contínuo (o comentário não conta).
             ->assertDontSee('watchPosition(', false);
 
         $this->withSession($this->sessionData('limited'))
             ->get(route('vacancies.index'))
-            ->assertDontSee('id="location-refresh"', false);
+            ->assertSee('id="location-refresh"', false)
+            ->assertSee('var LOCATION_MODE = "limited"', false);
 
         $this->withSession($this->sessionData('available'))
             ->get(route('welcome'))

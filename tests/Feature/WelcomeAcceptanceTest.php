@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Services\Geo\IpLocationResolver;
-use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,18 +37,10 @@ class WelcomeAcceptanceTest extends TestCase
         $response->assertSessionHas('ip_location_label', 'Nova Iguaçu - RJ');
     }
 
-    public function test_failed_precise_location_does_not_return_to_welcome_and_falls_back_to_limited_mode(): void
+    public function test_accepting_terms_defers_coordinates_until_the_location_refresh_endpoint(): void
     {
-        $this->mock(VisitorLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn(null);
-        });
-
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn(null);
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -63,6 +54,8 @@ class WelcomeAcceptanceTest extends TestCase
 
         $response->assertRedirect(route('vacancies.index'));
         $response->assertSessionHas('location_mode', 'limited');
+        $response->assertSessionMissing('visitor_municipality_ibge');
+        $response->assertSessionMissing('location_latitude');
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
@@ -91,16 +84,10 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertRedirect(route('welcome'));
     }
 
-    public function test_accepting_with_precise_location_releases_site_and_sets_terms_cookie(): void
+    public function test_accepting_terms_defers_precise_location_until_the_vacancies_page(): void
     {
-        $this->mock(VisitorLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn([
-                    'ibge' => '3304557',
-                    'name' => 'Rio de Janeiro',
-                    'uf' => 'RJ',
-                ]);
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -113,7 +100,7 @@ class WelcomeAcceptanceTest extends TestCase
         ]);
 
         $response->assertRedirect(route('vacancies.index'));
-        $response->assertSessionHas('location_mode', 'available');
+        $response->assertSessionHas('location_mode', 'limited');
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
@@ -197,9 +184,7 @@ class WelcomeAcceptanceTest extends TestCase
 
     public function test_cookie_notice_is_not_shown_on_the_welcome_page(): void
     {
-        $this->withSession([
-            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
-        ])->get(route('welcome'))
+        $this->get(route('welcome'))
             ->assertOk()
             ->assertDontSee('Utilizamos cookies');
     }
@@ -236,12 +221,15 @@ class WelcomeAcceptanceTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertExactJson(['redirect' => route('vacancies.index')]);
+        $response->assertExactJson([
+            'accepted' => true,
+            'redirect' => route('vacancies.index'),
+        ]);
         $response->assertSessionHas(
             'terms_accepted_version',
             EnsureWelcomeAccepted::TERMS_VERSION
         );
-        $response->assertSessionHas('location_notice');
+        $response->assertSessionMissing('location_notice');
         $response->assertCookie(EnsureWelcomeAccepted::TERMS_COOKIE);
     }
 
@@ -293,6 +281,50 @@ class WelcomeAcceptanceTest extends TestCase
             'terms' => '1',
             'location_status' => 'limited',
         ]));
+    }
+
+    public function test_accepting_terms_clears_current_and_legacy_location_keys_but_keeps_guard_state(): void
+    {
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->once()->andReturn(null);
+        });
+
+        $this->withSession([
+            'location_mode' => 'available',
+            'location_latitude' => -22.9,
+            'location_longitude' => -43.2,
+            'visitor_state_code' => 'RJ',
+            'visitor_municipality_ibge' => '3304557',
+            'visitor_location_label' => 'Rio de Janeiro - RJ',
+            'ip_location_label' => 'Niterói - RJ',
+            'visitor_ip_region_label' => 'Nova Iguaçu - RJ',
+            'visitor_latitude' => -22.7,
+            'visitor_longitude' => -43.4,
+            'visitor_ibge_code' => '3303500',
+            'visitor_city_name' => 'Nova Iguaçu',
+            'visitor_region_label' => 'Nova Iguaçu - RJ',
+            'location_proof' => 'stale-proof',
+            'location_guard' => [
+                'score' => 8.0,
+                'locked_until' => time() + 120,
+            ],
+        ])->post(route('welcome.accept'), ['terms' => '1'])
+            ->assertRedirect(route('vacancies.index'))
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('location_latitude')
+            ->assertSessionMissing('location_longitude')
+            ->assertSessionMissing('visitor_state_code')
+            ->assertSessionMissing('visitor_municipality_ibge')
+            ->assertSessionMissing('visitor_location_label')
+            ->assertSessionMissing('ip_location_label')
+            ->assertSessionMissing('visitor_ip_region_label')
+            ->assertSessionMissing('visitor_latitude')
+            ->assertSessionMissing('visitor_longitude')
+            ->assertSessionMissing('visitor_ibge_code')
+            ->assertSessionMissing('visitor_city_name')
+            ->assertSessionMissing('visitor_region_label')
+            ->assertSessionMissing('location_proof')
+            ->assertSessionHas('location_guard.locked_until');
     }
 
     private function assertNoStore($response): void

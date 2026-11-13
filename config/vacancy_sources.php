@@ -1,4 +1,3 @@
-
 <?php
 
 return [
@@ -212,6 +211,10 @@ return [
                 'name' => 'SONDA IT',
                 'url' => 'https://sondait.pandape.infojobs.com.br/',
             ],
+            'adecco' => [
+                'name' => 'Adecco',
+                'url' => 'https://adecco.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
@@ -261,6 +264,19 @@ return [
             'v8carreira' => [
                 'name' => 'V8.TECH',
                 'url' => 'https://atracaodetalentos.totvs.app/v8carreira',
+            ],
+        ],
+    ],
+
+    'jobconvo' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 110,
+
+        'companies' => [
+            'adecco' => [
+                'name' => 'Adecco',
+                'url' => 'https://app.jobconvo.com/pt-br/careers/Adecco/7b3711ce-e38f-4f76-ab5c-1fbef972c147/',
+                'career_page_id' => '7b3711ce-e38f-4f76-ab5c-1fbef972c147',
             ],
         ],
     ],

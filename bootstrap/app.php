@@ -1,7 +1,10 @@
 <?php
 
+<?php
+
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Http\Middleware\EvaluateNetworkReputation;
+use App\Http\Middleware\RejectLocationOverrides;
 use App\Services\Network\AbuseTracker;
 use App\Services\Network\NetworkAction;
 use App\Services\Network\NetworkAssessment;
@@ -41,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'welcome.accepted' => EnsureWelcomeAccepted::class,
+            'location.overrides' => RejectLocationOverrides::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

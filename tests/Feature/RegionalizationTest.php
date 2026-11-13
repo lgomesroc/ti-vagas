@@ -11,6 +11,7 @@ use App\Services\Geo\VacancyLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\BuildsVerifiedLocationSession;
 use Tests\Concerns\SeedsGeography;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ class RegionalizationTest extends TestCase
 {
     use RefreshDatabase;
     use SeedsGeography;
+    use BuildsVerifiedLocationSession;
 
     protected function setUp(): void
     {
@@ -198,6 +200,40 @@ class RegionalizationTest extends TestCase
         $this->assertSame('Pelotas', $found['name']);
     }
 
+    public function test_structured_state_accepts_abbreviation_and_full_name(): void
+    {
+        $resolver = app(VacancyLocationResolver::class);
+
+        $cases = [
+            ['Niteroi', 'RJ'],
+            ['Niteroi', 'Rio de Janeiro'],
+            ['Niteroi', 'rio de janeiro'],
+        ];
+
+        foreach ($cases as [$city, $state]) {
+            $found = $resolver->resolve(
+                'Brasil',
+                'Desenvolvedor Backend',
+                $city,
+                $state
+            );
+
+            $this->assertSame('Niterói', $found['name'] ?? null);
+        }
+    }
+
+    public function test_free_text_resolver_accepts_full_state_name_as_hint(): void
+    {
+        $resolver = app(VacancyLocationResolver::class);
+
+        $found = $resolver->resolveFromText(
+            'Niterói',
+            'Rio de Janeiro'
+        );
+
+        $this->assertSame('Niterói', $found['name'] ?? null);
+    }
+
     public function test_visitor_is_resolved_by_city_name_and_by_nearest_centroid(): void
     {
         $resolver = app(VisitorLocationResolver::class);
@@ -350,7 +386,7 @@ class RegionalizationTest extends TestCase
         $this->get(route('vacancies.show', $vacancy))->assertNotFound();
     }
 
-    public function test_honest_post_grants_the_visitors_region(): void
+    public function test_honest_location_refresh_grants_the_visitors_region_after_terms_acceptance(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
             $mock->shouldReceive('resolve')->andReturn(null);
@@ -358,15 +394,20 @@ class RegionalizationTest extends TestCase
 
         $this->postJson(route('welcome.accept'), [
             'terms' => '1',
-            'location_status' => 'available',
-            'latitude' => -22.7081,
-            'longitude' => -42.6150,
-            'state_code' => 'RJ',
-            'city_name' => 'Rio Bonito',
         ])
             ->assertOk()
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge');
+
+        $this->postJson(route('location.refresh'), [
+            'latitude' => -22.8791,
+            'longitude' => -43.1042,
+            'accuracy' => 50,
+        ])
+            ->assertOk()
+            ->assertJson(['updated' => true])
             ->assertSessionHas('location_mode', 'available')
-            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Rio Bonito', 'RJ'));
+            ->assertSessionHas('visitor_municipality_ibge', $this->ibge('Niterói', 'RJ'));
     }
 
     public function test_vacancies_are_listed_only_for_the_visitors_region(): void
@@ -387,10 +428,9 @@ class RegionalizationTest extends TestCase
         $nfriburgo = $make('Nova Friburgo, RJ', 'Desenvolvedor PHP Junior Friburgo');
         $paulinia = $make('Paulínia, SP', 'Desenvolvedor PHP Junior Paulinia');
 
-        $session = fn (string $name, string $uf) => [
-            'location_mode' => 'available',
-            'visitor_municipality_ibge' => $this->ibge($name, $uf),
-        ];
+        $session = fn (string $name, string $uf) => $this->verifiedLocationSession(
+            $this->ibge($name, $uf)
+        );
 
         $rioBonito = $this->withCookie('ti_vagas_terms_accepted', '1.0')
             ->withSession($session('Rio Bonito', 'RJ'))
@@ -427,25 +467,27 @@ class RegionalizationTest extends TestCase
         $limited->assertDontSee($niteroi->title);
     }
 
-    public function test_welcome_stores_the_visitor_municipality_in_the_session(): void
+    public function test_welcome_defers_visitor_municipality_until_location_is_verified(): void
     {
-        $response = $this->post(route('welcome.accept'), [
+        $this->mock(IpLocationResolver::class, function ($mock): void {
+            $mock->shouldReceive('resolve')->andReturn(null);
+        });
+
+        $this->post(route('welcome.accept'), [
             'terms' => '1',
             'location_status' => 'available',
             'latitude' => -22.7081,
             'longitude' => -42.6150,
             'state_code' => 'RJ',
             'city_name' => 'Rio Bonito',
-        ]);
-
-        $response->assertRedirect(route('vacancies.index'));
-        $response->assertSessionHas(
-            'visitor_municipality_ibge',
-            $this->ibge('Rio Bonito', 'RJ')
-        );
+        ])
+            ->assertRedirect(route('vacancies.index'))
+            ->assertSessionHas('location_mode', 'limited')
+            ->assertSessionMissing('visitor_municipality_ibge')
+            ->assertSessionMissing('location_latitude');
     }
 
-    public function test_old_sessions_with_only_coordinates_are_still_resolved(): void
+    public function test_sessions_without_the_integrity_proof_never_release_regional_vacancies(): void
     {
         $vacancy = Vacancy::create([
             'title' => 'Desenvolvedor PHP Junior Niteroi',
@@ -454,11 +496,13 @@ class RegionalizationTest extends TestCase
             'location' => 'Niterói, RJ (Presencial)',
             'application_url' => 'https://example.com/candidatar',
             'source' => 'test',
-            'external_id' => 'old-session',
+            'external_id' => 'unsigned-session',
             'original_published_at' => now()->subDays(3),
             'collected_at' => now(),
         ]);
 
+        // Sessão de versão anterior (só coordenadas e UF) ou escrita por
+        // outro caminho: sem selo, não vale como localização verificada.
         $this->withCookie('ti_vagas_terms_accepted', '1.0')
             ->withSession([
                 'location_mode' => 'available',
@@ -467,7 +511,15 @@ class RegionalizationTest extends TestCase
                 'visitor_state_code' => 'RJ',
             ])
             ->get(route('vacancies.index'))
-            ->assertSee($vacancy->title);
+            ->assertDontSee($vacancy->title);
+
+        $this->withCookie('ti_vagas_terms_accepted', '1.0')
+            ->withSession([
+                'location_mode' => 'available',
+                'visitor_municipality_ibge' => $this->ibge('Niterói', 'RJ'),
+            ])
+            ->get(route('vacancies.index'))
+            ->assertDontSee($vacancy->title);
     }
 
     public function test_ibge_api_payload_is_applied_and_curated_units_replace_ibge_rms(): void
