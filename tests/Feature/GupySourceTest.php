@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\GupySource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Sources\GupySource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class GupySourceTest extends TestCase
 {
@@ -16,7 +16,7 @@ class GupySourceTest extends TestCase
         ], JSON_THROW_ON_ERROR);
         $listing = '<html><body><script id="__NEXT_DATA__" type="application/json">'
             . $nextData
-            . '</script></body></html>';
+            . '</script><a href="/jobs/456">Vaga</a></body></html>';
 
         $jobPosting = [
             '@context' => 'https://schema.org',
@@ -66,7 +66,7 @@ class GupySourceTest extends TestCase
         $baseUrl = 'https://empresa-teste.gupy.io';
         $listing = '<script id="__NEXT_DATA__" type="application/json">'
             . json_encode(['props' => ['pageProps' => ['jobs' => [['id' => 789]]]])
-            . '</script>';
+            . '</script><a href="/jobs/789">Vaga</a>';
         $posting = [
             '@type' => 'JobPosting',
             'title' => 'Banco de Talentos de Tecnologia',
