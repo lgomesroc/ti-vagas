@@ -86,7 +86,10 @@ class VacancyLocationResolver
         }
 
         if ($city !== null && trim($city) !== '') {
-            $matches = $this->directory->findByName($city, $stateCode);
+            $matches = $this->directory->findByName(
+                $city,
+                $this->normalizeStateCode($stateCode)
+            );
 
             if (count($matches) === 1) {
                 return $matches[0];
@@ -109,9 +112,7 @@ class VacancyLocationResolver
             return null;
         }
 
-        $stateCode = $stateHint !== null && $stateHint !== ''
-            ? strtoupper($stateHint)
-            : null;
+        $stateCode = $this->normalizeStateCode($stateHint);
 
         $remaining = [];
 
@@ -217,6 +218,27 @@ class VacancyLocationResolver
         }
 
         return null;
+    }
+
+
+    /**
+     * Converte uma sigla ou o nome completo de uma UF para sua sigla.
+     */
+    private function normalizeStateCode(?string $state): ?string
+    {
+        if ($state === null || trim($state) === '') {
+            return null;
+        }
+
+        $normalized = MunicipalityDirectory::normalize($state);
+
+        if (strlen($normalized) === 2) {
+            $code = strtoupper($normalized);
+
+            return in_array($code, self::STATE_NAMES, true) ? $code : null;
+        }
+
+        return self::STATE_NAMES[$normalized] ?? null;
     }
 
     /**

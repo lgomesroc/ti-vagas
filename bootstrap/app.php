@@ -1,7 +1,5 @@
 <?php
 
-<?php
-
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Http\Middleware\EvaluateNetworkReputation;
 use App\Http\Middleware\RejectLocationOverrides;
