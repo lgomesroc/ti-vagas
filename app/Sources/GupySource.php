@@ -51,10 +51,7 @@ class GupySource implements VacancySource
                     break;
                 }
 
-                $job = $this->fetchJob(
-                    baseUrl: $baseUrl,
-                    jobId: $jobId,
-                );
+                $job = $this->fetchJob($baseUrl, $jobId);
 
                 if ($job !== null) {
                     $jobs[] = $job;
@@ -80,35 +77,30 @@ class GupySource implements VacancySource
 
     private function extractJobIds(string $html): array
     {
+        $data = $this->extractNextData($html);
+
+        $jobs = $data['props']['pageProps']['jobs'] ?? [];
+
+        if (is_array($jobs)) {
+            $ids = [];
+
+            foreach ($jobs as $job) {
+                $id = $job['id'] ?? null;
+
+                if ($id !== null && is_scalar($id)) {
+                    $ids[] = (string) $id;
+                }
+            }
+
+            if ($ids !== []) {
+                return array_values(array_unique($ids));
+            }
+        }
+
         $dom = new DOMDocument();
 
         @$dom->loadHTML($html);
 
-        $node = $dom->getElementById('__NEXT_DATA__');
-
-        if ($node !== null) {
-            $data = json_decode($node->textContent, true);
-
-            $jobs = $data['props']['pageProps']['jobs'] ?? [];
-
-            if (is_array($jobs)) {
-                $ids = [];
-
-                foreach ($jobs as $job) {
-                    $id = $job['id'] ?? null;
-
-                    if ($id !== null && is_scalar($id)) {
-                        $ids[] = (string) $id;
-                    }
-                }
-
-                if ($ids !== []) {
-                    return array_values(array_unique($ids));
-                }
-            }
-        }
-
-        // Fallback para páginas sem __NEXT_DATA__.
         $ids = [];
 
         foreach ($dom->getElementsByTagName('a') as $anchor) {
@@ -133,87 +125,115 @@ class GupySource implements VacancySource
                 return null;
             }
 
-            $dom = new DOMDocument();
+            $html = $response->body();
+            $pageData = $this->extractNextData($html);
 
-            @$dom->loadHTML($response->body());
+            // Formato atual da Gupy: props.pageProps.job.
+            $data = $pageData['props']['pageProps']['job'] ?? null;
 
-            $data = null;
+            // Compatibilidade com páginas que utilizam JSON-LD.
+            if (!is_array($data)) {
+                $dom = new DOMDocument();
 
-            foreach ($dom->getElementsByTagName('script') as $script) {
-                if (
-                    strtolower($script->getAttribute('type'))
-                    !== 'application/ld+json'
-                ) {
-                    continue;
-                }
+                @$dom->loadHTML($html);
 
-                $decoded = json_decode($script->textContent, true);
+                foreach ($dom->getElementsByTagName('script') as $script) {
+                    if (
+                        strtolower($script->getAttribute('type'))
+                        !== 'application/ld+json'
+                    ) {
+                        continue;
+                    }
 
-                if (is_array($decoded)) {
-                    $data = $this->findJobPosting($decoded);
+                    $decoded = json_decode($script->textContent, true);
 
-                    if ($data !== null) {
-                        break;
+                    if (is_array($decoded)) {
+                        $data = $this->findJobPosting($decoded);
+
+                        if ($data !== null) {
+                            break;
+                        }
                     }
                 }
             }
 
-            if ($data === null) {
-                return null;
-            }
-
-            $title = trim((string) ($data['title'] ?? ''));
-
-            $normalizedTitle = html_entity_decode(
-                $title,
-                ENT_QUOTES | ENT_HTML5,
-                'UTF-8'
-            );
-
-            if ($normalizedTitle === '') {
-                return null;
-            }
-
-            $description = $this->cleanDescription(
-                (string) ($data['description'] ?? '')
-            );
-
-            // Exclui Banco de Talentos antes de retornar ao sistema.
-            if ($this->isTalentPool($normalizedTitle, $description)) {
-                Log::info('Gupy: anúncio de Banco de Talentos descartado.', [
+            if (!is_array($data)) {
+                Log::warning('Gupy: dados da vaga não encontrados.', [
                     'company' => $this->companyName,
                     'job_id' => $jobId,
-                    'title' => $normalizedTitle,
                 ]);
 
                 return null;
             }
 
-            $jobLocation = $data['jobLocation'] ?? [];
-            $address = [];
+            $title = trim((string) (
+                $data['name'] ?? $data['title'] ?? ''
+            ));
 
-            if (is_array($jobLocation)) {
-                if (array_is_list($jobLocation)) {
-                    $jobLocation = $jobLocation[0] ?? [];
+            $title = html_entity_decode(
+                $title,
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            );
+
+            if ($title === '') {
+                return null;
+            }
+
+            $descriptionParts = array_filter([
+                $data['description'] ?? null,
+                $data['prerequisites'] ?? null,
+                $data['responsibilities'] ?? null,
+                $data['relevantExperiences'] ?? null,
+            ], fn ($value) => is_string($value) && trim($value) !== '');
+
+            $description = $this->cleanDescription(
+                implode("\n\n", $descriptionParts)
+            );
+
+            if ($this->isTalentPool($title, $description)) {
+                Log::info('Gupy: anúncio de Banco de Talentos descartado.', [
+                    'company' => $this->companyName,
+                    'job_id' => $jobId,
+                    'title' => $title,
+                ]);
+
+                return null;
+            }
+
+            // Localização no formato atual da Gupy.
+            $city = $data['addressCity'] ?? null;
+            $state = $data['addressState'] ?? null;
+            $stateCode = $data['addressStateShortName'] ?? null;
+            $country = $data['addressCountry'] ?? 'Brasil';
+            $countryCode = $data['addressCountryShortName'] ?? 'BR';
+
+            // Compatibilidade com o formato JSON-LD.
+            if ($city === null || $state === null) {
+                $jobLocation = $data['jobLocation'] ?? [];
+                $address = [];
+
+                if (is_array($jobLocation)) {
+                    if (array_is_list($jobLocation)) {
+                        $jobLocation = $jobLocation[0] ?? [];
+                    }
+
+                    $address = $jobLocation['address'] ?? [];
                 }
 
-                $address = $jobLocation['address'] ?? [];
-            }
+                if (is_array($address)) {
+                    $city = $city ?? $address['addressLocality'] ?? null;
+                    $state = $state ?? $address['addressRegion'] ?? null;
+                    $country = $country ?? $address['addressCountry'] ?? 'Brasil';
 
-            if (!is_array($address)) {
-                $address = [];
-            }
+                    if (is_array($country)) {
+                        $country = $country['name'] ?? 'Brasil';
+                    }
 
-            $city = $address['addressLocality'] ?? null;
-            $state = $address['addressRegion'] ?? null;
-            $country = $address['addressCountry'] ?? 'Brasil';
-
-            if (is_array($country)) {
-                $country = $country['name'] ?? 'Brasil';
-            }
-
-            if (is_array($state)) {
-                $state = $state['name'] ?? null;
+                    if (is_array($state)) {
+                        $state = $state['name'] ?? null;
+                    }
+                }
             }
 
             $location = implode(', ', array_filter([
@@ -229,17 +249,19 @@ class GupySource implements VacancySource
                 'location' => $location ?: 'Não informado',
                 'work_model' => $this->getWorkModel($data),
                 'employment_type' => $this->getEmploymentType(
-                    $data['employmentType'] ?? null
+                    $data['jobType'] ?? $data['employmentType'] ?? null
                 ),
                 'salary' => null,
                 'application_url' => $url,
-                'external_id' => $jobId,
-                'original_published_at' => $data['datePosted'] ?? null,
+                'external_id' => (string) ($data['id'] ?? $jobId),
+                'original_published_at' => $data['publishedAt']
+                    ?? $data['datePosted']
+                    ?? null,
                 'city' => $city,
                 'state' => $state,
-                'state_code' => null,
+                'state_code' => $stateCode,
                 'country' => $country,
-                'country_code' => 'BR',
+                'country_code' => $countryCode,
                 'latitude' => null,
                 'longitude' => null,
             ];
@@ -252,6 +274,23 @@ class GupySource implements VacancySource
 
             return null;
         }
+    }
+
+    private function extractNextData(string $html): array
+    {
+        $dom = new DOMDocument();
+
+        @$dom->loadHTML($html);
+
+        $node = $dom->getElementById('__NEXT_DATA__');
+
+        if ($node === null) {
+            return [];
+        }
+
+        $data = json_decode($node->textContent, true);
+
+        return is_array($data) ? $data : [];
     }
 
     private function isTalentPool(
@@ -308,6 +347,23 @@ class GupySource implements VacancySource
 
     private function getWorkModel(array $data): ?string
     {
+        $workplaceType = strtolower(
+            (string) ($data['workplaceType'] ?? '')
+        );
+
+        if (in_array($workplaceType, ['remote', 'home-office'], true)) {
+            return 'remote';
+        }
+
+        if (in_array($workplaceType, ['hybrid', 'hybrid-work'], true)) {
+            return 'hybrid';
+        }
+
+        if (in_array($workplaceType, ['on-site', 'onsite'], true)) {
+            return 'onsite';
+        }
+
+        // Compatibilidade com JSON-LD.
         $jobLocationType = strtoupper(
             (string) ($data['jobLocationType'] ?? '')
         );
@@ -317,7 +373,7 @@ class GupySource implements VacancySource
         }
 
         $description = mb_strtolower(
-            (string) ($data['description'] ?? '')
+            strip_tags((string) ($data['description'] ?? ''))
         );
 
         if (str_contains($description, 'trabalho remoto')) {
@@ -345,11 +401,19 @@ class GupySource implements VacancySource
         }
 
         return match (strtoupper((string) $type)) {
-            'FULL_TIME' => 'full_time',
+            'FULL_TIME',
+            'VACANCY_TYPE_EFFECTIVE' => 'full_time',
+
             'PART_TIME' => 'part_time',
-            'CONTRACTOR' => 'contract',
+
+            'CONTRACTOR',
+            'VACANCY_TYPE_CONTRACTOR' => 'contract',
+
             'TEMPORARY' => 'temporary',
-            'INTERN' => 'internship',
+
+            'INTERN',
+            'VACANCY_TYPE_INTERNSHIP' => 'internship',
+
             default => null,
         };
     }
