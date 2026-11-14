@@ -130,6 +130,11 @@ return [
                 'name' => 'CEPEL',
                 'url' => 'https://cepel.gupy.io/',
             ],
+
+            'e-deploy' => [
+                'name' => 'E-Deploy / 3S Checkout',
+                'url' => 'https://e-deploy.gupy.io/',
+            ],
         ],
     ],
 
