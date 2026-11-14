@@ -38,9 +38,11 @@ class CollectVacancies extends Command
             return self::SUCCESS;
         }
 
+        $connection = config('queue.default');
+
         $this->info('Fontes configuradas: ' . count($sources));
         $this->info('Fila: vacancies');
-        $this->info('Conexão: database');
+        $this->info("Conexão: {$connection}");
 
         $dispatched = 0;
 
@@ -52,7 +54,7 @@ class CollectVacancies extends Command
             $this->line("Job enviado: {$sourceName}");
         }
 
-        $queueSize = Queue::connection('database')->size('vacancies');
+        $queueSize = Queue::connection($connection)->size('vacancies');
 
         $this->newLine();
         $this->info('DESPACHO CONCLUÍDO');

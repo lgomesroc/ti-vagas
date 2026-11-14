@@ -39,7 +39,7 @@ class FetchVacancySourceJob implements ShouldQueue
     public function __construct(
         public readonly string $sourceName
     ) {
-        $this->onConnection('database');
+        // Utiliza a conexão padrão definida em QUEUE_CONNECTION.
         $this->onQueue('vacancies');
     }
 
