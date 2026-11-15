@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CaptureUtmParameters;
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Http\Middleware\EvaluateNetworkReputation;
 use App\Http\Middleware\RejectLocationOverrides;
@@ -38,6 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Antes da sessão: acessos bloqueados não criam sessões.
         $middleware->web(prepend: [
             EvaluateNetworkReputation::class,
+        ], append: [
+            // Captura a primeira origem de campanha na sessão, sem alterar URLs internas.
+            CaptureUtmParameters::class,
         ]);
 
         $middleware->alias([
