@@ -105,6 +105,15 @@ class LinkedInPostCandidateProcessor
             }
         }
 
+        $pageContent = implode("\n", array_filter(array_map(
+            fn (array $link): string => implode("\n", array_filter([
+                $link['page_title'] ?? null,
+                $link['page_description'] ?? null,
+                $link['page_text'] ?? null,
+            ])),
+            $verifiedLinks
+        )));
+
         $applicationUrl = null;
         foreach ($verifiedLinks as $link) {
             if (
@@ -118,11 +127,15 @@ class LinkedInPostCandidateProcessor
             }
         }
 
-        $title = $this->extractTitle($text);
-        $company = $this->extractCompany($text, $post);
-        $location = $this->extractLocation($text);
-        $workModel = $this->classifyWorkModel($combinedText);
-        $description = trim($text . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : ''));
+        $enrichedText = trim($text . "\n" . $pageContent);
+        $title = $this->extractTitle($enrichedText);
+        $company = $this->extractCompany($enrichedText, $post);
+        $location = $this->extractLocation($enrichedText);
+        $workModel = $this->classifyWorkModel($combinedText . "\n" . $pageContent);
+        $description = trim(
+            $enrichedText
+            . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
+        );
 
         $reason = $this->validateBusinessRules(
             $title,
