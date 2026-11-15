@@ -30,7 +30,7 @@ class LinkedInPostSearchClient
         $posts = [];
 
         foreach ($keywords as $keyword) {
-            $query = 'site:linkedin.com/posts/ OR site:linkedin.com/feed/update/ '
+            $query = '(site:linkedin.com/posts OR site:linkedin.com/feed/update) '
                 . '"' . $keyword . '"';
 
             try {
