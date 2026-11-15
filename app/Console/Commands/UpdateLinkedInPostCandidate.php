@@ -14,6 +14,9 @@ class UpdateLinkedInPostCandidate extends Command
         {--location=}
         {--work-model=}
         {--application-url=}
+        {--description=}
+        {--employment-type=}
+        {--salary=}
         {--email=}';
 
     protected $description = 'Completa dados extraídos de uma publicação do LinkedIn antes da revisão';
@@ -34,6 +37,9 @@ class UpdateLinkedInPostCandidate extends Command
             'location' => 'location',
             'work-model' => 'work_model',
             'application-url' => 'application_url',
+            'description' => 'description',
+            'employment-type' => 'employment_type',
+            'salary' => 'salary',
         ];
 
         $changes = [];
