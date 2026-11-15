@@ -20,6 +20,11 @@ Schedule::command('network:update-lists')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
+Schedule::command('vacancies:check-links --limit=500')
+    ->dailyAt('02:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
 Schedule::command('vacancies:prune-expired')
     ->weeklyOn(1, '03:00')
     ->timezone('America/Sao_Paulo')
