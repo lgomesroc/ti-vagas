@@ -120,9 +120,15 @@ class WelcomeController extends Controller
 
     public function acknowledgeCookies(Request $request): RedirectResponse
     {
+        $validated = $request->validate([
+            'optional_cookies' => ['required', 'in:accepted,rejected'],
+        ]);
+
+        $choice = $validated['optional_cookies'];
+
         $request->session()->put(
             EnsureWelcomeAccepted::COOKIE_NOTICE_SESSION_KEY,
-            true
+            $choice
         );
 
         $secureCookie = config('session.secure') ?? $request->isSecure();
@@ -130,17 +136,17 @@ class WelcomeController extends Controller
         Cookie::queue(
             cookie(
                 EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
-                '1',
+                $choice,
                 60 * 24 * 365,
                 config('session.path', '/'),
                 config('session.domain'),
-                $request->isSecure(),
+                $secureCookie,
                 config('session.http_only', true),
                 false,
                 config('session.same_site', 'lax')
             )
         );
 
-        return back();
+        return EnsureWelcomeAccepted::withoutCaching(back());
     }
 }
