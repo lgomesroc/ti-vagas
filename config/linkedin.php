@@ -71,8 +71,16 @@ return [
         'remotar.com.br',
         'programathor.com.br',
         'coodesh.com',
-        'geekhunter.com.br',
         'trabalhabrasil.com.br',
+        'jobisjob.com',
+        'jobsora.com',
+        'careerbuilder.com',
+        'simplyhired.com',
+        'ziprecruiter.com',
+        'monster.com',
+        'bebee.com',
+        'buscojobs.com',
+        'emprego.com.br',
     ],
 
     'recruiter_terms' => [
