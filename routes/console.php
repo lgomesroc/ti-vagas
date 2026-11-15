@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('vacancies:collect')
-    ->twiceDaily(6, 18)
+    ->everySixHours()
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
