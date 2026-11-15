@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\LinkedInPostCandidate;
 use App\Services\LinkedInPostCandidateProcessor;
+use App\Services\LinkedInUrlInspector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -54,7 +55,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     {
         config(['linkedin.aggregator_domains' => ['indeed.com']]);
 
-        $result = app(\\App\\Services\\LinkedInUrlInspector::class)
+        $result = app(LinkedInUrlInspector::class)
             ->inspect('https://www.indeed.com/viewjob?jk=abc123');
 
         $this->assertTrue($result['blocked']);
