@@ -158,28 +158,28 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertSee('Utilizamos cookies');
     }
 
-    public function test_cookie_notice_is_hidden_once_acknowledged_by_cookie(): void
+    public function test_cookie_notice_is_hidden_once_choice_is_saved_in_cookie(): void
     {
         $this->withSession([
             'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
             'location_mode' => 'limited',
         ])->withCookie(
             EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE,
-            '1'
+            'rejected'
         )->get(route('vacancies.index'))
             ->assertOk()
-            ->assertDontSee('Utilizamos cookies');
+            ->assertDontSee('Preferências de cookies');
     }
 
-    public function test_cookie_notice_is_hidden_once_acknowledged_by_session(): void
+    public function test_cookie_notice_is_hidden_once_choice_is_saved_in_session(): void
     {
         $this->withSession([
             'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
-            'cookie_notice_acknowledged' => true,
+            'optional_cookies_choice' => 'rejected',
             'location_mode' => 'limited',
         ])->get(route('vacancies.index'))
             ->assertOk()
-            ->assertDontSee('Utilizamos cookies');
+            ->assertDontSee('Preferências de cookies');
     }
 
     public function test_cookie_notice_is_not_shown_on_the_welcome_page(): void
@@ -189,24 +189,69 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertDontSee('Utilizamos cookies');
     }
 
-    public function test_acknowledging_cookies_stays_on_the_previous_page_and_stores_the_choice(): void
+    public function test_accepting_optional_cookies_stays_on_the_previous_page_and_saves_the_choice(): void
     {
         $response = $this->withSession([
             'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
         ])->from(route('vacancies.index'))
-            ->post(route('cookies.acknowledge'));
+            ->post(route('cookies.acknowledge'), [
+                'optional_cookies' => 'accepted',
+            ]);
 
         $response->assertRedirect(route('vacancies.index'));
-        $response->assertSessionHas('cookie_notice_acknowledged', true);
+        $response->assertSessionHas('optional_cookies_choice', 'accepted');
         $response->assertCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE);
+    }
+
+    public function test_rejecting_optional_cookies_saves_the_rejection(): void
+    {
+        $response = $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+        ])->from(route('vacancies.index'))
+            ->post(route('cookies.acknowledge'), [
+                'optional_cookies' => 'rejected',
+            ]);
+
+        $response->assertRedirect(route('vacancies.index'));
+        $response->assertSessionHas('optional_cookies_choice', 'rejected');
+        $response->assertCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE);
+    }
+
+    public function test_rejected_optional_cookies_do_not_load_google_tags(): void
+    {
+        config(['app.google_analytics_id' => 'G-TEST123456']);
+
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'optional_cookies_choice' => 'rejected',
+            'location_mode' => 'limited',
+        ])->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('googletagmanager.com')
+            ->assertDontSee('pagead2.googlesyndication.com');
+    }
+
+    public function test_accepted_optional_cookies_load_google_tags(): void
+    {
+        config(['app.google_analytics_id' => 'G-TEST123456']);
+
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'optional_cookies_choice' => 'accepted',
+            'location_mode' => 'limited',
+        ])->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertSee('googletagmanager.com')
+            ->assertSee('pagead2.googlesyndication.com');
     }
 
     public function test_acknowledging_cookies_without_referer_goes_to_vacancies_not_welcome(): void
     {
         $this->withSession([
             'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
-        ])->post(route('cookies.acknowledge'))
-            ->assertRedirect(route('vacancies.index'));
+        ])->post(route('cookies.acknowledge'), [
+            'optional_cookies' => 'rejected',
+        ])->assertRedirect(route('vacancies.index'));
     }
 
     public function test_background_submission_returns_the_destination_instead_of_a_redirect_page(): void
