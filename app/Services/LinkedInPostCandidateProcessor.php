@@ -271,7 +271,11 @@ class LinkedInPostCandidateProcessor
         foreach ($postSignals as $signal) {
             if (
                 str_contains($normalized, $this->normalize($signal))
-                && ($hasRecruitmentSignal || $isCompanyAuthor)
+                && (
+                    $hasRecruitmentSignal
+                    || $isCompanyAuthor
+                    || ($post['searchProvider'] ?? null) === 'duckduckgo-html'
+                )
             ) {
                 return true;
             }
