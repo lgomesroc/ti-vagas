@@ -14,7 +14,7 @@ use Throwable;
 class ReviewLinkedInPosts extends Command
 {
     protected $signature = 'linkedin:review
-        {action : list, approve ou reject}
+        {action : list, show, approve ou reject}
         {id? : ID do candidato}
         {--reason= : Motivo da rejeição}';
 
