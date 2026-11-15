@@ -50,6 +50,17 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         ]);
     }
 
+    public function test_known_job_aggregator_link_is_blocked(): void
+    {
+        config(['linkedin.aggregator_domains' => ['indeed.com']]);
+
+        $result = app(\\App\\Services\\LinkedInUrlInspector::class)
+            ->inspect('https://www.indeed.com/viewjob?jk=abc123');
+
+        $this->assertTrue($result['blocked']);
+        $this->assertTrue($result['verified']);
+    }
+
     private function post(array $overrides = []): array
     {
         return array_replace([
