@@ -113,7 +113,7 @@ class LinkedInPostSearchClient
         return array_values(array_filter(
             $items,
             fn ($item): bool => is_array($item)
-                && ($item['resultType'] ?? 'post') === 'post'
+                && ($item['resultType'] ?? $item['result_type'] ?? 'post') === 'post'
         ));
     }
 
