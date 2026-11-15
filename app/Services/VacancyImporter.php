@@ -88,7 +88,7 @@ class VacancyImporter
                     $existingVacancy->forceFill([
                         'availability_status' => 'expired',
                         'availability_checked_at' => $checkedAt,
-                        'availability_consecutive_failures' => 0,
+                        'availability_consecutive_not_found' => 0,
                         'availability_last_error' => null,
                     ])->save();
 
