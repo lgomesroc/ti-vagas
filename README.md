@@ -240,7 +240,7 @@ Cada vaga possui um estado de disponibilidade:
 
 O verificador segue redirecionamentos HTTP/HTTPS, registra o endereço inicial e o destino final, o código HTTP, o tempo de resposta, o resultado, o motivo e a data da consulta. Destinos locais e endereços IP privados ou reservados são bloqueados.
 
-Cada tentativa gera um registro em `vacancy_availability_checks`. A vaga mantém também o último resultado, data da última consulta, último código HTTP, contador de falhas consecutivas e eventual erro.
+Cada tentativa gera um registro em `vacancy_availability_checks`. A vaga mantém também o último resultado, data da última consulta, último código HTTP, contador de respostas HTTP 404 consecutivas e eventual erro.
 
 Falhas HTTP 403, 429 e 5xx, timeout e erros de conexão não encerram uma vaga automaticamente: ela passa para `suspect` e poderá ser verificada novamente. Uma primeira resposta 404 também fica como suspeita; a expiração exige nova confirmação. Uma resposta 410 é tratada como encerramento explícito.
 
