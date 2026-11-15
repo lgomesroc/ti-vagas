@@ -128,7 +128,10 @@ class LinkedInPostCandidateProcessor
         }
 
         $enrichedText = trim($text . "\n" . $pageContent);
-        $title = $this->extractTitle($enrichedText);
+        $postTitle = $this->stringValue($post, ['title']);
+        $title = $this->extractTitle(
+            $postTitle !== null ? $postTitle . "\n" . $enrichedText : $enrichedText
+        );
         $company = $this->extractCompany($enrichedText, $post);
         $location = $this->extractLocation($enrichedText);
         $workModel = $this->classifyWorkModel($combinedText . "\n" . $pageContent);
@@ -551,6 +554,19 @@ class LinkedInPostCandidateProcessor
         $company = $this->stringValue($post, ['companyName', 'company', 'organizationName']);
         if ($company !== null) {
             return $company;
+        }
+
+        $taggedCompanies = $post['taggedCompanies'] ?? [];
+        if (is_array($taggedCompanies)) {
+            foreach ($taggedCompanies as $taggedCompany) {
+                $name = is_array($taggedCompany)
+                    ? ($taggedCompany['name'] ?? null)
+                    : null;
+
+                if (is_string($name) && trim($name) !== '') {
+                    return trim($name);
+                }
+            }
         }
 
         if (preg_match('/(?:empresa\s*:\s*|(?:na|no|para a|para o|at|for)\s+)([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $matches)) {
