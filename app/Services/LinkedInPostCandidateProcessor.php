@@ -553,7 +553,7 @@ class LinkedInPostCandidateProcessor
             return $company;
         }
 
-        if (preg_match('/(?:na|no|para a|para o|at|for)\s+([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $matches)) {
+        if (preg_match('/(?:empresa\s*:\s*|(?:na|no|para a|para o|at|for)\s+)([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $matches)) {
             return trim($matches[1]);
         }
 
