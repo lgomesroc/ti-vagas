@@ -21,13 +21,13 @@ jobs:
     env:
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_KEY: \${{ secrets.APP_KEY }}
+      APP_KEY: ${{ secrets.APP_KEY }}
       DB_CONNECTION: pgsql
-      DB_URL: \${{ secrets.NEON_DATABASE_URL }}
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
       DB_SSLMODE: require
       CACHE_STORE: database
       QUEUE_CONNECTION: database
-      APIFY_API_TOKEN: \${{ secrets.APIFY_API_TOKEN }}
+      APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
       APIFY_LINKEDIN_MAX_CHARGE_USD: "0.15"
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.ref }}
+          ref: ${{ github.ref }}
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
