@@ -313,6 +313,11 @@ class IbgeGeographyImporter
             ->throw()
             ->json();
 
+        $immediateRegions = $this->client()
+            ->get($baseUrl . '/v1/localidades/regioes-imediatas')
+            ->throw()
+            ->json();
+
         $regions = $this->client()
             ->get($baseUrl . '/v1/localidades/regioes-metropolitanas')
             ->throw()
@@ -323,6 +328,50 @@ class IbgeGeographyImporter
                 'A API do IBGE não retornou a relação completa de municípios.'
             );
         }
+
+        if (!is_array($immediateRegions) || $immediateRegions === []) {
+            throw new \RuntimeException(
+                'A API do IBGE não retornou a relação de Regiões Geográficas Imediatas.'
+            );
+        }
+
+        $immediateRegionsById = [];
+
+        foreach ($immediateRegions as $immediateRegion) {
+            if (!isset($immediateRegion['id'], $immediateRegion['nome'])) {
+                throw new \RuntimeException(
+                    'A API do IBGE retornou uma Região Geográfica Imediata sem identificador ou nome.'
+                );
+            }
+
+            $immediateRegionsById[(string) $immediateRegion['id']] = $immediateRegion;
+        }
+
+        foreach ($municipalities as &$municipality) {
+            $immediate = $municipality['regiao-imediata'] ?? null;
+
+            if (!is_array($immediate) || !isset($immediate['id'])) {
+                continue;
+            }
+
+            $canonicalImmediate = $immediateRegionsById[(string) $immediate['id']] ?? null;
+
+            if ($canonicalImmediate === null) {
+                throw new \RuntimeException(
+                    'O município ' . ($municipality['id'] ?? 'desconhecido')
+                    . ' referencia uma Região Geográfica Imediata ausente na lista do IBGE.'
+                );
+            }
+
+            $municipality['regiao-imediata'] = [
+                'id' => $canonicalImmediate['id'],
+                'nome' => $canonicalImmediate['nome'],
+                'regiao-intermediaria' => $immediate['regiao-intermediaria']
+                    ?? $canonicalImmediate['regiao-intermediaria']
+                    ?? [],
+            ];
+        }
+        unset($municipality);
 
         if (!is_array($regions) || $regions === []) {
             throw new \RuntimeException(
@@ -387,8 +436,9 @@ class IbgeGeographyImporter
 
     private function client(): \Illuminate\Http\Client\PendingRequest
     {
-        return Http::timeout(120)
-            ->retry(3, 1000)
+        return Http::connectTimeout(30)
+            ->timeout(180)
+            ->retry([1000, 3000, 5000])
             ->acceptJson()
             ->withOptions([
                 'verify' => config('geo_regions.ca_bundle') ?: true,

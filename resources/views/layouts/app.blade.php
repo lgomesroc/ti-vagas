@@ -9,12 +9,46 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
          crossorigin="anonymous"></script>
 
+    @if (config('app.google_analytics_id') && \App\Http\Middleware\EnsureWelcomeAccepted::cookieNoticeAcknowledged(request()))
+        <!-- Google Analytics 4: carregado somente após a confirmação do aviso de cookies. -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.google_analytics_id') }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', @json(config('app.google_analytics_id')), {
+                campaign_source: @json(session('utm_attribution.source')),
+                campaign_medium: @json(session('utm_attribution.medium')),
+                campaign_name: @json(session('utm_attribution.campaign')),
+                campaign_id: @json(session('utm_attribution.id')),
+                campaign_content: @json(session('utm_attribution.content')),
+                campaign_term: @json(session('utm_attribution.term')),
+                campaign_source_platform: @json(session('utm_attribution.source_platform'))
+            });
+        </script>
+    @endif
+
     <title>@yield('title', 'TI Vagas')</title>
 
     <meta
         name="description"
         content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')"
     >
+
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="canonical" href="{{ rtrim(config('app.url'), '/') . request()->getPathInfo() }}">
+    <meta name="theme-color" content="#172554">
+
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="TI Vagas">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="@yield('title', 'TI Vagas')">
+    <meta property="og:description" content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')">
+    <meta property="og:url" content="{{ request()->url() }}">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="@yield('title', 'TI Vagas')">
+    <meta name="twitter:description" content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')">
 
     <style>
         * {
@@ -732,6 +766,13 @@
                     Eles podem ser utilizados para exibir anúncios
                     personalizados com base nos seus interesses e
                     na sua atividade de navegação.
+                </p>
+
+                <p>
+                    Se o Google Analytics 4 estiver configurado, também
+                    utilizaremos cookies de análise para compreender o uso
+                    do portal e melhorar a experiência. Essa ferramenta
+                    somente será carregada depois que você aceitar este aviso.
                 </p>
 
                 <p>

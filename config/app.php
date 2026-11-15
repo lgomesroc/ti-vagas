@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'TI Vagas'),
 
     /*
     |--------------------------------------------------------------------------
@@ -53,6 +53,8 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+
+    'google_analytics_id' => env('GOOGLE_ANALYTICS_ID'),
 
     /*
     |--------------------------------------------------------------------------
