@@ -13,6 +13,20 @@ Schedule::command('vacancies:collect')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
+/*
+ * Publicações públicas do LinkedIn: execução local independente das fontes
+ * tradicionais de vagas. O scheduler local deve rodar a cada minuto.
+ */
+Schedule::command('linkedin:collect-posts')
+    ->dailyAt('10:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
+Schedule::command('linkedin:collect-posts')
+    ->dailyAt('14:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
 // Listas de Tor, VPN, proxies, datacenters e abuso. Roda no GitHub Actions
 // (que executa schedule:run a cada seis horas) e grava no cache compartilhado.
 Schedule::command('network:update-lists')
