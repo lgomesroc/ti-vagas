@@ -30,7 +30,7 @@ class VacancyLinkChecker
         $reason = null;
         $responseTime = null;
         $newStatus = 'suspect';
-        $consecutiveFailures = (int) $vacancy->availability_consecutive_failures;
+        $consecutiveFailures = (int) $vacancy->availability_consecutive_not_found;
 
         try {
             $response = $this->requestFollowingRedirects($checkedUrl);
@@ -64,25 +64,26 @@ class VacancyLinkChecker
                     $consecutiveFailures = 0;
                 }
             } else {
-                $consecutiveFailures++;
+                $consecutiveFailures = 0;
                 $newStatus = 'suspect';
                 $reason = "A página respondeu HTTP {$httpStatus}; a indisponibilidade não pode ser confirmada.";
             }
         } catch (ConnectionException $exception) {
-            $consecutiveFailures++;
+            $consecutiveFailures = 0;
             $reason = 'Falha de conexão ou timeout: ' . $exception->getMessage();
         } catch (Throwable $exception) {
-            $consecutiveFailures++;
+            $consecutiveFailures = 0;
             $reason = 'Não foi possível validar a URL: ' . $exception->getMessage();
         }
 
+        $reason = $reason !== null ? mb_substr($reason, 0, 1000) : null;
         $checkedAt = now();
 
         $vacancy->forceFill([
             'availability_status' => $newStatus,
             'availability_checked_at' => $checkedAt,
             'availability_http_status' => $httpStatus,
-            'availability_consecutive_failures' => $consecutiveFailures,
+            'availability_consecutive_not_found' => $consecutiveFailures,
             'availability_last_error' => $newStatus === 'active' || $newStatus === 'expired'
                 ? null
                 : $reason,
