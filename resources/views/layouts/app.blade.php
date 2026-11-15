@@ -16,6 +16,21 @@
         content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')"
     >
 
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="canonical" href="{{ request()->url() }}">
+    <meta name="theme-color" content="#172554">
+
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="TI Vagas">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="@yield('title', 'TI Vagas')">
+    <meta property="og:description" content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')">
+    <meta property="og:url" content="{{ request()->url() }}">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="@yield('title', 'TI Vagas')">
+    <meta name="twitter:description" content="@yield('description', 'Encontre oportunidades de emprego em tecnologia, desenvolvimento, suporte e infraestrutura.')">
+
     <style>
         * {
             box-sizing: border-box;
