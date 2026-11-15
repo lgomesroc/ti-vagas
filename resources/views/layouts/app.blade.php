@@ -17,7 +17,7 @@
     >
 
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-    <link rel="canonical" href="{{ request()->url() }}">
+    <link rel="canonical" href="{{ rtrim(config('app.url'), '/') . request()->getPathInfo() }}">
     <meta name="theme-color" content="#172554">
 
     <meta property="og:locale" content="pt_BR">
