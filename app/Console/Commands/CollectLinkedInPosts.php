@@ -19,7 +19,7 @@ class CollectLinkedInPosts extends Command
         LinkedInPostCandidateProcessor $processor
     ): int {
         if (!config('linkedin.enabled')) {
-            $this->warn('Coleta do LinkedIn desabilitada. Configure LINKEDIN_POSTS_ENABLED=true.');
+            $this->warn('Coleta do LinkedIn desabilitada. Configure LINKEDIN_POSTS_ENABLED=true no .env.');
 
             return self::SUCCESS;
         }
