@@ -5,12 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
-         crossorigin="anonymous"></script>
+    @if (\App\Http\Middleware\EnsureWelcomeAccepted::optionalCookiesAllowed(request()))
+        <!-- Google AdSense: carregado somente após o consentimento para cookies não essenciais. -->
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
+             crossorigin="anonymous"></script>
+    @endif
 
-    @if (config('app.google_analytics_id') && \App\Http\Middleware\EnsureWelcomeAccepted::cookieNoticeAcknowledged(request()))
-        <!-- Google Analytics 4: carregado somente após a confirmação do aviso de cookies. -->
+    @if (config('app.google_analytics_id') && \App\Http\Middleware\EnsureWelcomeAccepted::optionalCookiesAllowed(request()))
+        <!-- Google Analytics 4: carregado somente após o consentimento para cookies não essenciais. -->
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.google_analytics_id') }}"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
@@ -519,13 +521,26 @@
 
         .cookie-modal-actions {
             display: flex;
-            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-top: 22px;
         }
 
-        .cookie-modal-actions form,
+        .cookie-modal-actions form {
+            flex: 1 1 210px;
+        }
+
         .cookie-modal-actions button {
             width: 100%;
+            min-height: 44px;
+        }
+
+        .cookie-modal-reject {
+            background: #475569;
+        }
+
+        .cookie-modal-reject:hover {
+            background: #334155;
         }
 
         /* Rodapé */
@@ -665,7 +680,11 @@
             }
 
             .cookie-modal-actions {
-                justify-content: stretch;
+                flex-direction: column;
+            }
+
+            .cookie-modal-actions form {
+                width: 100%;
             }
 
             .footer-links {
@@ -751,37 +770,45 @@
                 aria-describedby="cookie-modal-description"
             >
                 <h2 id="cookie-modal-title">
-                    Utilizamos cookies
+                    Preferências de cookies
                 </h2>
 
                 <p id="cookie-modal-description">
-                    O TI Vagas utiliza cookies necessários para manter
-                    sua sessão, proteger a navegação e registrar suas
-                    confirmações.
+                    Para utilizar o TI Vagas, usamos cookies essenciais para
+                    manter sua sessão, proteger a navegação e registrar suas
+                    confirmações. Eles são necessários ao funcionamento do
+                    serviço e permanecem ativos.
                 </p>
 
                 <p>
-                    Também utilizamos cookies e tecnologias semelhantes
-                    relacionados à publicidade do Google AdSense.
-                    Eles podem ser utilizados para exibir anúncios
-                    personalizados com base nos seus interesses e
-                    na sua atividade de navegação.
+                    Os cookies não essenciais são opcionais. Eles incluem o
+                    Google Analytics 4, usado para medir audiência e entender
+                    como o portal é utilizado, e o Google AdSense, responsável
+                    pela tecnologia de exibição e medição de publicidade no
+                    TI Vagas. Quando autorizadas, essas ferramentas podem
+                    utilizar tecnologias próprias, inclusive para personalização
+                    de anúncios conforme as configurações do Google.
                 </p>
 
                 <p>
-                    Se o Google Analytics 4 estiver configurado, também
-                    utilizaremos cookies de análise para compreender o uso
-                    do portal e melhorar a experiência. Essa ferramenta
-                    somente será carregada depois que você aceitar este aviso.
+                    Você pode rejeitar os cookies não essenciais e continuar
+                    utilizando o portal normalmente. Nesse caso, o Analytics
+                    e o código de publicidade do Google não serão carregados.
+                    Sua escolha não afeta o acesso às vagas nem os cookies
+                    essenciais.
                 </p>
 
                 <p>
-                    Ao aceitar, você confirma que leu nosso aviso sobre
-                    o uso dessas tecnologias. Consulte nossa
+                    Neste momento, o TI Vagas não possui cadastro de candidatos,
+                    não cria perfis de usuários e não armazena currículos ou
+                    dados de candidatura. Informações técnicas temporárias,
+                    como dados de sessão, localização utilizada para filtrar
+                    vagas e registros de segurança, podem ser processadas para
+                    o funcionamento e a proteção do serviço. Consulte a
                     <a href="{{ route('welcome') }}#privacidade">
                         Política de Privacidade
                     </a>
-                    para saber mais.
+                    para mais detalhes.
                 </p>
 
                 <div class="cookie-modal-actions">
@@ -791,8 +818,29 @@
                     >
                         @csrf
 
-                        <button type="submit" class="button">
-                            Aceitar e continuar
+                        <button
+                            type="submit"
+                            name="optional_cookies"
+                            value="rejected"
+                            class="button cookie-modal-reject"
+                        >
+                            Rejeitar não essenciais
+                        </button>
+                    </form>
+
+                    <form
+                        method="POST"
+                        action="{{ route('cookies.acknowledge') }}"
+                    >
+                        @csrf
+
+                        <button
+                            type="submit"
+                            name="optional_cookies"
+                            value="accepted"
+                            class="button"
+                        >
+                            Aceitar todos
                         </button>
                     </form>
                 </div>
