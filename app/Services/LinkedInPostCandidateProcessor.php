@@ -560,7 +560,12 @@ class LinkedInPostCandidateProcessor
         $urls = [];
 
         foreach (['links', 'embeddedLinks', 'externalLinks'] as $key) {
-            foreach (($post[$key] ?? []) as $value) {
+            $values = $post[$key] ?? [];
+            if (!is_array($values)) {
+                continue;
+            }
+
+            foreach ($values as $value) {
                 if (is_string($value)) {
                     $urls[] = $value;
                 } elseif (is_array($value)) {
