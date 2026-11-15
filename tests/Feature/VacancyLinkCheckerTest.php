@@ -51,7 +51,7 @@ class VacancyLinkCheckerTest extends TestCase
         $this->assertDatabaseHas('vacancies', [
             'id' => $vacancy->id,
             'availability_status' => 'suspect',
-            'availability_consecutive_failures' => 1,
+            'availability_consecutive_not_found' => 1,
         ]);
     }
 
@@ -71,7 +71,7 @@ class VacancyLinkCheckerTest extends TestCase
         $this->assertDatabaseHas('vacancies', [
             'id' => $vacancy->id,
             'availability_status' => 'expired',
-            'availability_consecutive_failures' => 2,
+            'availability_consecutive_not_found' => 2,
         ]);
         $this->assertDatabaseCount('vacancy_availability_checks', 2);
     }
