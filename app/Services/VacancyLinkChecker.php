@@ -52,6 +52,7 @@ class VacancyLinkChecker
                     : 'A página respondeu HTTP 404; aguardando confirmação em nova verificação.';
             } elseif ($httpStatus >= 200 && $httpStatus < 300) {
                 $body = mb_substr($response['response']->body(), 0, self::MAX_BODY_LENGTH);
+                $body = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
                 if ($this->availabilityDetector->isUnavailable(null, $body)) {
                     $newStatus = 'expired';
@@ -182,6 +183,29 @@ class VacancyLinkChecker
             }
         } elseif (!str_contains($host, '.')) {
             throw new \InvalidArgumentException('Nome de host local bloqueado.');
+        } elseif (!app()->environment('testing')) {
+            $records = dns_get_record($host, DNS_A | DNS_AAAA);
+
+            if ($records === false || $records === []) {
+                throw new \RuntimeException('Não foi possível resolver o domínio de candidatura.');
+            }
+
+            foreach ($records as $record) {
+                $ip = $record['ip'] ?? $record['ipv6'] ?? null;
+
+                if (
+                    $ip !== null
+                    && filter_var(
+                        $ip,
+                        FILTER_VALIDATE_IP,
+                        FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+                    ) === false
+                ) {
+                    throw new \InvalidArgumentException(
+                        'O domínio resolve para um endereço IP privado ou reservado.'
+                    );
+                }
+            }
         }
     }
 }
