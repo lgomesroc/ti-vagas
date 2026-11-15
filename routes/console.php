@@ -21,7 +21,7 @@ Schedule::command('network:update-lists')
     ->withoutOverlapping();
 
 Schedule::command('vacancies:check-links --limit=500')
-    ->dailyAt('02:00')
+    ->everySixHours()
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
