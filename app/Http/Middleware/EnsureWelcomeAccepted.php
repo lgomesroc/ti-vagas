@@ -16,7 +16,7 @@ class EnsureWelcomeAccepted
 
     public const COOKIE_NOTICE_COOKIE = 'ti_vagas_cookie_notice';
 
-    public const COOKIE_NOTICE_SESSION_KEY = 'cookie_notice_acknowledged';
+    public const COOKIE_NOTICE_SESSION_KEY = 'optional_cookies_choice';
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -69,12 +69,29 @@ class EnsureWelcomeAccepted
      */
     public static function cookieNoticeAcknowledged(Request $request): bool
     {
-        if ($request->cookie(self::COOKIE_NOTICE_COOKIE) === '1') {
+        if (in_array($request->cookie(self::COOKIE_NOTICE_COOKIE), ['accepted', 'rejected'], true)) {
             return true;
         }
 
         return $request->hasSession()
-            && $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY) === true;
+            && in_array(
+                $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY),
+                ['accepted', 'rejected'],
+                true
+            );
+    }
+
+    /**
+     * Verifica se o visitante autorizou cookies não essenciais.
+     */
+    public static function optionalCookiesAllowed(Request $request): bool
+    {
+        if ($request->cookie(self::COOKIE_NOTICE_COOKIE) !== null) {
+            return $request->cookie(self::COOKIE_NOTICE_COOKIE) === 'accepted';
+        }
+
+        return $request->hasSession()
+            && $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY) === 'accepted';
     }
 
     /**
