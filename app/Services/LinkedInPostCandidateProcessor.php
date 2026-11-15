@@ -613,7 +613,10 @@ class LinkedInPostCandidateProcessor
             try {
                 if (is_numeric($post[$key])) {
                     $value = (int) $post[$key];
-                    return Carbon::createFromTimestampMs($value);
+
+                    return $value > 1000000000000
+                        ? Carbon::createFromTimestampMs($value)
+                        : Carbon::createFromTimestamp($value);
                 }
 
                 return Carbon::parse($post[$key]);
