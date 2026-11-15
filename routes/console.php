@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('vacancies:collect')
-    ->everySixHours()
+    ->twiceDaily(6, 18)
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
@@ -18,12 +18,22 @@ Schedule::command('vacancies:collect')
  * tradicionais de vagas. O scheduler local deve rodar a cada minuto.
  */
 Schedule::command('linkedin:collect-posts')
+    ->dailyAt('06:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
+Schedule::command('linkedin:collect-posts')
     ->dailyAt('10:00')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
 Schedule::command('linkedin:collect-posts')
     ->dailyAt('14:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
+Schedule::command('linkedin:collect-posts')
+    ->dailyAt('18:00')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
