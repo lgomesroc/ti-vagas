@@ -224,7 +224,7 @@ class VacancyImporterTest extends TestCase
         $this->assertDatabaseCount('vacancies', 0);
     }
 
-    public function test_it_deletes_an_existing_vacancy_when_it_becomes_unavailable(): void
+    public function test_it_preserves_an_existing_vacancy_and_records_when_it_becomes_unavailable(): void
     {
         $source = $this->makeSource([
             $this->validVacancy(),
@@ -248,7 +248,17 @@ class VacancyImporterTest extends TestCase
             'skipped' => 1,
         ], $result);
 
-        $this->assertDatabaseCount('vacancies', 0);
+        $this->assertDatabaseCount('vacancies', 1);
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'test-source',
+            'external_id' => 'vacancy-001',
+            'availability_status' => 'expired',
+        ]);
+        $this->assertDatabaseHas('vacancy_availability_checks', [
+            'check_type' => 'source',
+            'status' => 'expired',
+            'reason' => 'A fonte informou que a oportunidade está indisponível.',
+        ]);
     }
 
     private function makeSource(array $vacancies): VacancySource
