@@ -9,14 +9,22 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
          crossorigin="anonymous"></script>
 
-    @if (config('app.google_analytics_id') && !\\App\\Http\\Middleware\\EnsureWelcomeAccepted::shouldShowCookieNotice(request()))
+    @if (config('app.google_analytics_id') && \\App\\Http\\Middleware\\EnsureWelcomeAccepted::cookieNoticeAcknowledged(request()))
         <!-- Google Analytics 4: carregado somente após a confirmação do aviso de cookies. -->
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.google_analytics_id') }}"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', @json(config('app.google_analytics_id')));
+            gtag('config', @json(config('app.google_analytics_id')), {
+                campaign_source: @json(session('utm_attribution.source')),
+                campaign_medium: @json(session('utm_attribution.medium')),
+                campaign_name: @json(session('utm_attribution.campaign')),
+                campaign_id: @json(session('utm_attribution.id')),
+                campaign_content: @json(session('utm_attribution.content')),
+                campaign_term: @json(session('utm_attribution.term')),
+                campaign_source_platform: @json(session('utm_attribution.source_platform'))
+            });
         </script>
     @endif
 
