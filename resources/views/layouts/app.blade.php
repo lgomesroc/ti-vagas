@@ -9,6 +9,17 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
          crossorigin="anonymous"></script>
 
+    @if (config('app.google_analytics_id') && !\\App\\Http\\Middleware\\EnsureWelcomeAccepted::shouldShowCookieNotice(request()))
+        <!-- Google Analytics 4: carregado somente após a confirmação do aviso de cookies. -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.google_analytics_id') }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', @json(config('app.google_analytics_id')));
+        </script>
+    @endif
+
     <title>@yield('title', 'TI Vagas')</title>
 
     <meta
@@ -747,6 +758,13 @@
                     Eles podem ser utilizados para exibir anúncios
                     personalizados com base nos seus interesses e
                     na sua atividade de navegação.
+                </p>
+
+                <p>
+                    Se o Google Analytics 4 estiver configurado, também
+                    utilizaremos cookies de análise para compreender o uso
+                    do portal e melhorar a experiência. Essa ferramenta
+                    somente será carregada depois que você aceitar este aviso.
                 </p>
 
                 <p>
