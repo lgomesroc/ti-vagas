@@ -272,6 +272,7 @@ class VacancyController extends Controller
         ?RegionScope $visitorScope = null
     ): Collection {
         $vacancies = Vacancy::query()
+            ->where('availability_status', 'active')
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')

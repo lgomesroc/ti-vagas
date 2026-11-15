@@ -245,9 +245,27 @@
             </p>
 
             <p>
-                Nesta primeira versão, não implementamos cookies de
-                rastreamento publicitário ou personalização de anúncios
-                baseada no comportamento do usuário.
+                Quando o acesso ocorre por um link de divulgação com parâmetros
+                UTM, o TI Vagas registra a origem, o canal e a campanha na sessão
+                de navegação para fins de atribuição. Esses dados não são
+                associados a um cadastro de usuário.
+            </p>
+
+            <p>
+                Quando o Google Analytics 4 estiver configurado, o portal poderá
+                utilizar cookies de análise para medir audiência, entender como
+                as páginas são utilizadas e melhorar o serviço. A ferramenta
+                somente será carregada depois que o usuário aceitar o aviso de
+                cookies. Sem essa confirmação, o Google Analytics 4 não será
+                carregado. Os dados poderão ser tratados pelo Google conforme
+                sua própria política de privacidade.
+            </p>
+
+            <p>
+                A medição de audiência não tem como finalidade criar um cadastro
+                de usuário nem realizar publicidade comportamental pelo TI Vagas.
+                A publicidade do Google AdSense possui tecnologias e condições
+                próprias, descritas no aviso de cookies e nas políticas do Google.
             </p>
 
             <p>
