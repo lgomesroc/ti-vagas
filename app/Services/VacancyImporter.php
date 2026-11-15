@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\VacancySource;
 use App\Models\Vacancy;
+use App\Models\VacancyAvailabilityCheck;
 use App\Services\Geo\VacancyLocationResolver;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
@@ -76,10 +77,33 @@ class VacancyImporter
                     : null,
                 is_string($status) ? $status : null
             )) {
-                Vacancy::query()
+                $existingVacancy = Vacancy::query()
                     ->where('source', $sourceName)
                     ->where('external_id', $externalId)
-                    ->delete();
+                    ->first();
+
+                if ($existingVacancy !== null) {
+                    $checkedAt = now();
+
+                    $existingVacancy->forceFill([
+                        'availability_status' => 'expired',
+                        'availability_checked_at' => $checkedAt,
+                        'availability_consecutive_failures' => 0,
+                        'availability_last_error' => null,
+                    ])->save();
+
+                    VacancyAvailabilityCheck::query()->create([
+                        'vacancy_id' => $existingVacancy->getKey(),
+                        'check_type' => 'source',
+                        'status' => 'expired',
+                        'http_status' => null,
+                        'checked_url' => $existingVacancy->application_url,
+                        'final_url' => null,
+                        'reason' => 'A fonte informou que a oportunidade está indisponível.',
+                        'response_time_ms' => null,
+                        'checked_at' => $checkedAt,
+                    ]);
+                }
 
                 $result['skipped']++;
 
