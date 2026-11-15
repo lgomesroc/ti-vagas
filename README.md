@@ -230,7 +230,7 @@ O projeto inclui um verificador automático dos links de candidatura, executado 
 php artisan vacancies:check-links --limit=500
 ```
 
-A rotina está agendada diariamente às 02h, no fuso `America/Sao_Paulo`, e verifica até 500 links por execução. Os links ainda não verificados ou verificados há mais tempo são priorizados.
+A rotina está agendada a cada seis horas, no fuso `America/Sao_Paulo`, alinhada às execuções do GitHub Actions, e verifica até 500 links por execução. Os links ainda não verificados ou verificados há mais tempo são priorizados.
 
 Cada vaga possui um estado de disponibilidade:
 
