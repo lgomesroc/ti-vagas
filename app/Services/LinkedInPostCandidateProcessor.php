@@ -218,6 +218,7 @@ class LinkedInPostCandidateProcessor
         $patterns = [
             '/\b(comente|comenta|digite|escreva|coloque|deixe)\b.{0,100}\b(eu quero|quero|interesse|vaga|link|php|sim|me)\b/',
             '/\b(comente|digite|escreva)\b.{0,100}\b(que|para)\b.{0,80}\b(dm|direct|privado|mensagem|inbox)\b/',
+            '/\b(comente|digite|escreva)\b.{0,100}\b(para receber|para ter acesso|para obter)\b.{0,60}\b(link|email|e-mail|detalhes|informacoes)\b/',
             '/\b(link|email|e-mail|detalhes|informacoes)\b.{0,100}\b(dm|direct|privado|inbox)\b/',
             '/\b(chama|me chama|mande|envio|enviar)\b.{0,80}\b(dm|direct|privado|inbox)\b/',
             '/\b(so|apenas)\b.{0,50}\b(comentando|comentar|digitar|mandar mensagem)\b/',
