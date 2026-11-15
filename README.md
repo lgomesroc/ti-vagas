@@ -141,21 +141,30 @@ O TI Vagas utiliza integrações automatizadas para consultar anúncios disponí
 
 Cada integração é implementada considerando as características técnicas da respectiva fonte.
 
-Entre as plataformas e fontes integradas estão:
+Entre as plataformas ATS e integrações configuradas na branch `developer` estão:
 
-- Greenhouse;
-- Lever;
-- Workable;
-- Workday;
-- Ashby;
-- Oracle HCM;
-- InHire;
-- GeekHunter;
-- Recrut.ai;
-- Derevo;
-- Sensedia;
-- Ozy;
-- RadarTEC.
+| Plataforma / integração | Empresas configuradas |
+|---|---|
+| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip e Banco Inter |
+| Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
+| Workday | PwC |
+| Workable | RecargaPay |
+| InHire | Orizon e Brivia |
+| Gupy | Montreal, Claro, AZZAS 2154, CEPEL e E-Deploy / 3S Checkout |
+| Oracle HCM | Uber |
+| Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
+| Recrut.ai | Grupo Bamaq |
+| Pandapé | FIESC, SONDA IT e Adecco |
+| Zoho Recruit | Spassu |
+| TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
+| JobConvo | Adecco |
+| Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
+
+A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+
+### Agregadores de vagas
+
+Até esta implementação, DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta** do TI Vagas. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
 
 A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
 
@@ -203,16 +212,41 @@ O mecanismo contempla expressões em português e inglês.
 Quando uma oportunidade é identificada como indisponível durante a importação:
 
 - O anúncio não é inserido novamente;
-- Caso já exista no banco de dados, seu registro é removido;
-- A ocorrência é contabilizada como item ignorado durante a importação.
+- Caso já exista no banco de dados, seu registro é preservado e recebe o estado `expired`;
+- Uma ocorrência é gravada no histórico de verificações com o tipo `source`;
+- A ocorrência continua contabilizada como item ignorado durante a importação.
 
-A aplicação também verifica a disponibilidade dos anúncios antes de exibi-los na listagem ou permitir o acesso à página individual.
-
-O objetivo é reduzir a exibição de oportunidades que já foram encerradas pelas empresas.
+A listagem e a página individual exibem somente vagas com estado `active`. Vagas `suspect` e `expired` permanecem fora da consulta pública.
 
 **Limitação:** a ausência de uma vaga na resposta de uma fonte externa não significa necessariamente que ela foi encerrada. Quando uma fonte deixa de retornar um anúncio sem informar seu status, não é possível confirmar automaticamente sua indisponibilidade apenas pela ausência do registro.
 
 Como as fontes externas podem apresentar informações desatualizadas ou incompletas, não existe garantia de que todas as oportunidades sejam identificadas corretamente.
+
+### Monitoramento HTTP dos links de candidatura
+
+O projeto inclui um verificador automático dos links de candidatura, executado pelo comando:
+
+```bash
+php artisan vacancies:check-links --limit=500
+```
+
+A rotina está agendada diariamente às 02h, no fuso `America/Sao_Paulo`, e verifica até 500 links por execução. Os links ainda não verificados ou verificados há mais tempo são priorizados.
+
+Cada vaga possui um estado de disponibilidade:
+
+- `active`: a página respondeu com sucesso e não foi identificado indicador de encerramento;
+- `suspect`: houve falha temporária, bloqueio, timeout, resposta HTTP inconclusiva ou primeira resposta HTTP 404;
+- `expired`: a fonte informou encerramento, a página respondeu HTTP 410 ou houve HTTP 404 em verificações consecutivas.
+
+O verificador segue redirecionamentos HTTP/HTTPS, registra o endereço inicial e o destino final, o código HTTP, o tempo de resposta, o resultado, o motivo e a data da consulta. Destinos locais e endereços IP privados ou reservados são bloqueados.
+
+Cada tentativa gera um registro em `vacancy_availability_checks`. A vaga mantém também o último resultado, data da última consulta, último código HTTP, contador de falhas consecutivas e eventual erro.
+
+Falhas HTTP 403, 429 e 5xx, timeout e erros de conexão não encerram uma vaga automaticamente: ela passa para `suspect` e poderá ser verificada novamente. Uma primeira resposta 404 também fica como suspeita; a expiração exige nova confirmação. Uma resposta 410 é tratada como encerramento explícito.
+
+**Limitações:** uma resposta HTTP 200 confirma apenas que a página está acessível, não que a empresa ainda recebe candidaturas. Algumas plataformas bloqueiam verificações automatizadas ou apresentam páginas genéricas. O conteúdo pode mudar sem que o status real da seleção seja refletido. O estado `active` significa que a última verificação foi bem-sucedida, não uma garantia de contratação ou de disponibilidade em tempo real.
+
+A tabela de histórico usa vínculo com a vaga e acompanha seu ciclo de retenção: quando uma vaga é eliminada pela política de expiração de 60 dias, seus registros históricos vinculados também são eliminados.
 
 ## Expiração dos anúncios
 
@@ -234,8 +268,11 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 - Redirecionamento para a página original de candidatura;
 - Integração com diferentes fontes de recrutamento;
 - Importação e atualização automatizada de oportunidades;
-- Identificação de anúncios indisponíveis;
-- Remoção de registros identificados como encerrados;
+- Identificação de anúncios indisponíveis informados pelas fontes;
+- Estados de disponibilidade `active`, `suspect` e `expired`;
+- Verificação HTTP automatizada dos links de candidatura;
+- Histórico de verificações, incluindo código HTTP, URL final, motivo e data;
+- Preservação de vagas encerradas com estado `expired`;
 - Exclusão de vagas com mais de 60 dias;
 - Paginação dos resultados;
 - Validação de elegibilidade antes da exibição das oportunidades.
