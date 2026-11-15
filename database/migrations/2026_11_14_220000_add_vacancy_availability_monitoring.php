@@ -15,7 +15,7 @@ return new class extends Migration
 
             $table->timestamp('availability_checked_at')->nullable();
             $table->unsignedSmallInteger('availability_http_status')->nullable();
-            $table->unsignedSmallInteger('availability_consecutive_failures')->default(0);
+            $table->unsignedSmallInteger('availability_consecutive_not_found')->default(0);
             $table->text('availability_last_error')->nullable();
         });
 
@@ -49,7 +49,7 @@ return new class extends Migration
                 'availability_status',
                 'availability_checked_at',
                 'availability_http_status',
-                'availability_consecutive_failures',
+                'availability_consecutive_not_found',
                 'availability_last_error',
             ]);
         });
