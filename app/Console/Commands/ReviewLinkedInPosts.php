@@ -46,6 +46,44 @@ class ReviewLinkedInPosts extends Command
             return self::SUCCESS;
         }
 
+        if ($action === 'show') {
+            $id = $this->argument('id');
+            $candidate = is_numeric($id)
+                ? LinkedInPostCandidate::query()->find($id)
+                : null;
+
+            if ($candidate === null) {
+                $this->error('Informe um ID válido de candidato.');
+
+                return self::INVALID;
+            }
+
+            $this->line('Publicação: ' . $candidate->post_url);
+            $this->line('Autor: ' . ($candidate->author_name ?? 'Não identificado'));
+            $this->line('Perfil: ' . ($candidate->author_url ?? 'Não informado'));
+            $this->line('Cargo: ' . ($candidate->title ?? 'Não identificado'));
+            $this->line('Empresa: ' . ($candidate->company ?? 'Não identificada'));
+            $this->line('Localidade: ' . ($candidate->location ?? 'Não identificada'));
+            $this->line('Modalidade: ' . ($candidate->work_model ?? 'Não identificada'));
+            $this->line('E-mails: ' . implode(', ', $candidate->emails ?? []));
+            $this->line('Status: ' . $candidate->status);
+            $this->line('Motivo: ' . ($candidate->decision_reason ?? 'Não informado'));
+            $this->newLine();
+            $this->line('Texto da publicação:');
+            $this->line($candidate->post_text);
+            $this->newLine();
+            $this->line('Descrição extraída:');
+            $this->line($candidate->description ?? '(vazia)');
+            $this->newLine();
+            $this->line('Comentários públicos e links:');
+            $this->line(json_encode([
+                'comments' => $candidate->comments,
+                'links' => $candidate->embedded_links,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            return self::SUCCESS;
+        }
+
         $id = $this->argument('id');
         if (!is_numeric($id)) {
             $this->error('Informe o ID numérico do candidato.');
