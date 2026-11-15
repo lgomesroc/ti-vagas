@@ -17,241 +17,80 @@ use Illuminate\Support\Str;
 class VacancyController extends Controller
 {
     private const DEVELOPMENT_TERMS = [
-        'desenvolvedor',
-        'developer',
-        'programador',
-        'software engineer',
-        'engenheiro de software',
-        'backend',
-        'back-end',
-        'frontend',
-        'front-end',
-        'full stack',
-        'fullstack',
-        'integration developer',
-        'php developer',
-        '.net developer',
-        'java developer',
-        'python developer',
-        'desenvolvedor de software',
-        'desenvolvedor de sistemas',
-        'desenvolvedor web',
-        'desenvolvedor mobile',
-        'desenvolvedor de aplicativos',
-        'software developer',
-        'web developer',
-        'mobile developer',
-        'application developer',
-        'analista de desenvolvimento',
-        'analista de sistemas de informação',
-        'ios developer',
-        'android developer',
-        'qa',
-        'quality assurance',
-        'quality analyst',
-        'analista de qa',
-        'analista de testes',
-        'tester',
-        'software tester',
-        'test engineer',
-        'engenheiro de testes',
-        'automation tester',
-        'qa automation',
+        'desenvolvedor', 'developer', 'programador', 'software engineer',
+        'engenheiro de software', 'backend', 'back-end', 'frontend',
+        'front-end', 'full stack', 'fullstack', 'integration developer',
+        'php developer', '.net developer', 'java developer', 'python developer',
+        'desenvolvedor de software', 'desenvolvedor de sistemas',
+        'desenvolvedor web', 'desenvolvedor mobile', 'desenvolvedor de aplicativos',
+        'software developer', 'web developer', 'mobile developer',
+        'application developer', 'analista de desenvolvimento',
+        'analista de sistemas de informação', 'ios developer', 'android developer',
+        'qa', 'quality assurance', 'quality analyst', 'analista de qa',
+        'analista de testes', 'tester', 'software tester', 'test engineer',
+        'engenheiro de testes', 'automation tester', 'qa automation',
     ];
 
     private const SUPPORT_TERMS = [
-        'suporte tecnico',
-        'suporte de ti',
-        'suporte ti',
-        'analista de suporte',
-        'tecnico de informatica',
-        'tecnico de suporte',
-        'help desk',
-        'helpdesk',
-        'service desk',
-        'servicedesk',
-        'technical support',
-        'it support',
-        'field support',
-        'analista de service desk',
-        'analista de help desk',
-        'suporte ao usuario',
-        'suporte de sistemas',
-        'suporte a sistemas',
-        'suporte de informatica',
-        'assistente de suporte',
-        'auxiliar de suporte',
-        'analista de suporte de sistemas',
-        'analista de suporte tecnico',
-        'tecnico de suporte ti',
-        'tecnico de service desk',
-        'operador de service desk',
-        'field service',
-        'microinformatica',
+        'suporte tecnico', 'suporte de ti', 'suporte ti', 'analista de suporte',
+        'tecnico de informatica', 'tecnico de suporte', 'help desk', 'helpdesk',
+        'service desk', 'servicedesk', 'technical support', 'it support',
+        'field support', 'analista de service desk', 'analista de help desk',
+        'suporte ao usuario', 'suporte de sistemas', 'suporte a sistemas',
+        'suporte de informatica', 'assistente de suporte', 'auxiliar de suporte',
+        'analista de suporte de sistemas', 'analista de suporte tecnico',
+        'tecnico de suporte ti', 'tecnico de service desk',
+        'operador de service desk', 'field service', 'microinformatica',
     ];
 
     private const INFRASTRUCTURE_TERMS = [
-        'infraestrutura',
-        'infrastructure',
-        'analista de redes',
-        'tecnico de redes',
-        'network engineer',
-        'network analyst',
-        'cloud engineer',
-        'devops',
-        'sysadmin',
-        'system administrator',
-        'administrador de sistemas',
-        'analista de sistemas',
-        'noc',
-        'analista de infraestrutura',
-        'tecnico de infraestrutura',
-        'assistente de infraestrutura',
-        'auxiliar de infraestrutura',
-        'administrador de redes',
-        'administrador de banco de dados',
-        'database administrator',
-        'dba',
-        'site reliability engineer',
-        'sre',
-        'network administrator',
-        'cloud administrator',
-        'analista de cloud',
-        'engenheiro de infraestrutura',
-        'security analyst',
-        'analista de seguranca da informacao',
-        'analista de seguranca',
-        'cybersecurity',
-        'ciberseguranca',
-        'soc analyst',
+        'infraestrutura', 'infrastructure', 'analista de redes',
+        'tecnico de redes', 'network engineer', 'network analyst',
+        'cloud engineer', 'devops', 'sysadmin', 'system administrator',
+        'administrador de sistemas', 'analista de sistemas', 'noc',
+        'analista de infraestrutura', 'tecnico de infraestrutura',
+        'assistente de infraestrutura', 'auxiliar de infraestrutura',
+        'administrador de redes', 'administrador de banco de dados',
+        'database administrator', 'dba', 'site reliability engineer', 'sre',
+        'network administrator', 'cloud administrator', 'analista de cloud',
+        'engenheiro de infraestrutura', 'security analyst',
+        'analista de seguranca da informacao', 'analista de seguranca',
+        'cybersecurity', 'ciberseguranca', 'soc analyst',
     ];
 
     private const EXCLUDED_SENIORITY_TERMS = [
-        'pleno',
-        'senior',
-        'sr',
-        'staff',
-        'principal',
-        'lead',
-        'manager',
-        'gerente',
-        'director',
-        'diretor',
-        'head',
-        'architect',
-        'arquiteto',
-        'especialista',
-        'coordenador',
-        'coordenadora',
-        'lider',
-        'supervisor',
-        'supervisora',
-        'trainee',
-        'estagio',
-        'estagiario',
-        'intern',
-        'internship',
+        'pleno', 'senior', 'sr', 'staff', 'principal', 'lead', 'manager',
+        'gerente', 'director', 'diretor', 'head', 'architect', 'arquiteto',
+        'especialista', 'coordenador', 'coordenadora', 'lider', 'supervisor',
+        'supervisora', 'trainee', 'estagio', 'estagiario', 'intern', 'internship',
     ];
 
-    /**
-     * Áreas e especialidades que não fazem parte do escopo editorial.
-     *
-     * A verificação é feita no título da vaga para evitar que uma
-     * menção incidental na descrição elimine uma vaga convencional
-     * de desenvolvimento, QA, infraestrutura ou suporte.
-     */
     private const IRRELEVANT_TERMS = [
-        'marketing',
-        'vendas',
-        'sales',
-        'juridico',
-        'legal',
-        'financeiro',
-        'financial',
-        'recruiter',
-        'recrutamento',
-        'recursos humanos',
-        'human resources',
-        'engenheiro de planejamento',
-        'engenheiro de pocos',
-        'engenheiro mecanico',
-        'engenheiro de qualidade',
-        'engenheiro de risco',
-        'engenheiro fiscal',
-        'engenheiro de seguranca',
-        'commercial contracts',
-        'legal ops',
-        'analista administrativo',
-        'analista de gestao',
-        'analista de operacoes',
-        'compras',
-        'procurement',
-        'contabilidade',
-        'accounting',
-        'departamento pessoal',
-        'folha de pagamento',
-        'payroll',
-        'logistica',
-        'logistics',
-        'almoxarifado',
-        'estoque',
-        'comercial',
-        'customer success',
-        'customer experience',
-        'atendimento ao cliente',
-        'operador de caixa',
-        'secretaria',
-        'secretariado',
-        'recepcionista',
-        'engenheiro civil',
-        'engenheiro eletricista',
-        'engenheiro de producao',
-        'engenheiro ambiental',
-        'tecnico de seguranca do trabalho',
-
-        // CRM, ERP e sistemas corporativos especializados.
-        'consultor crm',
-        'consultora crm',
-        'analista crm',
-        'consultor erp',
-        'consultora erp',
-        'analista erp',
-        'consultor sap',
-        'consultora sap',
-        'analista sap',
-        'desenvolvedor sap',
-        'sap abap',
-        'abap',
-        'totvs',
-        'protheus',
-        'consultor funcional',
-        'consultora funcional',
-        'analista funcional',
-        'implantacao de sistemas',
-        'implantador de sistemas',
-
-        // Dados, BI e inteligência artificial como especialidade.
-        'data analyst',
-        'data analytics',
-        'analytics engineer',
-        'analista de dados',
-        'engenheiro de dados',
-        'data engineer',
-        'cientista de dados',
-        'data scientist',
-        'business intelligence',
-        'business intelligence analyst',
-        'bi analyst',
-        'analista de bi',
-        'engenheiro de machine learning',
-        'machine learning engineer',
-        'machine learning specialist',
-        'deep learning',
-        'ml engineer',
-        'ai engineer',
-        'engenheiro de inteligencia artificial',
-        'especialista em inteligencia artificial',
-        'cientista de machine learning',
+        'marketing', 'vendas', 'sales', 'juridico', 'legal', 'financeiro',
+        'financial', 'recruiter', 'recrutamento', 'recursos humanos',
+        'human resources', 'engenheiro de planejamento', 'engenheiro de pocos',
+        'engenheiro mecanico', 'engenheiro de qualidade', 'engenheiro de risco',
+        'engenheiro fiscal', 'engenheiro de seguranca', 'commercial contracts',
+        'legal ops', 'analista administrativo', 'analista de gestao',
+        'analista de operacoes', 'compras', 'procurement', 'contabilidade',
+        'accounting', 'departamento pessoal', 'folha de pagamento', 'payroll',
+        'logistica', 'logistics', 'almoxarifado', 'estoque', 'comercial',
+        'customer success', 'customer experience', 'atendimento ao cliente',
+        'operador de caixa', 'secretaria', 'secretariado', 'recepcionista',
+        'engenheiro civil', 'engenheiro eletricista', 'engenheiro de producao',
+        'engenheiro ambiental', 'tecnico de seguranca do trabalho',
+        'consultor crm', 'consultora crm', 'analista crm', 'consultor erp',
+        'consultora erp', 'analista erp', 'consultor sap', 'consultora sap',
+        'analista sap', 'desenvolvedor sap', 'sap abap', 'abap', 'totvs',
+        'protheus', 'consultor funcional', 'consultora funcional',
+        'analista funcional', 'implantacao de sistemas', 'implantador de sistemas',
+        'data analyst', 'data analytics', 'analytics engineer', 'analista de dados',
+        'engenheiro de dados', 'data engineer', 'cientista de dados',
+        'data scientist', 'business intelligence', 'business intelligence analyst',
+        'bi analyst', 'analista de bi', 'engenheiro de machine learning',
+        'machine learning engineer', 'machine learning specialist', 'deep learning',
+        'ml engineer', 'ai engineer', 'engenheiro de inteligencia artificial',
+        'especialista em inteligencia artificial', 'cientista de machine learning',
     ];
 
     public function __construct(
@@ -262,16 +101,10 @@ class VacancyController extends Controller
     ) {
     }
 
-    /**
-     * Retorna as vagas elegíveis para a região do visitante.
-     *
-     * A região é recebida explicitamente para que o serviço de localização
-     * não dependa do container de sessão do Laravel.
-     */
-    private function eligibleVacancies(
-        ?RegionScope $visitorScope = null
-    ): Collection {
+    private function eligibleVacancies(?RegionScope $visitorScope = null): Collection
+    {
         $vacancies = Vacancy::query()
+            ->where('availability_status', 'active')
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
@@ -286,43 +119,19 @@ class VacancyController extends Controller
 
                 $title = $this->normalize($vacancy->title);
 
-                // Exclui níveis acima de júnior, estágio e trainee.
-                if ($this->containsAny(
-                    $title,
-                    self::EXCLUDED_SENIORITY_TERMS
-                )) {
+                if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
                     return false;
                 }
 
                 if (
                     preg_match('/\bpl\s*$/i', $title) ||
-                    preg_match(
-                        '/\bsoftware engineer\s+(?:iii|iv|v)\b/i',
-                        $title
-                    )
+                    preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $title)
                 ) {
                     return false;
                 }
 
-                $description = $this->normalize(
-                    $vacancy->description
-                );
+                $description = $this->normalize($vacancy->description);
 
-                /*
-                 * Exclui vagas que exigem 3 ou mais anos de experiência.
-                 *
-                 * Exemplos:
-                 * 3 years
-                 * 5+ years
-                 * 8 years
-                 * 10 years
-                 * 5 plus years
-                 * 5-7 years
-                 * 5–7 years
-                 * 5 years of experience
-                 * 5+ years in DevOps
-                 * 5 anos de experiência
-                 */
                 if (preg_match(
                     '/\b(?:3|[4-9]|\d{2,})\s*(?:(?:\+|plus)\s*)?(?:[-–]\s*(?:3|[4-9]|\d{2,})\s*)?(?:years?|anos)\b/i',
                     $description
@@ -340,10 +149,7 @@ class VacancyController extends Controller
                 $isRadarTecFullStackException =
                     $vacancy->source === 'radartec'
                     && (string) $vacancy->external_id === '13421'
-                    && str_contains(
-                        $title,
-                        'desenvolvedor full stack web'
-                    );
+                    && str_contains($title, 'desenvolvedor full stack web');
 
                 if (
                     !$isRadarTecFullStackException &&
@@ -355,15 +161,10 @@ class VacancyController extends Controller
                     return false;
                 }
 
-                // Exclui especialidades fora do escopo pelo título.
-                if ($this->containsAny(
-                    $title,
-                    self::IRRELEVANT_TERMS
-                )) {
+                if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
                     return false;
                 }
 
-                // Mantém apenas desenvolvimento, QA, suporte e infraestrutura.
                 if (!$this->isTechnologyRole($title)) {
                     return false;
                 }
@@ -374,8 +175,7 @@ class VacancyController extends Controller
                     $vacancy->description
                 );
 
-                $vacancy->display_work_model = $workModel
-                    ?? 'Não informado';
+                $vacancy->display_work_model = $workModel ?? 'Não informado';
 
                 return $this->locationFilter->isEligibleForVisitor(
                     $vacancy->location,
@@ -383,9 +183,7 @@ class VacancyController extends Controller
                     $vacancy->description,
                     $workModel,
                     $visitorScope,
-                    $this->vacancyLocationResolver->resolveForVacancy(
-                        $vacancy
-                    )
+                    $this->vacancyLocationResolver->resolveForVacancy($vacancy)
                 );
             })
             ->values();
@@ -393,20 +191,13 @@ class VacancyController extends Controller
         return $this->removeDuplicateVacancies($vacancies);
     }
 
-    private function removeDuplicateVacancies(
-        Collection $vacancies
-    ): Collection {
+    private function removeDuplicateVacancies(Collection $vacancies): Collection
+    {
         return $vacancies
             ->groupBy(function (Vacancy $vacancy) {
-                $normalizedTitle = $this->normalize(
-                    $vacancy->title
-                );
+                $normalizedTitle = $this->normalize($vacancy->title);
 
-                if (!preg_match(
-                    '/\((\d{4,})\)/',
-                    $normalizedTitle,
-                    $matches
-                )) {
+                if (!preg_match('/\((\d{4,})\)/', $normalizedTitle, $matches)) {
                     return 'unique-' . $vacancy->id;
                 }
 
@@ -418,29 +209,20 @@ class VacancyController extends Controller
             ->map(function (Collection $group) {
                 return $group
                     ->sort(function (Vacancy $a, Vacancy $b) {
-                        $dateComparison = $b->original_published_at
-                            <=> $a->original_published_at;
+                        $dateComparison = $b->original_published_at <=> $a->original_published_at;
 
                         if ($dateComparison !== 0) {
                             return $dateComparison;
                         }
 
-                        $collectionComparison = $b->collected_at
-                            <=> $a->collected_at;
+                        $collectionComparison = $b->collected_at <=> $a->collected_at;
 
                         if ($collectionComparison !== 0) {
                             return $collectionComparison;
                         }
 
-                        $aIsExclusivePcd = str_contains(
-                            $this->normalize($a->title),
-                            'exclusivo pcd'
-                        );
-
-                        $bIsExclusivePcd = str_contains(
-                            $this->normalize($b->title),
-                            'exclusivo pcd'
-                        );
+                        $aIsExclusivePcd = str_contains($this->normalize($a->title), 'exclusivo pcd');
+                        $bIsExclusivePcd = str_contains($this->normalize($b->title), 'exclusivo pcd');
 
                         if ($aIsExclusivePcd !== $bIsExclusivePcd) {
                             return $aIsExclusivePcd ? 1 : -1;
@@ -456,31 +238,18 @@ class VacancyController extends Controller
 
     private function isTechnologyRole(string $title): bool
     {
-        return $this->containsAny(
-            $title,
-            self::DEVELOPMENT_TERMS
-        )
-            || $this->containsAny(
-                $title,
-                self::SUPPORT_TERMS
-            )
-            || $this->containsAny(
-                $title,
-                self::INFRASTRUCTURE_TERMS
-            );
+        return $this->containsAny($title, self::DEVELOPMENT_TERMS)
+            || $this->containsAny($title, self::SUPPORT_TERMS)
+            || $this->containsAny($title, self::INFRASTRUCTURE_TERMS);
     }
 
-    private function containsAny(
-        string $text,
-        array $terms
-    ): bool {
+    private function containsAny(string $text, array $terms): bool
+    {
         foreach ($terms as $term) {
             $normalizedTerm = $this->normalize($term);
 
             if (preg_match(
-                '/(^|[^a-z0-9])' .
-                preg_quote($normalizedTerm, '/') .
-                '([^a-z0-9]|$)/',
+                '/(^|[^a-z0-9])' . preg_quote($normalizedTerm, '/') . '([^a-z0-9]|$)/',
                 $text
             )) {
                 return true;
@@ -500,31 +269,22 @@ class VacancyController extends Controller
         $search = trim($request->query('q', ''));
 
         $eligibleVacancies = $this->eligibleVacancies(
-            $this->visitorLocationResolver->scopeFromSession(
-                $request->session()
-            )
+            $this->visitorLocationResolver->scopeFromSession($request->session())
         );
 
         if ($search !== '') {
             $normalizedSearch = $this->normalize($search);
 
             $eligibleVacancies = $eligibleVacancies
-                ->filter(function (Vacancy $vacancy) use (
-                    $normalizedSearch
-                ) {
-                    $searchableText = $this->normalize(
-                        implode(' ', [
-                            $vacancy->title,
-                            $vacancy->company,
-                            $vacancy->location ?? '',
-                            $vacancy->description,
-                        ])
-                    );
+                ->filter(function (Vacancy $vacancy) use ($normalizedSearch) {
+                    $searchableText = $this->normalize(implode(' ', [
+                        $vacancy->title,
+                        $vacancy->company,
+                        $vacancy->location ?? '',
+                        $vacancy->description,
+                    ]));
 
-                    return Str::contains(
-                        $searchableText,
-                        $normalizedSearch
-                    );
+                    return Str::contains($searchableText, $normalizedSearch);
                 })
                 ->values();
         }
@@ -532,10 +292,7 @@ class VacancyController extends Controller
         $perPage = 12;
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
         $total = $eligibleVacancies->count();
-
-        $items = $eligibleVacancies
-            ->forPage($currentPage, $perPage)
-            ->values();
+        $items = $eligibleVacancies->forPage($currentPage, $perPage)->values();
 
         $vacancies = new LengthAwarePaginator(
             $items,
@@ -556,14 +313,10 @@ class VacancyController extends Controller
         ]);
     }
 
-    public function show(
-        Request $request,
-        Vacancy $vacancy
-    ): View {
+    public function show(Request $request, Vacancy $vacancy): View
+    {
         $eligibleVacancy = $this->eligibleVacancies(
-            $this->visitorLocationResolver->scopeFromSession(
-                $request->session()
-            )
+            $this->visitorLocationResolver->scopeFromSession($request->session())
         )->firstWhere('id', $vacancy->getKey());
 
         abort_unless($eligibleVacancy, 404);
