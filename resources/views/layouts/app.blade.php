@@ -9,7 +9,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810922325021053"
          crossorigin="anonymous"></script>
 
-    @if (config('app.google_analytics_id') && \\App\\Http\\Middleware\\EnsureWelcomeAccepted::cookieNoticeAcknowledged(request()))
+    @if (config('app.google_analytics_id') && \App\Http\Middleware\EnsureWelcomeAccepted::cookieNoticeAcknowledged(request()))
         <!-- Google Analytics 4: carregado somente após a confirmação do aviso de cookies. -->
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.google_analytics_id') }}"></script>
         <script>
