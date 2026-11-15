@@ -108,7 +108,7 @@ class LinkedInUrlInspector
 
             if (!$response->successful()) {
                 return $this->result(
-                    true,
+                    false,
                     true,
                     false,
                     $currentUrl,
@@ -203,9 +203,9 @@ class LinkedInUrlInspector
         $text = is_string($text) ? trim(preg_replace('/\s+/u', ' ', $text)) : null;
 
         return [
-            'page_title' => $title !== '' ? mb_substr($title, 0, 500) : null,
-            'page_description' => $description !== '' ? mb_substr($description, 0, 3000) : null,
-            'page_text' => $text !== '' ? mb_substr($text, 0, 30000) : null,
+            'page_title' => $title !== null && $title !== '' ? mb_substr($title, 0, 500) : null,
+            'page_description' => $description !== null && $description !== '' ? mb_substr($description, 0, 3000) : null,
+            'page_text' => $text !== null && $text !== '' ? mb_substr($text, 0, 30000) : null,
         ];
     }
 
