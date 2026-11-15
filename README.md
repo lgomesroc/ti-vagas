@@ -1,5 +1,24 @@
 # TI Vagas
 
+## Documentação
+
+A documentação técnica está organizada por assunto na pasta [docs/](docs/).
+
+| Tópico | Resumo |
+|---|---|
+| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público-alvo, funcionalidades e limites do portal. |
+| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Organização das camadas, responsabilidades e fluxo de dados. |
+| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato das fontes, normalização, importação e filas. |
+| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas atendidas, senioridade, tipo de oportunidade e filtros. |
+| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Resolução de município, regras regionais e base territorial. |
+| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
+| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
+| [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa de diretórios e arquivos versionados, em ordem alfabética. |
+
+O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
+
+
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
 O **TI Vagas** é um portal independente de oportunidades profissionais na área de tecnologia, com foco em vagas efetivas de nível júnior.
