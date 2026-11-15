@@ -3,169 +3,227 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class LinkedInPostSearchClient
 {
     /**
-     * Pesquisa somente publicações públicas do LinkedIn.
+     * Pesquisa resultados públicos indexados pelo DuckDuckGo.
      *
-     * Não utiliza login, senha ou cookie de sessão do usuário.
+     * Não usa API paga, login, senha ou cookies do LinkedIn.
+     * A cobertura depende da indexação pública do mecanismo de busca.
      *
      * @return array<int, array<string, mixed>>
      */
     public function search(): array
     {
-        $token = (string) config('linkedin.apify.token');
-        $actorId = trim((string) config('linkedin.apify.actor_id'));
-
-        if ($token === '' || $actorId === '') {
-            throw new RuntimeException(
-                'Configure APIFY_API_TOKEN e APIFY_LINKEDIN_POSTS_ACTOR.'
-            );
-        }
-
         $keywords = array_values(array_unique(array_filter(
-            config('linkedin.apify.keywords', []),
+            config('linkedin.keywords', []),
             fn ($keyword): bool => is_string($keyword) && trim($keyword) !== ''
         )));
 
         if ($keywords === []) {
-            throw new RuntimeException(
-                'Nenhuma palavra-chave de pesquisa do LinkedIn foi configurada.'
-            );
+            throw new RuntimeException('Nenhuma palavra-chave do LinkedIn foi configurada.');
         }
 
-        $nowUtc = now('UTC');
-        $input = [
-            'keywords' => array_slice($keywords, 0, 20),
-            'startDate' => $nowUtc
-                ->copy()
-                ->subHours((int) config('linkedin.lookback_hours', 72))
-                ->toDateString(),
-            'endDate' => $nowUtc->toDateString(),
-            'maxPostsPerKeyword' => max(
-                1,
-                min(
-                    100,
-                    (int) config('linkedin.apify.max_posts_per_keyword', 8)
-                )
-            ),
-            'includeArticles' => false,
-        ];
+        $posts = [];
 
-        $actorPath = rawurlencode(str_replace('/', '~', $actorId));
-        $maxCharge = rawurlencode(
-            (string) config('linkedin.apify.max_total_charge_usd', '0.15')
-        );
+        foreach ($keywords as $keyword) {
+            $query = 'site:linkedin.com/posts/ OR site:linkedin.com/feed/update/ '
+                . '"' . $keyword . '"';
 
-        $startResponse = Http::acceptJson()
-            ->withToken($token)
-            ->timeout(45)
-            ->post(
-                "https://api.apify.com/v2/acts/{$actorPath}/runs"
-                    . "?maxTotalChargeUsd={$maxCharge}",
-                $input
-            );
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml',
+                    'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
+                ])->timeout(20)->get('https://html.duckduckgo.com/html/', [
+                    'q' => $query,
+                ]);
 
-        $startResponse->throw();
+                if (!$response->successful()) {
+                    continue;
+                }
 
-        $runId = $startResponse->json('data.id');
+                foreach ($this->parseResults($response->body(), $keyword) as $post) {
+                    $posts[$post['postUrl']] = $post;
+                }
+            } catch (\Throwable) {
+                // Uma consulta indisponível não impede as demais palavras-chave.
+                continue;
+            }
 
-        if (!is_string($runId) || $runId === '') {
-            throw new RuntimeException(
-                'O provedor não retornou o identificador da execução.'
-            );
+            usleep(700000);
         }
 
-        $finishedRun = $this->waitForRun($token, $runId);
-
-        $datasetId = $finishedRun['defaultDatasetId'] ?? null;
-
-        if (!is_string($datasetId) || $datasetId === '') {
-            throw new RuntimeException(
-                'A execução terminou sem informar o dataset de resultados.'
-            );
-        }
-
-        $itemsResponse = Http::acceptJson()
-            ->withToken($token)
-            ->timeout(45)
-            ->get(
-                "https://api.apify.com/v2/datasets/{$datasetId}/items",
-                [
-                    'format' => 'json',
-                    'clean' => 'true',
-                    'limit' => 1000,
-                ]
-            );
-
-        $itemsResponse->throw();
-
-        $items = $itemsResponse->json();
-
-        if (!is_array($items)) {
-            throw new RuntimeException(
-                'O provedor retornou um formato de resultados inválido.'
-            );
-        }
-
-        return array_values(array_filter(
-            $items,
-            fn ($item): bool => is_array($item)
-                && ($item['resultType'] ?? $item['result_type'] ?? 'post') === 'post'
-        ));
+        return array_values($posts);
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, array<string, mixed>>
      */
-    private function waitForRun(string $token, string $runId): array
+    private function parseResults(string $html, string $keyword): array
     {
-        $maxWait = max(
-            30,
-            (int) config('linkedin.apify.max_wait_seconds', 300)
-        );
-        $deadline = time() + $maxWait;
+        if (!class_exists(\DOMDocument::class)) {
+            throw new RuntimeException('A extensão PHP DOM/XML é necessária para ler resultados de pesquisa.');
+        }
 
-        do {
-            $response = Http::acceptJson()
-                ->withToken($token)
-                ->timeout(30)
-                ->get("https://api.apify.com/v2/actor-runs/{$runId}");
+        $previous = libxml_use_internal_errors(true);
 
-            $response->throw();
+        try {
+            $document = new \DOMDocument();
+            $document->loadHTML('<?xml encoding="UTF-8">' . $html);
+            $xpath = new \DOMXPath($document);
+            $nodes = $xpath->query(
+                "//*[contains(concat(' ', normalize-space(@class), ' '), ' result ')]"
+            );
 
-            $run = $response->json('data');
+            $results = [];
 
-            if (!is_array($run)) {
-                throw new RuntimeException(
-                    'Não foi possível consultar o estado da execução no provedor.'
-                );
+            foreach ($nodes ?: [] as $node) {
+                $linkNode = $xpath->query(
+                    ".//*[contains(concat(' ', normalize-space(@class), ' '), ' result__a ')]",
+                    $node
+                )?->item(0);
+
+                $snippetNode = $xpath->query(
+                    ".//*[contains(concat(' ', normalize-space(@class), ' '), ' result__snippet ')]",
+                    $node
+                )?->item(0);
+
+                if (!$linkNode instanceof \DOMElement) {
+                    continue;
+                }
+
+                $url = $this->resolveSearchUrl($linkNode->getAttribute('href'));
+                if (!$this->isLinkedInPostUrl($url)) {
+                    continue;
+                }
+
+                $title = trim($linkNode->textContent);
+                $snippet = trim($snippetNode?->textContent ?? '');
+                $text = trim($title . "\n" . $snippet);
+
+                $publishedAt = $this->extractPublishedAt($text);
+                if ($publishedAt === null || $publishedAt->lt(
+                    now()->subHours((int) config('linkedin.lookback_hours', 72))
+                ) || $publishedAt->gt(now()->addHours(2))) {
+                    continue;
+                }
+
+                $results[] = [
+                    'postId' => hash('sha256', $url),
+                    'postUrl' => $url,
+                    'title' => $title,
+                    'text' => $text,
+                    'datePosted' => $publishedAt->toIso8601String(),
+                    'matchedKeyword' => $keyword,
+                    'authorName' => null,
+                    'authorUrl' => null,
+                    'authorHeadline' => null,
+                    'authorType' => null,
+                    'topComments' => [],
+                    'links' => [],
+                    'searchProvider' => 'duckduckgo-html',
+                    'searchSnippet' => $snippet,
+                ];
             }
 
-            $status = $run['status'] ?? null;
+            return $results;
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
 
-            if ($status === 'SUCCEEDED') {
-                return $run;
+    private function resolveSearchUrl(string $href): string
+    {
+        if (str_starts_with($href, '//')) {
+            $href = 'https:' . $href;
+        }
+
+        $query = [];
+        parse_str((string) parse_url($href, PHP_URL_QUERY), $query);
+
+        if (isset($query['uddg']) && is_string($query['uddg'])) {
+            return rawurldecode($query['uddg']);
+        }
+
+        return $href;
+    }
+
+    private function isLinkedInPostUrl(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return in_array($host, ['linkedin.com', 'www.linkedin.com'], true)
+            && (
+                str_contains($path, '/posts/')
+                || str_contains($path, '/feed/update/')
+            );
+    }
+
+    private function extractPublishedAt(string $text): ?\Illuminate\Support\Carbon
+    {
+        $normalized = Str::ascii(mb_strtolower($text));
+
+        if (preg_match('/\b(\d{1,2})\s*(min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|sem|week|weeks)\s+ago\b/', $normalized, $matches)) {
+            $amount = (int) $matches[1];
+            $unit = $matches[2];
+
+            if (str_starts_with($unit, 'min')) {
+                return now()->subMinutes($amount);
             }
 
-            if (in_array($status, [
-                'FAILED',
-                'ABORTED',
-                'TIMED-OUT',
-            ], true)) {
-                throw new RuntimeException(
-                    'A execução do provedor terminou com status: '
-                    . (string) $status
-                );
+            if (in_array($unit, ['h', 'hr', 'hrs', 'hour', 'hours'], true)) {
+                return now()->subHours($amount);
             }
 
-            sleep(5);
-        } while (time() < $deadline);
+            if (in_array($unit, ['d', 'day', 'days'], true)) {
+                return now()->subDays($amount);
+            }
 
-        throw new RuntimeException(
-            "A execução {$runId} excedeu o tempo máximo de espera."
-        );
+            return now()->subWeeks($amount);
+        }
+
+        if (preg_match('/\b(\d{1,2})\s*(m|h|d)\b/', $normalized, $matches)) {
+            return match ($matches[2]) {
+                'm' => now()->subMinutes((int) $matches[1]),
+                'h' => now()->subHours((int) $matches[1]),
+                'd' => now()->subDays((int) $matches[1]),
+            };
+        }
+
+        if (preg_match('/\b(today|hoje)\b/', $normalized)) {
+            return now()->startOfDay();
+        }
+
+        if (preg_match('/\b(yesterday|ontem)\b/', $normalized)) {
+            return now()->subDay();
+        }
+
+        if (preg_match('/\b(\d{1,2})\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?\b/u', $normalized, $matches)) {
+            $months = [
+                'jan' => 1, 'fev' => 2, 'mar' => 3, 'abr' => 4,
+                'mai' => 5, 'jun' => 6, 'jul' => 7, 'ago' => 8,
+                'set' => 9, 'out' => 10, 'nov' => 11, 'dez' => 12,
+            ];
+
+            $month = $months[$matches[2]] ?? null;
+            if ($month !== null) {
+                $year = now()->year;
+                $date = now()->setDate($year, $month, (int) $matches[1])->startOfDay();
+
+                if ($date->gt(now()->addDay())) {
+                    $date->subYear();
+                }
+
+                return $date;
+            }
+        }
+
+        return null;
     }
 }
