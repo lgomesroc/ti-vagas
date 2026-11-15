@@ -245,6 +245,15 @@
             </p>
 
             <p>
+                Quando o acesso ocorre por um link de divulgação com parâmetros
+                UTM, o TI Vagas registra a origem, o canal e a campanha na sessão
+                de navegação para fins de atribuição. Esses dados não são enviados
+                a ferramentas de analytics nesta versão, não são usados para
+                publicidade comportamental e não são associados a um cadastro
+                de usuário.
+            </p>
+
+            <p>
                 Nesta primeira versão, não implementamos cookies de
                 rastreamento publicitário ou personalização de anúncios
                 baseada no comportamento do usuário.
