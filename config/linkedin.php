@@ -8,46 +8,27 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
-    'apify' => [
-        'token' => env('APIFY_API_TOKEN'),
-        'actor_id' => env(
-            'APIFY_LINKEDIN_POSTS_ACTOR',
-            'johnvc~linkedin-post-search-api'
-        ),
-        'max_total_charge_usd' => (string) env(
-            'APIFY_LINKEDIN_MAX_CHARGE_USD',
-            '0.15'
-        ),
-        'max_posts_per_keyword' => (int) env(
-            'APIFY_LINKEDIN_MAX_POSTS_PER_KEYWORD',
-            8
-        ),
-        'max_wait_seconds' => (int) env(
-            'APIFY_LINKEDIN_MAX_WAIT_SECONDS',
-            300
-        ),
-        'keywords' => [
-            'estamos contratando',
-            'vaga aberta',
-            'vaga desenvolvedor',
-            'vaga desenvolvedora',
-            'desenvolvedor junior',
-            'desenvolvedor júnior',
-            'junior developer',
-            'junior software engineer',
-            'desenvolvedor backend',
-            'desenvolvedor PHP',
-            'desenvolvedor .NET',
-            'desenvolvedor full stack',
-            'vaga suporte técnico',
-            'analista de suporte',
-            'vaga infraestrutura',
-            'analista de infraestrutura',
-            'vaga DevOps',
-            'vaga QA',
-            'we are hiring',
-            'oportunidade tecnologia',
-        ],
+    'keywords' => [
+        'estamos contratando',
+        'vaga aberta',
+        'vaga desenvolvedor',
+        'vaga desenvolvedora',
+        'desenvolvedor junior',
+        'desenvolvedor júnior',
+        'junior developer',
+        'junior software engineer',
+        'desenvolvedor backend',
+        'desenvolvedor PHP',
+        'desenvolvedor .NET',
+        'desenvolvedor full stack',
+        'vaga suporte técnico',
+        'analista de suporte',
+        'vaga infraestrutura',
+        'analista de infraestrutura',
+        'vaga DevOps',
+        'vaga QA',
+        'we are hiring',
+        'oportunidade tecnologia',
     ],
 
     /*
