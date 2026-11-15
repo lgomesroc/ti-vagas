@@ -546,6 +546,16 @@ class RegionalizationTest extends TestCase
                     ],
                 ],
             ], $filler)),
+            '*/v1/localidades/regioes-imediatas' => Http::response([
+                [
+                    'id' => 330012,
+                    'nome' => 'Teresópolis',
+                    'regiao-intermediaria' => [
+                        'id' => 3303,
+                        'nome' => 'Petrópolis',
+                    ],
+                ],
+            ]),
             '*/v1/localidades/regioes-metropolitanas' => Http::response([
                 [
                     'id' => '3301',
@@ -567,6 +577,10 @@ class RegionalizationTest extends TestCase
 
         $importer = app(IbgeGeographyImporter::class);
         $result = $importer->importFromIbgeApi();
+
+        Http::assertSent(fn ($request): bool =>
+            str_ends_with($request->url(), '/v1/localidades/regioes-imediatas')
+        );
 
         $this->assertSame(1, $result['municipalities']);
         // A RM do Rio da API foi ignorada: o ajuste local prevalece.
