@@ -132,7 +132,7 @@ class WelcomeAcceptanceTest extends TestCase
             EnsureWelcomeAccepted::TERMS_VERSION
         )->get(route('vacancies.index'))
             ->assertOk()
-            ->assertSee('Utilizamos cookies');
+            ->assertSee('Preferências de cookies');
     }
 
     public function test_cookie_notice_is_shown_after_accepting_with_precise_location(): void
@@ -145,7 +145,7 @@ class WelcomeAcceptanceTest extends TestCase
             EnsureWelcomeAccepted::TERMS_VERSION
         )->get(route('vacancies.index'))
             ->assertOk()
-            ->assertSee('Utilizamos cookies');
+            ->assertSee('Preferências de cookies');
     }
 
     public function test_cookie_notice_is_shown_even_when_only_the_session_holds_the_acceptance(): void
@@ -155,7 +155,7 @@ class WelcomeAcceptanceTest extends TestCase
             'location_mode' => 'limited',
         ])->get(route('vacancies.index'))
             ->assertOk()
-            ->assertSee('Utilizamos cookies');
+            ->assertSee('Preferências de cookies');
     }
 
     public function test_cookie_notice_is_hidden_once_choice_is_saved_in_cookie(): void
