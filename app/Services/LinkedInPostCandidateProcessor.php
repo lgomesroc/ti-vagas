@@ -258,8 +258,17 @@ class LinkedInPostCandidateProcessor
             'apply now', 'looking for',
         ];
 
+        $isCompanyAuthor = in_array(
+            $this->normalize((string) ($post['authorType'] ?? '')),
+            ['company', 'organization', 'organisation', 'company page'],
+            true
+        );
+
         foreach ($postSignals as $signal) {
-            if (str_contains($normalized, $this->normalize($signal))) {
+            if (
+                str_contains($normalized, $this->normalize($signal))
+                && ($hasRecruitmentSignal || $isCompanyAuthor)
+            ) {
                 return true;
             }
         }
