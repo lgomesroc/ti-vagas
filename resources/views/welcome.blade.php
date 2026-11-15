@@ -239,9 +239,10 @@
             </p>
 
             <p>
-                O portal utiliza cookies necessários para manter a sessão,
-                registrar a confirmação dos termos e lembrar a confirmação
-                do aviso de cookies.
+                O portal utiliza cookies essenciais para manter a sessão,
+                registrar a confirmação dos termos e armazenar a escolha
+                feita para cookies não essenciais. Esses recursos são
+                necessários ao funcionamento e à segurança do serviço.
             </p>
 
             <p>
@@ -252,25 +253,33 @@
             </p>
 
             <p>
-                Quando o Google Analytics 4 estiver configurado, o portal poderá
-                utilizar cookies de análise para medir audiência, entender como
-                as páginas são utilizadas e melhorar o serviço. A ferramenta
-                somente será carregada depois que o usuário aceitar o aviso de
-                cookies. Sem essa confirmação, o Google Analytics 4 não será
-                carregado. Os dados poderão ser tratados pelo Google conforme
-                sua própria política de privacidade.
+                O Google Analytics 4 poderá utilizar cookies e tecnologias de
+                análise para medir audiência e entender o uso das páginas.
+                Essa ferramenta somente será carregada quando o visitante
+                aceitar os cookies não essenciais. Se essa opção for rejeitada,
+                o código do Analytics não será carregado. Os dados tratados
+                pelo Google estarão sujeitos também à política de privacidade
+                do próprio Google.
             </p>
 
             <p>
-                A medição de audiência não tem como finalidade criar um cadastro
-                de usuário nem realizar publicidade comportamental pelo TI Vagas.
-                A publicidade do Google AdSense possui tecnologias e condições
-                próprias, descritas no aviso de cookies e nas políticas do Google.
+                A publicidade exibida no TI Vagas é fornecida pelo Google AdSense.
+                O código do serviço somente será carregado quando o visitante
+                aceitar os cookies não essenciais. Se a opção for rejeitada,
+                o código do AdSense não será carregado pelo portal. Quando
+                autorizado, o serviço poderá utilizar tecnologias para exibir,
+                medir e, conforme as configurações aplicáveis, personalizar
+                anúncios. O tratamento realizado pelo Google segue também
+                as políticas do próprio Google.
             </p>
 
             <p>
-                A publicidade poderá ser contextual, considerando o conteúdo
-                do portal, sem depender de rastreamento individual.
+                Neste momento, o TI Vagas não oferece cadastro de candidatos,
+                não mantém perfis de usuários e não armazena currículos nem dados
+                de candidatura. Isso não significa ausência de todo tratamento
+                técnico: dados temporários de sessão, informações de localização
+                utilizadas para disponibilizar vagas regionais e registros de
+                segurança podem ser processados para fornecer e proteger o serviço.
             </p>
 
             <p>
