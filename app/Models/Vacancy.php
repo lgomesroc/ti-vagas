@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vacancy extends Model
 {
@@ -33,8 +34,15 @@ class Vacancy extends Model
         return [
             'original_published_at' => 'datetime',
             'collected_at' => 'datetime',
+            'availability_checked_at' => 'datetime',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
         ];
+    }
+
+    public function availabilityChecks(): HasMany
+    {
+        return $this->hasMany(VacancyAvailabilityCheck::class)
+            ->orderByDesc('checked_at');
     }
 }
