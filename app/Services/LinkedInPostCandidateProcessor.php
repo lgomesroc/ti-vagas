@@ -10,7 +10,8 @@ use Illuminate\Support\Str;
 class LinkedInPostCandidateProcessor
 {
     public function __construct(
-        private readonly LinkedInUrlInspector $urlInspector
+        private readonly LinkedInUrlInspector $urlInspector,
+        private readonly VacancyLocationFilter $locationFilter
     ) {
     }
 
@@ -141,7 +142,17 @@ class LinkedInPostCandidateProcessor
             $description
         );
 
-        if ($duplicate !== null) {
+        $duplicateCandidate = $this->findDuplicateCandidate(
+            $title,
+            $company,
+            $location,
+            $workModel,
+            $applicationUrl,
+            $description,
+            $postId
+        );
+
+        if ($duplicate !== null || $duplicateCandidate !== null) {
             $candidate->fill($base + [
                 'embedded_links' => $verifiedLinks,
                 'emails' => $emails,
@@ -152,8 +163,11 @@ class LinkedInPostCandidateProcessor
                 'work_model' => $workModel,
                 'application_url' => $applicationUrl,
                 'status' => 'duplicate',
-                'decision_reason' => 'Possível duplicidade com vaga já cadastrada: #' . $duplicate->id,
-                'duplicate_of_vacancy_id' => $duplicate->id,
+                'decision_reason' => $duplicate !== null
+                    ? 'Possível duplicidade com vaga já cadastrada: #' . $duplicate->id
+                    : 'Possível duplicidade com outro post do LinkedIn: #' . $duplicateCandidate->id,
+                'duplicate_of_vacancy_id' => $duplicate?->id,
+                'duplicate_of_candidate_id' => $duplicateCandidate?->id,
             ])->save();
 
             return $this->emptyResult('duplicates');
@@ -254,10 +268,6 @@ class LinkedInPostCandidateProcessor
         $titleText = $this->normalize($title);
         $descriptionText = $this->normalize($description);
 
-        if ($title === null || $company = null) {
-            // Company can be manually completed during review, title cannot.
-        }
-
         if ($title === null) {
             return 'Não foi possível identificar o cargo da oportunidade.';
         }
@@ -313,13 +323,13 @@ class LinkedInPostCandidateProcessor
             return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
         }
 
-        if ($workModel === 'Remoto') {
-            $combined = $this->normalize(($location ?? '') . ' ' . $description);
-            if (!str_contains($combined, 'brasil') && !str_contains($combined, 'brazil')) {
-                return 'Vaga remota sem confirmação de contratação permitida no Brasil.';
-            }
-        } elseif ($location === null) {
-            return 'Localidade não identificada; precisa de revisão manual.';
+        if (!$this->locationFilter->isEligibleForCollection(
+            $location,
+            $title,
+            $description,
+            $workModel
+        )) {
+            return 'Localidade ou modalidade incompatível com as regras de coleta do TI Vagas.';
         }
 
         if ($applicationUrl === null && $emails === []) {
@@ -360,7 +370,9 @@ class LinkedInPostCandidateProcessor
 
         $possible = Vacancy::query()
             ->where('original_published_at', '>=', now()->subDays(60))
-            ->where('company', 'ilike', '%' . mb_substr($company, 0, 80) . '%')
+            ->whereRaw('LOWER(company) LIKE ?', [
+                '%' . mb_strtolower(mb_substr($company, 0, 80)) . '%',
+            ])
             ->get();
 
         foreach ($possible as $vacancy) {
@@ -381,6 +393,72 @@ class LinkedInPostCandidateProcessor
                 || ($titleSimilarity >= 75 && $descriptionSimilarity >= 65)
             ) {
                 return $vacancy;
+            }
+        }
+
+        return null;
+    }
+
+    private function findDuplicateCandidate(
+        ?string $title,
+        ?string $company,
+        ?string $location,
+        ?string $workModel,
+        ?string $applicationUrl,
+        string $description,
+        string $currentPostId
+    ): ?LinkedInPostCandidate {
+        $query = LinkedInPostCandidate::query()
+            ->where('post_id', '!=', $currentPostId)
+            ->whereIn('status', ['pending_review', 'approved', 'duplicate']);
+
+        if ($applicationUrl !== null) {
+            $normalizedUrl = $this->normalizeUrl($applicationUrl);
+            $match = $query->whereNotNull('application_url')->get()
+                ->first(fn (LinkedInPostCandidate $candidate): bool =>
+                    $this->normalizeUrl($candidate->application_url) === $normalizedUrl
+                );
+
+            if ($match !== null) {
+                return $match;
+            }
+        }
+
+        if ($company === null || $title === null) {
+            return null;
+        }
+
+        $possible = LinkedInPostCandidate::query()
+            ->where('post_id', '!=', $currentPostId)
+            ->whereIn('status', ['pending_review', 'approved', 'duplicate'])
+            ->whereRaw('LOWER(company) LIKE ?', [
+                '%' . mb_strtolower(mb_substr($company, 0, 80)) . '%',
+            ])
+            ->get();
+
+        foreach ($possible as $candidate) {
+            similar_text(
+                $this->normalize($title),
+                $this->normalize($candidate->title),
+                $titleSimilarity
+            );
+
+            $sameLocation = $this->normalize($candidate->location)
+                === $this->normalize($location);
+            $sameModel = $this->normalize($candidate->work_model)
+                === $this->normalize($workModel);
+
+            similar_text(
+                $this->normalize($description),
+                $this->normalize($candidate->description),
+                $descriptionSimilarity
+            );
+
+            if (
+                ($titleSimilarity >= 85 && ($sameLocation || $sameModel))
+                || ($titleSimilarity >= 75 && $descriptionSimilarity >= 65)
+            ) {
+                return $candidate;
             }
         }
 
