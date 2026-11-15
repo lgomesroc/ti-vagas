@@ -5,14 +5,14 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class LinkedInPostSearchClient
 {
     /**
-     * Pesquisa resultados públicos indexados pelo DuckDuckGo.
+     * Pesquisa publicações públicas indexadas pelo Bing RSS.
      *
-     * Não usa API paga, login, senha ou cookies do LinkedIn.
-     * A cobertura depende da indexação pública do mecanismo de busca.
+     * Não utiliza API paga, login, senha ou cookies do LinkedIn.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -24,7 +24,9 @@ class LinkedInPostSearchClient
         )));
 
         if ($keywords === []) {
-            throw new RuntimeException('Nenhuma palavra-chave do LinkedIn foi configurada.');
+            throw new RuntimeException(
+                'Nenhuma palavra-chave do LinkedIn foi configurada.'
+            );
         }
 
         $posts = [];
@@ -35,12 +37,16 @@ class LinkedInPostSearchClient
 
             try {
                 $response = Http::withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-                    'Accept' => 'text/html,application/xhtml+xml',
+                    'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
+                    'Accept' => 'application/rss+xml, application/xml, text/xml',
                     'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
-                ])->timeout(20)->get('https://html.duckduckgo.com/html/', [
-                    'q' => $query,
-                ]);
+                ])
+                    ->timeout(20)
+                    ->get('https://www.bing.com/search', [
+                        'q' => $query,
+                        'format' => 'rss',
+                        'setlang' => 'pt-BR',
+                    ]);
 
                 if (!$response->successful()) {
                     continue;
@@ -49,8 +55,8 @@ class LinkedInPostSearchClient
                 foreach ($this->parseResults($response->body(), $keyword) as $post) {
                     $posts[$post['postUrl']] = $post;
                 }
-            } catch (\Throwable) {
-                // Uma consulta indisponível não impede as demais palavras-chave.
+            } catch (Throwable) {
+                // Uma consulta indisponível não impede as demais.
                 continue;
             }
 
@@ -63,52 +69,59 @@ class LinkedInPostSearchClient
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function parseResults(string $html, string $keyword): array
+    private function parseResults(string $xml, string $keyword): array
     {
         if (!class_exists(\DOMDocument::class)) {
-            throw new RuntimeException('A extensão PHP DOM/XML é necessária para ler resultados de pesquisa.');
+            throw new RuntimeException(
+                'A extensão PHP DOM/XML é necessária para ler os resultados.'
+            );
         }
 
         $previous = libxml_use_internal_errors(true);
 
         try {
             $document = new \DOMDocument();
-            $document->loadHTML('<?xml encoding="UTF-8">' . $html);
+
+            if (!$document->loadXML($xml)) {
+                return [];
+            }
+
             $xpath = new \DOMXPath($document);
-            $nodes = $xpath->query(
-                "//*[contains(concat(' ', normalize-space(@class), ' '), ' result ')]"
-            );
+            $nodes = $xpath->query('//item');
 
             $results = [];
 
             foreach ($nodes ?: [] as $node) {
-                $linkNode = $xpath->query(
-                    ".//*[contains(concat(' ', normalize-space(@class), ' '), ' result__a ')]",
-                    $node
-                )?->item(0);
+                $title = trim(
+                    $xpath->query('./title', $node)?->item(0)?->textContent ?? ''
+                );
 
-                $snippetNode = $xpath->query(
-                    ".//*[contains(concat(' ', normalize-space(@class), ' '), ' result__snippet ')]",
-                    $node
-                )?->item(0);
+                $url = trim(
+                    $xpath->query('./link', $node)?->item(0)?->textContent ?? ''
+                );
 
-                if (!$linkNode instanceof \DOMElement) {
-                    continue;
-                }
+                $snippet = trim(
+                    $xpath->query('./description', $node)?->item(0)?->textContent ?? ''
+                );
 
-                $url = $this->resolveSearchUrl($linkNode->getAttribute('href'));
+                $pubDate = trim(
+                    $xpath->query('./pubDate', $node)?->item(0)?->textContent ?? ''
+                );
+
                 if (!$this->isLinkedInPostUrl($url)) {
                     continue;
                 }
 
-                $title = trim($linkNode->textContent);
-                $snippet = trim($snippetNode?->textContent ?? '');
-                $text = trim($title . "\n" . $snippet);
+                $publishedAt = $this->parsePublishedAt($pubDate)
+                    ?? $this->extractPublishedAt($title . "\n" . $snippet);
 
-                $publishedAt = $this->extractPublishedAt($text);
-                if ($publishedAt === null || $publishedAt->lt(
-                    now()->subHours((int) config('linkedin.lookback_hours', 72))
-                ) || $publishedAt->gt(now()->addHours(2))) {
+                if (
+                    $publishedAt === null
+                    || $publishedAt->lt(
+                        now()->subHours((int) config('linkedin.lookback_hours', 72))
+                    )
+                    || $publishedAt->gt(now()->addHours(2))
+                ) {
                     continue;
                 }
 
@@ -116,7 +129,7 @@ class LinkedInPostSearchClient
                     'postId' => hash('sha256', $url),
                     'postUrl' => $url,
                     'title' => $title,
-                    'text' => $text,
+                    'text' => trim($title . "\n" . $snippet),
                     'datePosted' => $publishedAt->toIso8601String(),
                     'matchedKeyword' => $keyword,
                     'authorName' => null,
@@ -125,7 +138,7 @@ class LinkedInPostSearchClient
                     'authorType' => null,
                     'topComments' => [],
                     'links' => [],
-                    'searchProvider' => 'duckduckgo-html',
+                    'searchProvider' => 'bing-rss',
                     'searchSnippet' => $snippet,
                 ];
             }
@@ -137,20 +150,17 @@ class LinkedInPostSearchClient
         }
     }
 
-    private function resolveSearchUrl(string $href): string
+    private function parsePublishedAt(string $date): ?\Illuminate\Support\Carbon
     {
-        if (str_starts_with($href, '//')) {
-            $href = 'https:' . $href;
+        if ($date === '') {
+            return null;
         }
 
-        $query = [];
-        parse_str((string) parse_url($href, PHP_URL_QUERY), $query);
-
-        if (isset($query['uddg']) && is_string($query['uddg'])) {
-            return rawurldecode($query['uddg']);
+        try {
+            return \Illuminate\Support\Carbon::parse($date);
+        } catch (Throwable) {
+            return null;
         }
-
-        return $href;
     }
 
     private function isLinkedInPostUrl(string $url): bool
@@ -212,9 +222,13 @@ class LinkedInPostSearchClient
             ];
 
             $month = $months[$matches[2]] ?? null;
+
             if ($month !== null) {
-                $year = now()->year;
-                $date = now()->setDate($year, $month, (int) $matches[1])->startOfDay();
+                $date = now()->setDate(
+                    now()->year,
+                    $month,
+                    (int) $matches[1]
+                )->startOfDay();
 
                 if ($date->gt(now()->addDay())) {
                     $date->subYear();

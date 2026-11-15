@@ -15,19 +15,34 @@ class LinkedInPostSearchClientTest extends TestCase
             'linkedin.keywords' => ['vaga desenvolvedor junior'],
         ]);
 
+        $publishedAt = now()->subDays(2)->toRfc2822String();
+
+        $rss = <<<XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Estamos contratando Desenvolvedor Júnior</title>
+                    <link>https://www.linkedin.com/posts/recruiter_vaga-123</link>
+                    <description>Vaga remota Brasil.</description>
+                    <pubDate>{$publishedAt}</pubDate>
+                </item>
+                <item>
+                    <title>Outra vaga</title>
+                    <link>https://example.com/vaga</link>
+                    <description>Vaga externa.</description>
+                    <pubDate>{$publishedAt}</pubDate>
+                </item>
+            </channel>
+        </rss>
+        XML;
+
         Http::preventStrayRequests();
+
         Http::fake([
-            'html.duckduckgo.com/*' => Http::response(
-                '<div class="result">
-                    <a class="result__a" href="https://www.linkedin.com/posts/recruiter_vaga-123">Estamos contratando Desenvolvedor Júnior</a>
-                    <a class="result__snippet">Publicada 2 days ago. Vaga remota Brasil.</a>
-                </div>
-                <div class="result">
-                    <a class="result__a" href="https://example.com/vaga">Outra vaga</a>
-                    <a class="result__snippet">2 days ago</a>
-                </div>',
-                200
-            ),
+            'www.bing.com/*' => Http::response($rss, 200, [
+                'Content-Type' => 'application/rss+xml',
+            ]),
         ]);
 
         $posts = app(LinkedInPostSearchClient::class)->search();
@@ -37,7 +52,7 @@ class LinkedInPostSearchClientTest extends TestCase
             'https://www.linkedin.com/posts/recruiter_vaga-123',
             $posts[0]['postUrl']
         );
-        $this->assertSame('duckduckgo-html', $posts[0]['searchProvider']);
+        $this->assertSame('bing-rss', $posts[0]['searchProvider']);
         $this->assertSame([], $posts[0]['topComments']);
     }
 
@@ -48,21 +63,39 @@ class LinkedInPostSearchClientTest extends TestCase
             'linkedin.keywords' => ['vaga desenvolvedor junior'],
         ]);
 
+        $publishedAt = now()->subDays(2)->toRfc2822String();
+
+        $rss = <<<XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Perfil recrutador</title>
+                    <link>https://www.linkedin.com/in/recruiter</link>
+                    <description>Recrutador de tecnologia.</description>
+                    <pubDate>{$publishedAt}</pubDate>
+                </item>
+                <item>
+                    <title>LinkedIn Jobs</title>
+                    <link>https://www.linkedin.com/jobs/view/123</link>
+                    <description>Vaga de emprego.</description>
+                    <pubDate>{$publishedAt}</pubDate>
+                </item>
+            </channel>
+        </rss>
+        XML;
+
         Http::preventStrayRequests();
+
         Http::fake([
-            'html.duckduckgo.com/*' => Http::response(
-                '<div class="result">
-                    <a class="result__a" href="https://www.linkedin.com/in/recruiter">Perfil recrutador</a>
-                    <a class="result__snippet">2 days ago</a>
-                </div>
-                <div class="result">
-                    <a class="result__a" href="https://www.linkedin.com/jobs/view/123">LinkedIn Jobs</a>
-                    <a class="result__snippet">2 days ago</a>
-                </div>',
-                200
-            ),
+            'www.bing.com/*' => Http::response($rss, 200, [
+                'Content-Type' => 'application/rss+xml',
+            ]),
         ]);
 
-        $this->assertSame([], app(LinkedInPostSearchClient::class)->search());
+        $this->assertSame(
+            [],
+            app(LinkedInPostSearchClient::class)->search()
+        );
     }
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LinkedInPostCandidate extends Model
 {
+    protected $table = 'linkedin_post_candidates';
+
     protected $fillable = [
         'post_id',
         'post_url',

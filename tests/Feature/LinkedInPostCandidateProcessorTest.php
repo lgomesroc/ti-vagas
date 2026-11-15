@@ -14,7 +14,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
     public function test_post_without_email_or_application_link_is_kept_for_manual_review(): void
     {
-        $post = $this->post([
+        $post = $this->makePost([
             'text' => "Estamos contratando!\nDesenvolvedor PHP Júnior\nEmpresa: Acme Tecnologia\nRemoto Brasil\nAtuação com PHP e Laravel.",
         ]);
 
@@ -38,8 +38,8 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
     public function test_engagement_bait_asking_people_to_comment_for_a_private_message_is_rejected(): void
     {
-        $post = $this->post([
-            'text' => "Estamos contratando Desenvolvedor PHP Júnior. Comente EU QUERO que envio o link na DM.",
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Comente EU QUERO que envio o link na DM.',
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
@@ -62,7 +62,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertTrue($result['verified']);
     }
 
-    private function post(array $overrides = []): array
+    private function makePost(array $overrides = []): array
     {
         return array_replace([
             'postId' => 'urn:li:activity:1001',
