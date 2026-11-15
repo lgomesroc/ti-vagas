@@ -35,7 +35,6 @@ class LinkedInUrlInspector
                 !filter_var($currentUrl, FILTER_VALIDATE_URL)
                 || !in_array($scheme, ['http', 'https'], true)
                 || $host === ''
-                || !$this->isPublicHost($host)
             ) {
                 return $this->result(
                     false,
@@ -56,6 +55,16 @@ class LinkedInUrlInspector
                 );
             }
 
+
+            if (!$this->isPublicHost($host)) {
+                return $this->result(
+                    false,
+                    false,
+                    false,
+                    $currentUrl,
+                    'O destino não é um host público verificável.'
+                );
+            }
             try {
                 $response = Http::withoutRedirecting()
                     ->timeout(15)
