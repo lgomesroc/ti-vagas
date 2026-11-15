@@ -382,6 +382,22 @@ class LinkedInPostCandidateProcessor
             if ($match !== null) {
                 return $match;
             }
+
+            $externalId = $this->extractExternalId($applicationUrl);
+            if ($externalId !== null) {
+                $externalMatch = Vacancy::query()
+                    ->where('external_id', $externalId)
+                    ->where('original_published_at', '>=', now()->subDays(60))
+                    ->when($company !== null, fn ($builder) => $builder->whereRaw(
+                        'LOWER(company) LIKE ?',
+                        ['%' . mb_strtolower(mb_substr($company, 0, 80)) . '%']
+                    ))
+                    ->first();
+
+                if ($externalMatch !== null) {
+                    return $externalMatch;
+                }
+            }
         }
 
         if ($company === null || $title === null) {
@@ -417,6 +433,31 @@ class LinkedInPostCandidateProcessor
             ) {
                 return $vacancy;
             }
+        }
+
+        return null;
+    }
+
+    private function extractExternalId(string $url): ?string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return null;
+        }
+
+        $query = [];
+        parse_str($parts['query'] ?? '', $query);
+
+        foreach (['jobid', 'job_id', 'gh_jid', 'postingid', 'posting_id', 'requisitionid', 'requisition_id', 'id'] as $key) {
+            $value = $query[$key] ?? null;
+            if (is_scalar($value) && preg_match('/^[a-zA-Z0-9_-]{3,80}$/', (string) $value)) {
+                return (string) $value;
+            }
+        }
+
+        $path = $parts['path'] ?? '';
+        if (preg_match('~/(?:jobs?|positions?|vacancies?)/([a-zA-Z0-9_-]{3,80})(?:/|$)~i', $path, $matches)) {
+            return $matches[1];
         }
 
         return null;
