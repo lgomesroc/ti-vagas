@@ -286,7 +286,7 @@ class OwnCareerPageSource implements VacancySource
             $container?->textContent ?? $heading->textContent
         );
         $vacancyHtml = $container !== null
-            ? (new DOMDocument('1.0', 'UTF-8'))->saveHTML($container)
+            ? ($container->ownerDocument?->saveHTML($container) ?: '')
             : '';
 
         if ($title === '' || mb_strlen($description) < 100) {
