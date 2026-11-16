@@ -424,6 +424,21 @@ return [
                 'name' => 'Eduqo',
                 'url' => 'https://eduqo.com.br/talentos',
             ],
+
+            'colmeia-cx' => [
+                'name' => 'ColmeIA',
+                'url' => 'https://colmeia.cx/carreiras/',
+            ],
+
+            'colmeia-tec' => [
+                'name' => 'Colmeia Soluções em Tecnologia',
+                'url' => 'https://colmeia.tec.br/trabalhe-conosco/',
+            ],
+
+            'colmeia-fortaleza' => [
+                'name' => 'Colmeia',
+                'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
+            ],
         ],
     ],
 
