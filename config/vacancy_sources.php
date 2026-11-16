@@ -668,6 +668,18 @@ return [
         ],
     ],
 
+    'jobylon' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+        'companies' => [
+            'agiletv' => [
+                'name' => 'AgileTV (Agile Content)',
+                'company_id' => 2371,
+                'url' => 'https://emp.jobylon.com/companies/2371-agiletv/',
+            ],
+        ],
+    ],
+
     'plooral' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
