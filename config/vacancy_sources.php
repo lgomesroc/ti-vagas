@@ -167,6 +167,12 @@ return [
 
         'companies' => [
 
+            'riachuelo' => [
+                'name' => 'Riachuelo',
+                'url' => 'https://riachuelo.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'dasa-tech' => [
                 'name' => 'Dasa Tech',
                 'url' => 'https://dasatecnologia.gupy.io/',
