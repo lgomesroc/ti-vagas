@@ -132,7 +132,12 @@ class SolidesSource implements VacancySource
             $job['createdAt'] ?? null
         );
 
-        if ($publishedAt === null) {
+        if (
+            $publishedAt === null
+            || CarbonImmutable::parse($publishedAt)->lt(
+                CarbonImmutable::now('UTC')->subDays(60)->startOfDay()
+            )
+        ) {
             return null;
         }
 
