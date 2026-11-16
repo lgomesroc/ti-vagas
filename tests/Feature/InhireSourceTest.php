@@ -77,6 +77,19 @@ class InhireSourceTest extends TestCase
         $this->assertSame('Remoto', $vacancies[0]['work_model']);
     }
 
+
+    public function test_it_excludes_data_and_bi_roles(): void
+    {
+        $this->mockInhire([
+            'displayName' => 'Analista de Dados Júnior',
+            'description' => 'Atuação com BI, relatórios e indicadores.',
+        ]);
+
+        $vacancies = iterator_to_array($this->makeSource()->fetch());
+
+        $this->assertSame([], $vacancies);
+    }
+
     private function makeSource(): InhireSource
     {
         return new InhireSource(
