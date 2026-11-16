@@ -23,7 +23,7 @@ XML;
             '@context' => 'https://schema.org',
             '@type' => 'JobPosting',
             'title' => 'Analista de Infraestrutura Júnior',
-            'description' => '<p>Atuação híbrida em Botafogo, Rio de Janeiro. Conhecimentos em redes e infraestrutura.</p>',
+            'description' => '<p>Modelo de trabalho híbrido em Botafogo, Rio de Janeiro. Conhecimentos em redes e infraestrutura.</p>',
             'datePosted' => '2026-11-10T12:00:00-03:00',
             'employmentType' => 'FULL_TIME',
             'hiringOrganization' => [
