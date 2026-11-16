@@ -296,4 +296,19 @@ return [
             ],
         ],
     ],
+
+    'solides' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 20,
+        'page_size' => 25,
+
+        'companies' => [
+            'nethouserj' => [
+                'name' => 'NHT FIBER LTDA',
+                'slug' => 'nethouserj',
+                'url' => 'https://nethouserj.vagas.solides.com.br',
+            ],
+        ],
+    ],
+
 ];
