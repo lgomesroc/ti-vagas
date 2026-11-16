@@ -402,16 +402,26 @@ return [
             ],
         ],
     ],
+    'own_career_pages' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
+        'companies' => [
+            'construcode' => [
+                'name' => 'ConstruCode',
+                'url' => 'https://site.construcode.com.br/quem-somos/',
+            ],
 
-    // Official company career pages without a confirmed ATS integration yet.
-    // These entries are catalogued for future scraping; they are not active collectors.
-    'career_pages' => [
-        'construcode' => [
-            'name' => 'ConstruCode',
-            'url' => 'https://site.construcode.com.br/quem-somos/',
-            'status' => 'pending_scraper',
+            'talklink' => [
+                'name' => 'Talklink',
+                'url' => 'https://www.talklink.com.br/vagas',
+            ],
+
+            'eduqo' => [
+                'name' => 'Eduqo',
+                'url' => 'https://eduqo.com.br/talentos',
+            ],
         ],
+    ],
 
         'talklink' => [
             'name' => 'Talklink',
