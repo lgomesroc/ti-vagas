@@ -317,6 +317,13 @@ return [
                 'name' => 'Dell Technologies',
             ],
 
+            'picpay' => [
+                'base_url' => 'https://epdm.fa.la1.oraclecloud.com',
+                'site_number' => 'PicPay',
+                'site_name' => 'PicPay',
+                'name' => 'PicPay',
+            ],
+
         ],
         ],
     ],
