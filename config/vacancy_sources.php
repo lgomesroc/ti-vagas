@@ -627,10 +627,6 @@ return [
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
             ],
 
-            'microsoft' => [
-                'name' => 'Microsoft',
-                'url' => 'https://careers.microsoft.com/v2/global/en/home.html',
-            ],
         ],
     ],
 
