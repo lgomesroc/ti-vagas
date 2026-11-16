@@ -126,6 +126,14 @@ return [
                 'name' => 'MJV Technology & Innovation',
             ],
 
+            'bionexo' => [
+                'name' => 'Bionexo',
+            ],
+
+            'bancopine' => [
+                'name' => 'Banco Pine',
+            ],
+
         ],
         ],
     ],
@@ -311,6 +319,13 @@ return [
                 'site_number' => 'careers',
                 'site_name' => 'careers',
                 'name' => 'Dell Technologies',
+            ],
+
+            'magalu' => [
+                'base_url' => 'https://iaaywd.fa.ocs.oraclecloud.com',
+                'site_number' => 'CX_1',
+                'site_name' => 'CX_1',
+                'name' => 'Magazine Luiza (Magalu)',
             ],
         ],
     ],
