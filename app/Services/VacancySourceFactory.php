@@ -134,6 +134,7 @@ class VacancySourceFactory
                 caBundle: $gupy['ca_bundle'] ?? null,
                 maxJobs: (int) ($gupy['max_jobs'] ?? 200),
                 baseUrl: $company['url'] ?? null,
+                technologyOnly: (bool) ($company['technology_only'] ?? false),
             );
 
             $sources[$source->name()] = $source;
