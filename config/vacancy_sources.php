@@ -130,9 +130,6 @@ return [
             'idwall' => [
                 'name' => 'idwall',
             ],
-            'riachuelo' => [
-                'name' => 'Riachuelo',
-            ],
 
             'aarin' => [
                 'name' => 'Aarin Techfin',
