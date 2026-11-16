@@ -34,6 +34,14 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'natura' => [
+                'host' => 'natura.wd501.myworkdayjobs.com',
+                'tenant' => 'natura',
+                'site' => 'NaturaCarreiras',
+                'locale' => 'pt-BR',
+                'name' => 'Natura',
+            ],
+
             'pwc' => [
                 'host' => 'pwc.wd3.myworkdayjobs.com',
                 'tenant' => 'pwc',
@@ -149,6 +157,43 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+
+            'dasa-tech' => [
+                'name' => 'Dasa Tech',
+                'url' => 'https://dasatecnologia.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'ciahering' => [
+                'name' => 'Cia. Hering',
+                'url' => 'https://ciahering.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'rdsaude-corporativo' => [
+                'name' => 'RD Saúde',
+                'url' => 'https://rdsaude-corporativo.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'neogridcarreiras' => [
+                'name' => 'Neogrid',
+                'url' => 'https://neogridcarreiras.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'samsungsds' => [
+                'name' => 'Samsung SDS Latin America',
+                'url' => 'https://samsungsds.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'lopes-gupy' => [
+                'name' => 'Lopes Consultoria',
+                'url' => 'https://vagaslopes.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'montreal' => [
                 'name' => 'Montreal',
                 'url' => 'https://montreal.gupy.io/',
@@ -600,6 +645,17 @@ return [
             'vr-beneficios' => [
                 'name' => 'VR Benefícios',
                 'url' => 'https://app.talentbrand.com.br/c/vr-beneficios',
+            ],
+        ],
+    ],
+
+    'plooral' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+        'companies' => [
+            'lopes' => [
+                'name' => 'Lopes Consultoria',
+                'subdomain' => 'lopes',
             ],
         ],
     ],
