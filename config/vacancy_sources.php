@@ -273,6 +273,17 @@ return [
         ],
     ],
 
+    'compleo' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'providerit' => [
+                'name' => 'Provider IT',
+            ],
+        ],
+    ],
+
     'jobconvo' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_pages' => 110,

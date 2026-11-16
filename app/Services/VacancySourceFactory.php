@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Sources\AshbySource;
+use App\Sources\CompleoSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
@@ -251,6 +252,20 @@ class VacancySourceFactory
                 caBundle: $zohoRecruit['ca_bundle'] ?? null,
                 maxJobs: (int) ($zohoRecruit['max_jobs'] ?? 200),
                 remoteCountry: $company['remote_country'] ?? 'BR',
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $compleo = config('vacancy_sources.compleo', []);
+
+        foreach ($compleo['companies'] ?? [] as $companyKey => $company) {
+            $source = new CompleoSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                caBundle: $compleo['ca_bundle'] ?? null,
+                maxJobs: (int) ($compleo['max_jobs'] ?? 200),
                 locationFilter: $this->locationFilter,
             );
 

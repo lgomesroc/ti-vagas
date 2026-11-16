@@ -1,0 +1,39 @@
+name: TI Vagas - LinkedIn Integration CI
+
+on:
+  push:
+    branches:
+      - feature/linkedin-recruiter-posts
+      - developer
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, curl, zip
+          coverage: none
+
+      - name: Validar Composer
+        run: composer validate --no-check-publish
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Verificar sintaxe PHP
+        run: |
+          find app config database tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Executar testes
+        run: php artisan test --compact
