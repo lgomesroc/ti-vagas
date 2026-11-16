@@ -563,6 +563,10 @@ return [
                 'name' => 'Sinqia (Evertec Brasil)',
                 'url' => 'https://jobs.quickin.io/sinqia/jobs',
             ],
+            'paranabanco' => [
+                'name' => 'Paraná Banco',
+                'url' => 'https://jobs.quickin.io/paranabanco/jobs',
+            ],
         ],
     ],
 
