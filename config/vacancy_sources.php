@@ -403,4 +403,27 @@ return [
         ],
     ],
 
+
+    // Official company career pages without a confirmed ATS integration yet.
+    // These entries are catalogued for future scraping; they are not active collectors.
+    'career_pages' => [
+        'construcode' => [
+            'name' => 'ConstruCode',
+            'url' => 'https://site.construcode.com.br/quem-somos/',
+            'status' => 'pending_scraper',
+        ],
+
+        'talklink' => [
+            'name' => 'Talklink',
+            'url' => 'https://www.talklink.com.br/vagas',
+            'status' => 'pending_scraper',
+        ],
+
+        'eduqo' => [
+            'name' => 'Eduqo',
+            'url' => 'https://eduqo.com.br/talentos',
+            'status' => 'pending_scraper',
+        ],
+    ],
+
 ];
