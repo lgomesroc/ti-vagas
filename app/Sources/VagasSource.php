@@ -22,8 +22,8 @@ class VagasSource implements VacancySource
         private readonly string $companyName,
         private readonly string $url,
         private readonly ?string $caBundle = null,
+        private readonly int $maxJobs = 200,
         ?VacancyLocationFilter $locationFilter = null,
-        private readonly int $maxJobs = 100,
     ) {
         $this->locationFilter = $locationFilter ?? new VacancyLocationFilter();
     }
@@ -35,37 +35,41 @@ class VagasSource implements VacancySource
 
     public function fetch(): iterable
     {
-        $listingHtml = $this->getPage($this->url);
-        $xpath = $this->xpath($listingHtml);
-        $nodes = $xpath->query('//a[contains(@href, "/vagas/v")]');
-
-        if ($nodes === false) {
+        $html = $this->getPage($this->url);
+        $xpath = $this->xpath($html);
+        $links = $xpath->query('//a[contains(@href, "/oportunidade/")]');
+        if ($links === false) {
             return [];
         }
 
-        $detailUrls = [];
-        foreach ($nodes as $node) {
-            if (!$node instanceof DOMElement) {
+        $details = [];
+        foreach ($links as $link) {
+            if (!$link instanceof DOMElement) {
                 continue;
             }
 
-            $href = trim($node->getAttribute('href'));
-            $url = $this->absoluteUrl($href);
-
-            if ($url !== null && preg_match('~/vagas/v\d+/~', $url)) {
-                $detailUrls[$url] = true;
+            $detailUrl = $this->absoluteUrl($link->getAttribute('href'));
+            if ($detailUrl === null) {
+                continue;
             }
+
+            $cardText = $this->cleanText($link->parentNode?->parentNode?->textContent ?? $link->textContent);
+            if (!$this->matchesCompany($cardText)) {
+                continue;
+            }
+
+            $details[$detailUrl] = true;
         }
 
         $vacancies = [];
-        foreach (array_slice(array_keys($detailUrls), 0, $this->maxJobs) as $detailUrl) {
+        foreach (array_slice(array_keys($details), 0, $this->maxJobs) as $detailUrl) {
             try {
                 $vacancy = $this->parseDetail($this->getPage($detailUrl), $detailUrl);
                 if ($vacancy !== null) {
                     $vacancies[] = $vacancy;
                 }
             } catch (\Throwable $exception) {
-                Log::warning('Falha ao coletar vaga no Vagas.com.', [
+                Log::warning('Falha ao coletar oportunidade no Vagas.com.', [
                     'company' => $this->companyName,
                     'url' => $detailUrl,
                     'error' => $exception->getMessage(),
@@ -88,9 +92,8 @@ class VagasSource implements VacancySource
 
         $response->throw();
         $html = $response->body();
-
         if (trim($html) === '') {
-            throw new RuntimeException('O Vagas.com retornou uma página vazia.');
+            throw new RuntimeException('O Vagas.com retornou conteúdo vazio.');
         }
 
         return $html;
@@ -99,26 +102,22 @@ class VagasSource implements VacancySource
     private function parseDetail(string $html, string $url): ?array
     {
         $xpath = $this->xpath($html);
-        $title = $this->text($xpath, '//h1');
-        $company = $this->text($xpath, '//*[self::h2 or self::h3][1]');
-
-        if ($title === '' || !$this->matchesCompany($html, $company)) {
+        $title = $this->nodeText($xpath, '//h1');
+        if ($title === '') {
             return null;
         }
 
-        $description = $this->text($xpath, '//*[contains(normalize-space(.), "Descrição:")][1]');
+        $description = $this->nodeText($xpath, '//*[contains(normalize-space(.), "Detalhes da vaga")]/following::*[1]');
         if ($description === '') {
-            $description = $this->text($xpath, '//main');
+            $description = $this->nodeText($xpath, '//main');
+        }
+        if ($description === '') {
+            $description = $this->nodeText($xpath, '//body');
         }
 
-        $description = trim(preg_replace('/\s+/u', ' ', $description) ?? '');
-        if ($description === '') {
-            return null;
-        }
-
-        $publishedAt = $this->publicationDate($xpath);
+        $publishedAt = $this->publicationDate($xpath, $html);
         if ($publishedAt === null) {
-            Log::warning('Vagas.com: vaga sem data original de publicação verificável; ignorada.', [
+            Log::warning('Vagas.com: oportunidade sem data original de publicação verificável; ignorada.', [
                 'company' => $this->companyName,
                 'title' => $title,
                 'url' => $url,
@@ -126,9 +125,10 @@ class VagasSource implements VacancySource
             return null;
         }
 
-        $location = $this->text($xpath, '//*[contains(., "Localização")]/following::*[1]');
+        $location = $this->nodeText($xpath, '//*[contains(., "A empresa aceita candidaturas")]/preceding::*[1]');
+        $body = $this->nodeText($xpath, '//body');
         if ($location === '') {
-            $location = $this->text($xpath, '//*[contains(., "Rio de Janeiro") or contains(., "São Paulo") or contains(., "Belo Horizonte") or contains(., "Home Office")][1]');
+            $location = $this->extractLocation($body);
         }
 
         $workModel = $this->locationFilter->classifyWorkModel($title, $location, $description);
@@ -136,14 +136,14 @@ class VagasSource implements VacancySource
             return null;
         }
 
-        $id = basename(parse_url($url, PHP_URL_PATH) ?: $url);
+        $id = basename(rtrim((string) parse_url($url, PHP_URL_PATH), '/'));
         return [
             'title' => $title,
             'company' => $this->companyName,
             'description' => $description,
             'location' => $location !== '' ? $location : null,
             'work_model' => $workModel,
-            'employment_type' => $this->text($xpath, '//*[contains(., "Estágio") or contains(., "Júnior") or contains(., "Técnico")][1]') ?: null,
+            'employment_type' => null,
             'salary' => null,
             'application_url' => $url,
             'external_id' => $this->name() . ':' . Str::slug($id),
@@ -151,17 +151,17 @@ class VagasSource implements VacancySource
         ];
     }
 
-    private function matchesCompany(string $html, string $displayedCompany): bool
+    private function matchesCompany(string $text): bool
     {
-        $normalized = Str::lower($displayedCompany . ' ' . strip_tags($html));
-        return match (Str::lower($this->companyKey)) {
-            'sgr' => str_contains($normalized, 'sgr'),
-            'editora-globo' => str_contains($normalized, 'editora globo'),
-            default => str_contains($normalized, Str::lower($this->companyName)),
+        $text = Str::lower($text);
+        return match ($this->companyKey) {
+            'sgr' => preg_match('/\bsgr\b/i', $text) === 1,
+            'editora-globo' => str_contains($text, 'editora globo'),
+            default => str_contains($text, Str::lower($this->companyName)),
         };
     }
 
-    private function publicationDate(DOMXPath $xpath): ?string
+    private function publicationDate(DOMXPath $xpath, string $html): ?string
     {
         foreach ([
             '//meta[@property="article:published_time"]/@content',
@@ -184,8 +184,8 @@ class VagasSource implements VacancySource
             }
         }
 
-        $body = $this->text($xpath, '//body');
-        if (preg_match('/(?:publicad[oa]|publicada em)\s*(\d{1,2}\/\d{1,2}\/\d{4})/iu', $body, $match)) {
+        $text = $this->nodeText($xpath, '//body');
+        if (preg_match('/(?:publicad[oa]|publicada em)\s*(\d{1,2}\/\d{1,2}\/\d{4})/iu', $text, $match)) {
             try {
                 return CarbonImmutable::createFromFormat('!d/m/Y', $match[1], 'UTC')?->toIso8601String();
             } catch (\Throwable) {
@@ -195,10 +195,28 @@ class VagasSource implements VacancySource
         return null;
     }
 
-    private function text(DOMXPath $xpath, string $query): string
+    private function extractLocation(string $text): string
+    {
+        if (preg_match('/([A-ZÀ-Ú][\p{L} .-]+\s*\/\s*[A-Z]{2})/u', $text, $match)) {
+            return trim($match[1]);
+        }
+
+        if (preg_match('/(100%\s*Home Office|Home Office|Remoto)/iu', $text, $match)) {
+            return trim($match[1]);
+        }
+
+        return '';
+    }
+
+    private function nodeText(DOMXPath $xpath, string $query): string
     {
         $node = $xpath->query($query)?->item(0);
-        return trim(preg_replace('/\s+/u', ' ', $node?->textContent ?? '') ?? '');
+        return $this->cleanText($node?->textContent ?? '');
+    }
+
+    private function cleanText(string $text): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
     }
 
     private function xpath(string $html): DOMXPath
@@ -218,11 +236,12 @@ class VagasSource implements VacancySource
 
     private function absoluteUrl(string $url): ?string
     {
+        $url = trim($url);
         if (str_starts_with($url, 'https://') || str_starts_with($url, 'http://')) {
             return $url;
         }
         if (str_starts_with($url, '/')) {
-            return 'https://www.vagas.com.br' . $url;
+            return 'https://trabalheconosco.vagas.com.br' . $url;
         }
         return null;
     }
