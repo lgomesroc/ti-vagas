@@ -21,6 +21,7 @@ use App\Sources\SensediaSource;
 use App\Sources\QuickinSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
+use App\Sources\BizneoSource;
 use App\Sources\SolidesSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
@@ -336,6 +337,20 @@ class VacancySourceFactory
                 companyName: $company['name'] ?? $companyKey,
                 url: $company['url'],
                 caBundle: $successFactors['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $bizneo = config('vacancy_sources.bizneo', []);
+
+        foreach ($bizneo['companies'] ?? [] as $companyKey => $company) {
+            $source = new BizneoSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $bizneo['ca_bundle'] ?? null,
                 locationFilter: $this->locationFilter,
             );
 
