@@ -195,6 +195,12 @@ return [
                 'url' => 'https://vivodigital.gupy.io/',
                 'technology_only' => true,
             ],
+
+            'areastecnicasvivo' => [
+                'name' => 'Áreas Técnicas Vivo',
+                'url' => 'https://areastecnicasvivo.gupy.io/',
+                'technology_only' => true,
+            ],
         ],
     ],
 
