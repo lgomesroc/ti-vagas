@@ -691,6 +691,21 @@ return [
         ],
     ],
 
+    'vagas' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+        'companies' => [
+            'sgr' => [
+                'name' => 'SGR',
+                'url' => 'https://trabalheconosco.vagas.com.br/editoragloboeradio/oportunidades',
+            ],
+            'editora-globo' => [
+                'name' => 'EDITORA GLOBO',
+                'url' => 'https://trabalheconosco.vagas.com.br/editoragloboeradio/oportunidades',
+            ],
+        ],
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
