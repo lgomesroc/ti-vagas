@@ -20,6 +20,7 @@ return [
             'xpinc' => 'XP Inc.',
             'elo' => 'Elo Serviços S.A.',
             'inter' => 'Banco Inter',
+            'bancopan' => 'Banco PAN',
         ],
     ],
 
@@ -338,6 +339,11 @@ return [
                 'name' => 'Vivo — Telefônica Brasil',
                 'url' => 'https://vivo.gupy.io/',
                 'technology_only' => true,
+            ],
+
+            'afya' => [
+                'name' => 'Afya Educacional',
+                'url' => 'https://afya.gupy.io/',
             ],
 
             'localiza' => [
