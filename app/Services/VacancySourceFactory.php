@@ -385,6 +385,22 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+        $jobylon = config('vacancy_sources.jobylon', []);
+
+        foreach ($jobylon['companies'] ?? [] as $companyKey => $company) {
+            $source = new JobylonSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                companyId: (int) $company['company_id'],
+                careerUrl: $company['url'],
+                caBundle: $jobylon['ca_bundle'] ?? null,
+                maxJobs: (int) ($jobylon['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $ownCareerPages = config('vacancy_sources.own_career_pages', []);
 
         foreach ($ownCareerPages['companies'] ?? [] as $companyKey => $company) {
