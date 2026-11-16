@@ -221,9 +221,6 @@
                 if (!best || position.coords.accuracy < best.coords.accuracy) {
                     best = position;
                 }
-                if (position.coords.accuracy <= MAX_ACCURACY_METERS) {
-                    finish();
-                }
             }, function (error) {
                 finish(error);
             }, {
