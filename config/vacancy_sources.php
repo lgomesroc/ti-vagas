@@ -103,6 +103,12 @@ return [
             'brivia' => [
                 'name' => 'Brivia',
             ],
+            'idwall' => [
+                'name' => 'idwall',
+            ],
+            'riachuelo' => [
+                'name' => 'Riachuelo',
+            ],
         ],
     ],
 
@@ -134,6 +140,60 @@ return [
             'e-deploy' => [
                 'name' => 'E-Deploy / 3S Checkout',
                 'url' => 'https://e-deploy.gupy.io/',
+            ],
+
+            'oceanica' => [
+                'name' => 'Oceânica Engenharia e Consultoria S.A.',
+                'url' => 'https://sejaoceanica.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'axiaenergia' => [
+                'name' => 'AXIA Energia',
+                'url' => 'https://axiaenergia.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'netsecurity' => [
+                'name' => 'NetSecurity',
+                'url' => 'https://netsecurity.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'caju' => [
+                'name' => 'Caju',
+                'url' => 'https://caju.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'globo' => [
+                'name' => 'Globo',
+                'url' => 'https://globo.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'unidas' => [
+                'name' => 'Unidas',
+                'url' => 'https://unidas.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'assai' => [
+                'name' => 'Assaí Atacadista',
+                'url' => 'https://assai.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'stefanini' => [
+                'name' => 'Stefanini Group',
+                'url' => 'https://stefanini.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vivodigital' => [
+                'name' => 'Vivo — Tech e Digital',
+                'url' => 'https://vivodigital.gupy.io/',
+                'technology_only' => true,
             ],
         ],
     ],
