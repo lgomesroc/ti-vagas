@@ -374,6 +374,13 @@ return [
                 'name' => 'PicPay',
             ],
 
+            'oracle' => [
+                'base_url' => 'https://eeho.fa.us2.oraclecloud.com',
+                'site_number' => 'jobsearch',
+                'site_name' => 'jobsearch',
+                'name' => 'Oracle',
+            ],
+
         ],
     ],
 
@@ -618,6 +625,11 @@ return [
             'colmeia-fortaleza' => [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
+            ],
+
+            'microsoft' => [
+                'name' => 'Microsoft',
+                'url' => 'https://careers.microsoft.com/v2/global/en/home.html',
             ],
         ],
     ],
