@@ -21,6 +21,7 @@ return [
             'elo' => 'Elo Serviços S.A.',
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
+            'btgpactual' => 'BTG Pactual',
         ],
     ],
 
