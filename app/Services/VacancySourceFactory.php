@@ -15,6 +15,7 @@ use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\OwnCareerPageSource;
 use App\Sources\PandapeSource;
+use App\Sources\PlooralSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
@@ -368,6 +369,18 @@ class VacancySourceFactory
                 locationFilter: $this->locationFilter,
             );
 
+            $sources[$source->name()] = $source;
+        }
+
+        $plooral = config('vacancy_sources.plooral', []);
+        foreach ($plooral['companies'] ?? [] as $companyKey => $company) {
+            $source = new PlooralSource(
+                subdomain: $company['subdomain'] ?? $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                caBundle: $plooral['ca_bundle'] ?? null,
+                maxJobs: (int) ($plooral['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
             $sources[$source->name()] = $source;
         }
 
