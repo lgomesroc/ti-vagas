@@ -375,8 +375,9 @@ class VacancySourceFactory
         $plooral = config('vacancy_sources.plooral', []);
         foreach ($plooral['companies'] ?? [] as $companyKey => $company) {
             $source = new PlooralSource(
-                subdomain: $company['subdomain'] ?? $companyKey,
+                companyKey: $companyKey,
                 companyName: $company['name'] ?? $companyKey,
+                subdomain: $company['subdomain'] ?? $companyKey,
                 caBundle: $plooral['ca_bundle'] ?? null,
                 maxJobs: (int) ($plooral['max_jobs'] ?? 200),
                 locationFilter: $this->locationFilter,
