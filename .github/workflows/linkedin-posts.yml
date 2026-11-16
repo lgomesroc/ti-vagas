@@ -1,0 +1,54 @@
+name: TI Vagas - LinkedIn Recruiter Posts
+
+on:
+  schedule:
+    - cron: "0 6,10,14,18 * * *"
+      timezone: "America/Sao_Paulo"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-linkedin-posts
+  cancel-in-progress: false
+
+jobs:
+  collect-linkedin-posts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+      DB_SSLMODE: require
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      LINKEDIN_POSTS_ENABLED: "true"
+      LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
+          coverage: none
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Aplicar migrações pendentes
+        run: php artisan migrate --force
+
+      - name: Coletar publicações públicas do LinkedIn
+        run: php artisan linkedin:collect-posts
