@@ -425,7 +425,7 @@ class InhireSource implements VacancySource
         );
 
         return preg_match(
-            '/desenvolvedor|developer|programador|programmer|software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte ti|suporte tecnico|suporte n[1-3]|help.?desk|service desk|infraestrutura|infra|redes|cloud|devops|banco de dados|database|analista de dados|data analyst|engenheiro de dados|data engineer|business intelligence|quality assurance|testes de software|qa|seguranca da informacao|cyber security|sistemas|salesforce|consultor sap|administrador de sistemas|administrador salesforce|automacao de sistemas/',
+            '/desenvolvedor|developer|programador|programmer|software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte ti|suporte tecnico|suporte n[1-3]|help.?desk|service desk|infraestrutura|infra|redes|cloud|devops|quality assurance|testes de software|qa|seguranca da informacao|cyber security|sistemas|salesforce|consultor sap|administrador de sistemas|administrador salesforce|automacao de sistemas/',
             $text
         ) === 1;
     }
