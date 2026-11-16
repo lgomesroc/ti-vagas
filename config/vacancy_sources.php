@@ -154,6 +154,10 @@ return [
                 'name' => 'Banco Pine',
             ],
 
+            'riachuelo' => [
+                'name' => 'Riachuelo',
+            ],
+
         ],
     ],
 
@@ -162,12 +166,6 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
-
-            'riachuelo' => [
-                'name' => 'Riachuelo',
-                'url' => 'https://riachuelo.gupy.io/',
-                'technology_only' => true,
-            ],
 
             'dasa-tech' => [
                 'name' => 'Dasa Tech',
