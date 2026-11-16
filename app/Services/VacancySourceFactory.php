@@ -17,6 +17,7 @@ use App\Sources\PandapeSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
+use App\Sources\SolidesSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
@@ -282,6 +283,24 @@ class VacancySourceFactory
                 careerPageId: $company['career_page_id'],
                 caBundle: $jobconvo['ca_bundle'] ?? null,
                 maxPages: (int) ($jobconvo['max_pages'] ?? 110),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+
+        $solides = config('vacancy_sources.solides', []);
+
+        foreach ($solides['companies'] ?? [] as $companyKey => $company) {
+            $source = new SolidesSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                slug: $company['slug'] ?? $companyKey,
+                careerPageUrl: $company['url'],
+                caBundle: $solides['ca_bundle'] ?? null,
+                maxPages: (int) ($solides['max_pages'] ?? 20),
+                pageSize: (int) ($solides['page_size'] ?? 25),
                 locationFilter: $this->locationFilter,
             );
 
