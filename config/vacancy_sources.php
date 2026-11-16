@@ -423,17 +423,4 @@ return [
         ],
     ],
 
-        'talklink' => [
-            'name' => 'Talklink',
-            'url' => 'https://www.talklink.com.br/vagas',
-            'status' => 'pending_scraper',
-        ],
-
-        'eduqo' => [
-            'name' => 'Eduqo',
-            'url' => 'https://eduqo.com.br/talentos',
-            'status' => 'pending_scraper',
-        ],
-    ],
-
 ];
