@@ -18,8 +18,6 @@ return [
             'stone' => 'Stone',
             'blip-global' => 'Blip',
             'inter' => 'Banco Inter',
-            'elo' => 'Elo',
-            'xpinc' => 'XP Inc.',
         ],
     ],
 
@@ -73,10 +71,6 @@ return [
             ],
             'bluelightconsulting' => [
                 'name' => 'Bluelight Consulting',
-                'region' => 'global',
-            ],
-            'bv' => [
-                'name' => 'Banco BV',
                 'region' => 'global',
             ],
         ],
@@ -305,30 +299,6 @@ return [
             'localiza' => [
                 'name' => 'Localiza&Co',
                 'url' => 'https://localiza.gupy.io/',
-                'technology_only' => true,
-            ],
-
-            'vagas-youse' => [
-                'name' => 'Youse Seguros',
-                'url' => 'https://vagas-youse.gupy.io/',
-                'technology_only' => true,
-            ],
-
-            'intelipost' => [
-                'name' => 'Grupo Intelipost',
-                'url' => 'https://intelipost.gupy.io/',
-                'technology_only' => true,
-            ],
-
-            'cvccorp' => [
-                'name' => 'CVC Corp',
-                'url' => 'https://cvccorp.gupy.io/',
-                'technology_only' => true,
-            ],
-
-            'dafiti' => [
-                'name' => 'Dafiti',
-                'url' => 'https://dafiti.gupy.io/',
                 'technology_only' => true,
             ],
         ],
