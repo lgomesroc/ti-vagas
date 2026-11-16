@@ -113,6 +113,10 @@ return [
             'aarin' => [
                 'name' => 'Aarin Techfin',
             ],
+
+            'grupofour' => [
+                'name' => 'Uhuu / Grupo Four',
+            ],
         ],
     ],
 
@@ -389,6 +393,12 @@ return [
                 'name' => 'NHT FIBER LTDA',
                 'slug' => 'nethouserj',
                 'url' => 'https://nethouserj.vagas.solides.com.br',
+            ],
+
+            'cashway' => [
+                'name' => 'CashWay',
+                'slug' => 'cashway',
+                'url' => 'https://cashway.vagas.solides.com.br',
             ],
         ],
     ],
