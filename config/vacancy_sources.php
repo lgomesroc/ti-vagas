@@ -566,6 +566,16 @@ return [
         ],
     ],
 
+    'bizneo' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'companies' => [
+            'veloe' => [
+                'name' => 'Veloe',
+                'url' => 'https://vagas.veloe.com.br/',
+            ],
+        ],
+    ],
+
     'talentbrand' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'companies' => [
