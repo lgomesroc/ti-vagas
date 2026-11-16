@@ -147,6 +147,7 @@ class VacancySourceFactory
             $source = new OracleHcmSource(
                 siteNumber: $company['site_number'],
                 siteName: $company['site_name'],
+                baseUrl: $company['base_url'],
                 companyName: $company['name'] ?? $companyKey,
                 caBundle: $oracle['ca_bundle'] ?? null,
                 maxJobs: (int) ($oracle['max_jobs'] ?? 1000),
