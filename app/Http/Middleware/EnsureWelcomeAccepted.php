@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace App\\Http\\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\\Http\\Request;
+use Symfony\\Component\\HttpFoundation\\Response;
 
 class EnsureWelcomeAccepted
 {
@@ -65,20 +65,33 @@ class EnsureWelcomeAccepted
     }
 
     /**
+     * Retorna uma escolha persistida válida, priorizando o cookie durável.
+     */
+    public static function optionalCookiesChoice(Request $request): ?string
+    {
+        $cookieChoice = $request->cookie(self::COOKIE_NOTICE_COOKIE);
+
+        if (in_array($cookieChoice, ['accepted', 'rejected'], true)) {
+            return $cookieChoice;
+        }
+
+        if (!$request->hasSession()) {
+            return null;
+        }
+
+        $sessionChoice = $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY);
+
+        return in_array($sessionChoice, ['accepted', 'rejected'], true)
+            ? $sessionChoice
+            : null;
+    }
+
+    /**
      * Verifica se o aviso de cookies já foi confirmado.
      */
     public static function cookieNoticeAcknowledged(Request $request): bool
     {
-        if (in_array($request->cookie(self::COOKIE_NOTICE_COOKIE), ['accepted', 'rejected'], true)) {
-            return true;
-        }
-
-        return $request->hasSession()
-            && in_array(
-                $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY),
-                ['accepted', 'rejected'],
-                true
-            );
+        return self::optionalCookiesChoice($request) !== null;
     }
 
     /**
@@ -86,12 +99,7 @@ class EnsureWelcomeAccepted
      */
     public static function optionalCookiesAllowed(Request $request): bool
     {
-        if ($request->cookie(self::COOKIE_NOTICE_COOKIE) !== null) {
-            return $request->cookie(self::COOKIE_NOTICE_COOKIE) === 'accepted';
-        }
-
-        return $request->hasSession()
-            && $request->session()->get(self::COOKIE_NOTICE_SESSION_KEY) === 'accepted';
+        return self::optionalCookiesChoice($request) === 'accepted';
     }
 
     /**
