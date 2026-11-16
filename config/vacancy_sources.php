@@ -121,6 +121,10 @@ return [
             'amaro' => [
                 'name' => 'AMARO',
             ],
+
+            'mjv' => [
+                'name' => 'MJV Technology & Innovation',
+            ],
         ],
     ],
 
