@@ -14,7 +14,7 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
-| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa de diretórios e arquivos versionados, em ordem alfabética. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
 
 O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
 
@@ -227,6 +227,17 @@ Quando uma oportunidade é identificada como indisponível durante a importaçã
 
 A aplicação também verifica a disponibilidade dos anúncios antes de exibi-los na listagem ou permitir o acesso à página individual.
 
+### Verificação HTTP dos links de candidatura
+
+Além da análise durante a importação, uma rotina independente consulta periodicamente os links originais de candidatura. O comando `php artisan vacancies:check-links --limit=500` roda a cada seis horas e registra o histórico em `vacancy_availability_checks`.
+
+- HTTP 2xx sem indicador de encerramento: `active`;
+- HTTP 2xx com indicação de encerramento ou HTTP 410: `expired`;
+- Primeiro HTTP 404: `suspect`; dois HTTP 404 consecutivos: `expired`;
+- Outros status, timeout, falha de conexão ou validação inconclusiva: `suspect`.
+
+A rotina valida cada URL e redirecionamento, limita a cinco redirecionamentos e bloqueia destinos locais, privados ou reservados. Como páginas externas podem bloquear robôs ou apresentar respostas temporárias, o resultado é uma indicação automatizada, não uma garantia absoluta de disponibilidade.
+
 O objetivo é reduzir a exibição de oportunidades que já foram encerradas pelas empresas.
 
 **Limitação:** a ausência de uma vaga na resposta de uma fonte externa não significa necessariamente que ela foi encerrada. Quando uma fonte deixa de retornar um anúncio sem informar seu status, não é possível confirmar automaticamente sua indisponibilidade apenas pela ausência do registro.
@@ -253,11 +264,14 @@ A expiração por idade não substitui a verificação de disponibilidade: são 
 - Redirecionamento para a página original de candidatura;
 - Integração com diferentes fontes de recrutamento;
 - Importação e atualização automatizada de oportunidades;
-- Identificação de anúncios indisponíveis;
+- Identificação de anúncios indisponíveis durante a importação;
+- Verificação HTTP periódica dos links de candidatura e registro do histórico;
 - Remoção de registros identificados como encerrados;
 - Exclusão de vagas com mais de 60 dias;
 - Paginação dos resultados;
-- Validação de elegibilidade antes da exibição das oportunidades.
+- Validação de elegibilidade antes da exibição das oportunidades;
+- Persistência do aceite dos termos e preferência separada para cookies não essenciais;
+- Captura da primeira atribuição de campanha por parâmetros UTM na sessão.
 
 ## Tecnologias utilizadas
 
@@ -297,11 +311,7 @@ Entre os cenários cobertos estão:
 - Importação de oportunidades;
 - Tratamento de registros duplicados e indisponíveis.
 
-**Última execução completa registrada:**
-
-- **73 testes aprovados**
-- **213 asserções**
-- **Nenhuma falha na execução**
+A suíte inclui cenários para disponibilidade HTTP, redirecionamentos e respostas inconclusivas, captura e sanitização de parâmetros UTM, aceite dos termos, preferências de cookies e primeira autorização de localização. A quantidade de testes pode variar conforme novas funcionalidades sejam adicionadas; consulte a execução atual do CI para o resultado mais recente.
 
 Para executar a suíte localmente:
 
@@ -321,6 +331,7 @@ O comando responsável é:
 
 ```bash
 php artisan vacancies:collect
+php artisan vacancies:check-links --limit=500
 ```
 
 A rotina consulta as fontes configuradas e processa as oportunidades recebidas.
