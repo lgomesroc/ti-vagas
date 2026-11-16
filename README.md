@@ -338,13 +338,13 @@ Entre os cenários cobertos estão:
 - Comportamento da listagem diante de oportunidades indisponíveis;
 - Bloqueio de acesso a anúncios indisponíveis;
 - Importação de oportunidades;
-- Tratamento de registros duplicados e indisponíveis.
+- Tratamento de registros duplicados e indisponíveis;
+- Verificação HTTP dos links de candidatura, redirecionamentos e respostas inconclusivas;
+- Captura, sanitização e preservação da primeira atribuição UTM;
+- Aceite dos termos, persistência de cookies e preferências de cookies não essenciais;
+- Primeira autorização de localização a partir do modo limitado.
 
-**Última execução completa registrada:**
-
-- **73 testes aprovados**
-- **213 asserções**
-- **Nenhuma falha na execução**
+A quantidade de testes e as asserções muda conforme o projeto evolui. Não há nesta documentação uma contagem fixa apresentada como resultado atual; consulte a execução mais recente do CI ou execute a suíte no ambiente local.
 
 Para executar a suíte localmente:
 
