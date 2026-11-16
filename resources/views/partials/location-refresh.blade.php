@@ -1,4 +1,4 @@
-@if (\\App\\Http\\Middleware\\EnsureWelcomeAccepted::isAccepted(request()))
+@if (\App\Http\Middleware\EnsureWelcomeAccepted::isAccepted(request()))
 <script id="location-refresh">
 (function () {
     'use strict';
@@ -10,7 +10,7 @@
     var ENDPOINT = @json(route('location.refresh'));
     var CSRF_TOKEN = @json(csrf_token());
     var MAX_ACCURACY_METERS = @json(
-        \\App\\Services\\Geo\\VisitorLocationResolver::MAX_ACCURACY_METERS
+        \App\Services\Geo\VisitorLocationResolver::MAX_ACCURACY_METERS
     );
 
     var MIN_INTERVAL_MS = 30 * 60 * 1000;
