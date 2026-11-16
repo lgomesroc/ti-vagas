@@ -238,9 +238,17 @@ return [
 
         'companies' => [
             'uber' => [
+                'base_url' => 'https://iaziqy.fa.ocs.oraclecloud.com',
                 'site_number' => 'CX_1',
                 'site_name' => 'UberCareers',
                 'name' => 'Uber',
+            ],
+
+            'dell' => [
+                'base_url' => 'https://iawmqy.fa.ocs.oraclecloud.com',
+                'site_number' => 'careers',
+                'site_name' => 'careers',
+                'name' => 'Dell Technologies',
             ],
         ],
     ],
