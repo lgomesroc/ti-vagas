@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 class SolidesSourceTest extends TestCase
 {
-    public function test_it_collects_active_company_jobs_using_the_original_created_at_date(): void
+    public function test_it_collects_recent_company_jobs_using_the_original_created_at_date(): void
     {
         Http::fake([
             'apigw.solides.com.br/jobs/v3/companies/nethouserj/vacancies*' => Http::response([
@@ -39,7 +39,7 @@ class SolidesSourceTest extends TestCase
                     'recruitmentContractType' => [
                         ['name' => 'CLT'],
                     ],
-                    'createdAt' => '2026-04-16',
+                    'createdAt' => now()->subDays(10)->toDateString(),
                     'isHiddenJob' => false,
                     'isDisabled' => false,
                     'hardSkills' => [['name' => 'Suporte TI']],
@@ -68,11 +68,41 @@ class SolidesSourceTest extends TestCase
         $this->assertSame('CLT', $vacancies[0]['employment_type']);
         $this->assertSame('R$ 1.600 - R$ 2.200', $vacancies[0]['salary']);
         $this->assertSame(
-            '2026-04-16T00:00:00+00:00',
+            now()->subDays(10)->startOfDay()->toIso8601String(),
             $vacancies[0]['original_published_at']
         );
         $this->assertStringContainsString('Suporte TI', $vacancies[0]['description']);
         Http::assertSentCount(1);
+    }
+
+    public function test_it_discards_jobs_older_than_60_days(): void
+    {
+        Http::fake([
+            'apigw.solides.com.br/jobs/v3/companies/nethouserj/vacancies*' => Http::response([
+                'totalPages' => 1,
+                'data' => [[
+                    'id' => 831454,
+                    'title' => 'Analista de Suporte e Redes N1 Júnior',
+                    'description' => '<p>Suporte técnico e redes.</p>',
+                    'currentState' => 'em_andamento',
+                    'city' => ['name' => 'Rio de Janeiro'],
+                    'state' => ['name' => 'Rio de Janeiro', 'code' => 'RJ'],
+                    'jobType' => 'presencial',
+                    'createdAt' => '2026-04-16',
+                    'isHiddenJob' => false,
+                    'isDisabled' => false,
+                ]],
+            ], 200),
+        ]);
+
+        $source = new SolidesSource(
+            companyKey: 'nethouserj',
+            companyName: 'NHT FIBER LTDA',
+            slug: 'nethouserj',
+            careerPageUrl: 'https://nethouserj.vagas.solides.com.br',
+        );
+
+        $this->assertSame([], collect($source->fetch())->all());
     }
 
     public function test_it_discards_jobs_without_a_reliable_original_publication_date(): void
