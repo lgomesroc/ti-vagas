@@ -125,6 +125,14 @@ return [
             'mjv' => [
                 'name' => 'MJV Technology & Innovation',
             ],
+
+            'bionexo' => [
+                'name' => 'Bionexo',
+            ],
+
+            'bancopine' => [
+                'name' => 'Banco Pine',
+            ],
         ],
     ],
 
@@ -227,6 +235,42 @@ return [
             'ativa' => [
                 'name' => 'Ativa',
                 'url' => 'https://ativa.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vemproitau' => [
+                'name' => 'Itaú',
+                'url' => 'https://vemproitau.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'grupoboticario' => [
+                'name' => 'Grupo Boticário',
+                'url' => 'https://grupoboticario.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'cogna' => [
+                'name' => 'Cogna (Kroton)',
+                'url' => 'https://cogna.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'ambev' => [
+                'name' => 'Ambev (Anheuser-Busch InBev)',
+                'url' => 'https://ambev.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vemprarede' => [
+                'name' => 'Rede',
+                'url' => 'https://vemprarede.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'uol' => [
+                'name' => 'UOL',
+                'url' => 'https://uol.gupy.io/',
                 'technology_only' => true,
             ],
         ],
