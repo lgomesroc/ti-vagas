@@ -119,9 +119,9 @@ class QuickinSource implements VacancySource
     private function extractAccountId(string $html): ?string
     {
         $patterns = [
-            "/[\\"']account_id[\\"']\\s*:\\s*[\\"']([a-f0-9]{24})[\\"']/i",
-            "/[\\"']accountId[\\"']\\s*:\\s*[\\"']([a-f0-9]{24})[\\"']/i",
-            "/data-account-id\\s*=\\s*[\\"']([a-f0-9]{24})[\\"']/i",
+            '/[\x22\x27]account_id[\x22\x27]\s*:\s*[\x22\x27]([a-f0-9]{24})[\x22\x27]/i',
+            '/[\x22\x27]accountId[\x22\x27]\s*:\s*[\x22\x27]([a-f0-9]{24})[\x22\x27]/i',
+            '/data-account-id\s*=\s*[\x22\x27]([a-f0-9]{24})[\x22\x27]/i',
             '/account_id=([a-f0-9]{24})/i',
         ];
 
