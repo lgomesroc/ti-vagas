@@ -34,6 +34,14 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'hostgator' => [
+                'host' => 'web.wd1.myworkdayjobs.com',
+                'tenant' => 'HostGator',
+                'site' => 'HostGator',
+                'locale' => 'pt-BR',
+                'name' => 'HostGator América Latina',
+            ],
+
             'natura' => [
                 'host' => 'natura.wd501.myworkdayjobs.com',
                 'tenant' => 'natura',
@@ -157,6 +165,12 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+
+            'riachuelo' => [
+                'name' => 'Riachuelo',
+                'url' => 'https://riachuelo.gupy.io/',
+                'technology_only' => true,
+            ],
 
             'dasa-tech' => [
                 'name' => 'Dasa Tech',
