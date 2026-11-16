@@ -287,7 +287,15 @@
             var due = Date.now() - last >= MIN_INTERVAL_MS;
 
             if (permissionState === 'granted') {
-                if (due) requestLocation(false);
+                if (due) {
+                    requestLocation(false);
+                } else if (LOCATION_MODE === 'limited') {
+                    showStatus(
+                        'Sua localização ainda não foi confirmada com precisão suficiente. Você pode tentar novamente agora.',
+                        'Tentar novamente',
+                        function () { requestLocation(true); }
+                    );
+                }
                 return;
             }
 
