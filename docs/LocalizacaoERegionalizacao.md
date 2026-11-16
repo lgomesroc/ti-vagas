@@ -10,6 +10,10 @@ O navegador pode fornecer coordenadas mediante autorização do visitante. O ser
 
 A região validada é mantida na sessão. A aplicação não deve confiar em município, UF ou região enviados livremente por parâmetros de URL, corpo da requisição ou cookies.
 
+Após o aceite dos termos, a sessão começa em modo `limited`. Nesse estado, somente vagas remotas nacionais são exibidas. O script de atualização de localização também é carregado nesse modo para permitir a primeira solicitação de permissão; o endpoint aceita a primeira leitura tanto em `limited` quanto em `available`. Somente coordenadas com precisão dentro do limite, aprovadas pelas validações de segurança e resolvidas para um município brasileiro plausível podem promover a sessão para `available`.
+
+Se a pessoa negar a permissão, o navegador não disponibilizar a geolocalização, a precisão for insuficiente ou as coordenadas não puderem ser resolvidas, a sessão continua em `limited`. O visitante pode alterar a permissão nas configurações do navegador e tentar novamente. O sistema não usa a estimativa de IP para liberar vagas locais.
+
 ## Escopo regional
 
 A comparação utiliza códigos de município do IBGE e considera as seguintes camadas:
@@ -18,6 +22,10 @@ A comparação utiliza códigos de município do IBGE e considera as seguintes c
 2. Região Geográfica Intermediária do IBGE para municípios que não pertencem a uma RM ou RIDE.
 
 A regra evita misturar municípios de regiões distintas apenas por proximidade geográfica.
+
+## Atualização da localização
+
+A atualização é feita por requisições pontuais com `navigator.geolocation.getCurrentPosition`, não por rastreamento contínuo com `watchPosition`. O navegador mantém a autorização conforme as regras do próprio dispositivo; a aplicação verifica novamente a localização em intervalos e quando necessário, respeitando a permissão concedida. A resposta não revela ao cliente os detalhes internos de uma recusa de segurança.
 
 ## Dados territoriais
 
