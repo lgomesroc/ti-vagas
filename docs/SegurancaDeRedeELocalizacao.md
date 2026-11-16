@@ -36,3 +36,12 @@ O comando `php artisan network:update-lists` atualiza as listas de rede configur
 ## Documento complementar existente
 
 A explicação detalhada das fontes, políticas, configurações, limitações e possíveis falsos positivos já existe em [deteccao-de-redes-suspeitas.md](deteccao-de-redes-suspeitas.md). Esse arquivo foi preservado sem renomeação ou exclusão.
+
+
+## Aceite dos termos e preferências de cookies
+
+O aceite da versão vigente dos termos é registrado na sessão e em cookie persistente por cinco anos. A escolha sobre cookies não essenciais é registrada separadamente, na sessão e em cookie com validade de um ano. O cookie de aceite e o cookie de preferência usam as configurações de domínio, caminho, SameSite, HttpOnly e Secure definidas para a sessão da aplicação.
+
+As respostas que dependem de sessão ou cookies recebem cabeçalhos que impedem cache compartilhado (`no-store`, `private` e `Vary: Cookie`). O carregamento de Google Analytics e Google AdSense está condicionado à aceitação de cookies não essenciais; a rejeição impede que essas tags sejam incluídas na página.
+
+A persistência entre domínios ou subdomínios depende da configuração correta de `SESSION_DOMAIN`, além de HTTPS e da configuração de proxy confiável no ambiente publicado. O comportamento deve ser validado no domínio real observando o atributo `Set-Cookie` e o reenvio do cookie pelo navegador; os testes automatizados de sessão não substituem essa validação operacional.
