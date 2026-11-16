@@ -109,6 +109,10 @@ return [
             'riachuelo' => [
                 'name' => 'Riachuelo',
             ],
+
+            'aarin' => [
+                'name' => 'Aarin Techfin',
+            ],
         ],
     ],
 
@@ -199,6 +203,18 @@ return [
             'areastecnicasvivo' => [
                 'name' => 'Áreas Técnicas Vivo',
                 'url' => 'https://areastecnicasvivo.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'novaescola' => [
+                'name' => 'Nova Escola',
+                'url' => 'https://novaescola.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'ativa' => [
+                'name' => 'Ativa',
+                'url' => 'https://ativa.gupy.io/',
                 'technology_only' => true,
             ],
         ],
