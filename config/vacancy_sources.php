@@ -520,6 +520,10 @@ return [
                 'name' => 'Adecco',
                 'url' => 'https://adecco.pandape.infojobs.com.br/',
             ],
+            'catho' => [
+                'name' => 'Catho',
+                'url' => 'https://catho.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
