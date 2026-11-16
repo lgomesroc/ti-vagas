@@ -126,13 +126,7 @@ return [
                 'name' => 'MJV Technology & Innovation',
             ],
 
-            'bionexo' => [
-                'name' => 'Bionexo',
-            ],
-
-            'bancopine' => [
-                'name' => 'Banco Pine',
-            ],
+        ],
         ],
     ],
 
