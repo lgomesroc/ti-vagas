@@ -6,7 +6,6 @@ use App\Contracts\VacancySource;
 use App\Services\VacancyLocationFilter;
 use Carbon\CarbonImmutable;
 use DOMDocument;
-use DOMElement;
 use DOMXPath;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -47,8 +46,11 @@ class CompleoSource implements VacancySource
         $response->throw();
 
         $urls = $this->extractJobUrls($response->body());
+
         if ($urls === []) {
-            throw new RuntimeException('O sitemap público do Compleo não retornou URLs de vagas.');
+            throw new RuntimeException(
+                'O sitemap público do Compleo não retornou URLs de vagas.'
+            );
         }
 
         $vacancies = [];
@@ -60,6 +62,7 @@ class CompleoSource implements VacancySource
                 $detail->throw();
 
                 $vacancy = $this->parseJobPosting($detail->body(), $url);
+
                 if ($vacancy !== null) {
                     $vacancies[] = $vacancy;
                 }
@@ -89,27 +92,44 @@ class CompleoSource implements VacancySource
 
         try {
             $document = new DOMDocument();
+
             if (!$document->loadXML($xml, LIBXML_NONET | LIBXML_NOWARNING | LIBXML_NOERROR)) {
-                throw new RuntimeException('Não foi possível interpretar o sitemap do Compleo.');
+                throw new RuntimeException(
+                    'Não foi possível interpretar o sitemap do Compleo.'
+                );
             }
 
             $xpath = new DOMXPath($document);
             $nodes = $xpath->query('//*[local-name()="loc"]');
+
             if ($nodes === false) {
-                throw new RuntimeException('Não foi possível localizar URLs no sitemap do Compleo.');
+                throw new RuntimeException(
+                    'Não foi possível localizar URLs no sitemap do Compleo.'
+                );
             }
 
-            $prefix = 'https://jobs.compleo.app/' . rawurlencode($this->companyKey) . '/jobdetail/';
+            $prefix = 'https://jobs.compleo.app/'
+                . rawurlencode($this->companyKey)
+                . '/jobdetail/';
+
             $urls = [];
 
             foreach ($nodes as $node) {
                 $url = trim($node->textContent);
+
                 if (!str_starts_with($url, $prefix)) {
                     continue;
                 }
 
                 $path = parse_url($url, PHP_URL_PATH) ?: '';
-                if (preg_match('~^/' . preg_quote($this->companyKey, '~') . '/jobdetail/[A-Za-z0-9]+/?$~', $path)) {
+
+                if (
+                    preg_match(
+                        '~^/' . preg_quote($this->companyKey, '~')
+                        . '/jobdetail/[A-Za-z0-9]+/?$~',
+                        $path
+                    )
+                ) {
                     $urls[] = $url;
                 }
             }
@@ -128,12 +148,13 @@ class CompleoSource implements VacancySource
         }
 
         preg_match_all(
-            '~<script\b[^>]*type=["\\']application/ld\+json["\\'][^>]*>(.*?)</script>~is',
+            '~<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>~is',
             $html,
             $matches
         );
 
         $posting = null;
+
         foreach ($matches[1] ?? [] as $json) {
             $decoded = json_decode(
                 html_entity_decode($json, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
@@ -142,6 +163,7 @@ class CompleoSource implements VacancySource
 
             if (is_array($decoded)) {
                 $posting = $this->findJobPosting($decoded);
+
                 if ($posting !== null) {
                     break;
                 }
@@ -153,8 +175,14 @@ class CompleoSource implements VacancySource
         }
 
         $title = $this->cleanText((string) ($posting['title'] ?? ''));
-        $description = $this->cleanDescription((string) ($posting['description'] ?? ''));
-        $publishedAt = $this->normalizeDate($posting['datePosted'] ?? null);
+
+        $description = $this->cleanDescription(
+            (string) ($posting['description'] ?? '')
+        );
+
+        $publishedAt = $this->normalizeDate(
+            $posting['datePosted'] ?? null
+        );
 
         if ($title === '' || $description === '' || $publishedAt === null) {
             return null;
@@ -162,6 +190,7 @@ class CompleoSource implements VacancySource
 
         $locationData = $this->extractLocation($posting);
         $location = $locationData['label'];
+
         $workModel = $this->locationFilter->classifyWorkModel(
             $title,
             $location,
@@ -179,7 +208,9 @@ class CompleoSource implements VacancySource
             return null;
         }
 
-        $jobId = basename(rtrim((string) parse_url($url, PHP_URL_PATH), '/'));
+        $jobId = basename(
+            rtrim((string) parse_url($url, PHP_URL_PATH), '/')
+        );
 
         return [
             'title' => $title,
@@ -187,8 +218,12 @@ class CompleoSource implements VacancySource
             'description' => $description,
             'location' => $location !== '' ? $location : null,
             'work_model' => $workModel,
-            'employment_type' => $this->normalizeEmploymentType($posting['employmentType'] ?? null),
-            'salary' => $this->extractSalary($posting['baseSalary'] ?? null),
+            'employment_type' => $this->normalizeEmploymentType(
+                $posting['employmentType'] ?? null
+            ),
+            'salary' => $this->extractSalary(
+                $posting['baseSalary'] ?? null
+            ),
             'application_url' => $url,
             'external_id' => $this->name() . ':' . $jobId,
             'original_published_at' => $publishedAt,
@@ -205,13 +240,18 @@ class CompleoSource implements VacancySource
     private function findJobPosting(array $data): ?array
     {
         $type = $data['@type'] ?? null;
-        if ($type === 'JobPosting' || (is_array($type) && in_array('JobPosting', $type, true))) {
+
+        if (
+            $type === 'JobPosting'
+            || (is_array($type) && in_array('JobPosting', $type, true))
+        ) {
             return $data;
         }
 
         foreach ($data as $value) {
             if (is_array($value)) {
                 $found = $this->findJobPosting($value);
+
                 if ($found !== null) {
                     return $found;
                 }
@@ -232,9 +272,11 @@ class CompleoSource implements VacancySource
         ];
 
         $locations = $posting['jobLocation'] ?? [];
+
         if (!is_array($locations)) {
             return $result;
         }
+
         if (isset($locations['address'])) {
             $locations = [$locations];
         }
@@ -245,13 +287,23 @@ class CompleoSource implements VacancySource
             }
 
             $address = $place['address'] ?? [];
+
             if (!is_array($address)) {
                 continue;
             }
 
-            $city = $this->scalarText($address['addressLocality'] ?? null);
-            $state = $this->scalarText($address['addressRegion'] ?? null);
-            $country = $this->scalarText($address['addressCountry'] ?? null);
+            $city = $this->scalarText(
+                $address['addressLocality'] ?? null
+            );
+
+            $state = $this->scalarText(
+                $address['addressRegion'] ?? null
+            );
+
+            $country = $this->scalarText(
+                $address['addressCountry'] ?? null
+            );
+
             $parts = array_filter([$city, $state, $country]);
 
             if ($parts !== []) {
@@ -260,9 +312,10 @@ class CompleoSource implements VacancySource
                     'city' => $city,
                     'state' => $state,
                     'country' => $country,
-                    'country_code' => $country !== null && in_array(strtoupper($country), ['BR', 'BRA'], true)
-                        ? 'BR'
-                        : null,
+                    'country_code' => $country !== null
+                        && in_array(strtoupper($country), ['BR', 'BRA'], true)
+                            ? 'BR'
+                            : null,
                 ];
             }
         }
@@ -283,20 +336,26 @@ class CompleoSource implements VacancySource
         }
 
         $value = $salary['value'] ?? [];
+
         if (!is_array($value)) {
             return null;
         }
 
         $min = $value['minValue'] ?? null;
         $max = $value['maxValue'] ?? null;
-        $currency = $this->scalarText($salary['currency'] ?? null) ?: 'BRL';
+
+        $currency = $this->scalarText(
+            $salary['currency'] ?? null
+        ) ?: 'BRL';
 
         if ($min !== null && $max !== null) {
             return "{$currency} {$min} - {$max}";
         }
+
         if ($min !== null) {
             return "{$currency} {$min}";
         }
+
         if ($max !== null) {
             return "{$currency} {$max}";
         }
@@ -309,6 +368,7 @@ class CompleoSource implements VacancySource
         if (is_array($type)) {
             $type = implode(', ', array_map('strval', $type));
         }
+
         if (!is_string($type) || trim($type) === '') {
             return null;
         }
@@ -329,7 +389,9 @@ class CompleoSource implements VacancySource
         }
 
         try {
-            return CarbonImmutable::parse($date, 'UTC')->utc()->toIso8601String();
+            return CarbonImmutable::parse($date, 'UTC')
+                ->utc()
+                ->toIso8601String();
         } catch (\Throwable) {
             return null;
         }
@@ -346,20 +408,37 @@ class CompleoSource implements VacancySource
         }
 
         $value = $this->cleanText((string) $value);
+
         return $value !== '' ? $value : null;
     }
 
     private function cleanDescription(string $description): string
     {
-        $description = preg_replace('~<(script|style)\b[^>]*>.*?</\1>~is', ' ', $description);
-        $description = preg_replace('~</(p|div|li|br|h[1-6])\s*>~i', "\n", $description);
+        $description = preg_replace(
+            '~<(script|style)\b[^>]*>.*?</\1>~is',
+            ' ',
+            $description
+        );
+
+        $description = preg_replace(
+            '~</(p|div|li|br|h[1-6])\s*>~i',
+            "\n",
+            $description
+        );
+
         return $this->cleanText(strip_tags($description));
     }
 
     private function cleanText(string $text): string
     {
-        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = html_entity_decode(
+            $text,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
         $text = preg_replace('/\s+/u', ' ', $text);
+
         return trim($text);
     }
 }
