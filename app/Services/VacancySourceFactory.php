@@ -27,7 +27,7 @@ use App\Sources\BizneoSource;
 use App\Sources\SolidesSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
-use App\Sources\WorkdaySource;
+use App\Sources\WorkdaySource;\nuse App\Sources\VagasSource;
 use App\Sources\ZohoRecruitSource;
 use InvalidArgumentException;
 
