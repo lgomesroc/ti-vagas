@@ -35,52 +35,74 @@ class PlooralSource implements VacancySource
 
     public function fetch(): iterable
     {
-        $url = self::API_BASE_URL . '/' . rawurlencode($this->subdomain) . '/positions';
-        $response = $this->http()->get($url, ['show' => 'hiring']);
-        $response->throw();
-
-        $positions = $this->extractList($response->json());
+        $baseUrl = self::API_BASE_URL . '/' . rawurlencode($this->subdomain) . '/positions';
         $vacancies = [];
+        $processed = 0;
+        $page = 1;
+        $limit = 100;
 
-        foreach (array_slice($positions, 0, $this->maxJobs) as $position) {
-            if (!is_array($position)) {
-                continue;
+        while ($processed < $this->maxJobs) {
+            $response = $this->http()->get($baseUrl, [
+                'show' => 'hiring',
+                'limit' => min($limit, $this->maxJobs - $processed),
+                'page' => $page,
+            ]);
+            $response->throw();
+
+            $positions = $this->extractList($response->json());
+            if ($positions === []) {
+                break;
             }
 
-            $code = trim((string) ($position['code'] ?? ''));
-            if ($code === '') {
-                continue;
-            }
-
-            try {
-                $detailResponse = $this->http()->get(
-                    $url . '/' . rawurlencode($code)
-                );
-                if (!$detailResponse->successful()) {
+            foreach ($positions as $position) {
+                if ($processed >= $this->maxJobs) {
+                    break;
+                }
+                if (!is_array($position)) {
                     continue;
                 }
 
-                $detail = $this->extractObject($detailResponse->json());
-                if ($detail === []) {
+                $processed++;
+                $code = trim((string) ($position['code'] ?? ''));
+                if ($code === '') {
                     continue;
                 }
 
-                $vacancy = $this->normalizePosition(array_merge($position, $detail));
-                if ($vacancy !== null) {
-                    $vacancies[] = $vacancy;
+                try {
+                    $detailResponse = $this->http()->get(
+                        $baseUrl . '/' . rawurlencode($code)
+                    );
+                    if (!$detailResponse->successful()) {
+                        continue;
+                    }
+
+                    $detail = $this->extractObject($detailResponse->json());
+                    if ($detail === []) {
+                        continue;
+                    }
+
+                    $vacancy = $this->normalizePosition(array_merge($position, $detail));
+                    if ($vacancy !== null) {
+                        $vacancies[] = $vacancy;
+                    }
+                } catch (Throwable $exception) {
+                    Log::warning('Plooral: falha ao consultar detalhes da vaga.', [
+                        'company' => $this->companyName,
+                        'code' => $code,
+                        'error' => $exception->getMessage(),
+                    ]);
                 }
-            } catch (Throwable $exception) {
-                Log::warning('Plooral: falha ao consultar detalhes da vaga.', [
-                    'company' => $this->companyName,
-                    'code' => $code,
-                    'error' => $exception->getMessage(),
-                ]);
             }
+
+            if (count($positions) < $limit) {
+                break;
+            }
+            $page++;
         }
 
         Log::info('Plooral: coleta concluída.', [
             'company' => $this->companyName,
-            'positions_found' => count($positions),
+            'positions_processed' => $processed,
             'jobs_importable' => count($vacancies),
         ]);
 
