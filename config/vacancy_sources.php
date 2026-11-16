@@ -267,6 +267,30 @@ return [
                 'url' => 'https://uol.gupy.io/',
                 'technology_only' => true,
             ],
+
+            'pagseguro' => [
+                'name' => 'PagBank (PagSeguro)',
+                'url' => 'https://pagseguro.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'compass' => [
+                'name' => 'Compass UOL',
+                'url' => 'https://compass.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'uoledtech' => [
+                'name' => 'UOL EdTech',
+                'url' => 'https://uoledtech.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'edgeuol' => [
+                'name' => 'Edge.UOL',
+                'url' => 'https://edgeuol.gupy.io/',
+                'technology_only' => true,
+            ],
         ],
     ],
 
