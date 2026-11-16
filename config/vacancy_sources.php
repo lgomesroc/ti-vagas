@@ -542,6 +542,40 @@ return [
             ],
         ],
     ],
+    'quickin' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'companies' => [
+            'sinqia' => [
+                'name' => 'Sinqia (Evertec Brasil)',
+                'url' => 'https://jobs.quickin.io/sinqia/jobs',
+            ],
+        ],
+    ],
+
+    'successfactors' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'companies' => [
+            'dafiti' => [
+                'name' => 'Dafiti',
+                'url' => 'https://career4.successfactors.com/career?company=Dafiti',
+            ],
+            'b3' => [
+                'name' => 'B3',
+                'url' => 'https://vagas.b3.com.br/viewalljobs/',
+            ],
+        ],
+    ],
+
+    'talentbrand' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'companies' => [
+            'vr-beneficios' => [
+                'name' => 'VR Benefícios',
+                'url' => 'https://app.talentbrand.com.br/c/vr-beneficios',
+            ],
+        ],
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
