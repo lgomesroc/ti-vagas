@@ -18,6 +18,9 @@ use App\Sources\PandapeSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
+use App\Sources\QuickinSource;
+use App\Sources\SuccessFactorsSource;
+use App\Sources\TalentbrandSource;
 use App\Sources\SolidesSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
@@ -310,6 +313,48 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+
+        $quickin = config('vacancy_sources.quickin', []);
+
+        foreach ($quickin['companies'] ?? [] as $companyKey => $company) {
+            $source = new QuickinSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $quickin['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $successFactors = config('vacancy_sources.successfactors', []);
+
+        foreach ($successFactors['companies'] ?? [] as $companyKey => $company) {
+            $source = new SuccessFactorsSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $successFactors['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $talentbrand = config('vacancy_sources.talentbrand', []);
+
+        foreach ($talentbrand['companies'] ?? [] as $companyKey => $company) {
+            $source = new TalentbrandSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $talentbrand['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
 
         $ownCareerPages = config('vacancy_sources.own_career_pages', []);
 
