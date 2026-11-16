@@ -13,6 +13,7 @@ use App\Sources\JobConvoSource;
 use App\Sources\LeverSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
+use App\Sources\OwnCareerPageSource;
 use App\Sources\PandapeSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
@@ -302,6 +303,21 @@ class VacancySourceFactory
                 caBundle: $solides['ca_bundle'] ?? null,
                 maxPages: (int) ($solides['max_pages'] ?? 20),
                 pageSize: (int) ($solides['page_size'] ?? 25),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+
+        $ownCareerPages = config('vacancy_sources.own_career_pages', []);
+
+        foreach ($ownCareerPages['companies'] ?? [] as $companyKey => $company) {
+            $source = new OwnCareerPageSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $ownCareerPages['ca_bundle'] ?? null,
                 locationFilter: $this->locationFilter,
             );
 
