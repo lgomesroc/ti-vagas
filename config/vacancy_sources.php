@@ -17,6 +17,8 @@ return [
             'systemiq' => 'Systemiq',
             'stone' => 'Stone',
             'blip-global' => 'Blip',
+            'xpinc' => 'XP Inc.',
+            'elo' => 'Elo Serviços S.A.',
             'inter' => 'Banco Inter',
         ],
     ],
@@ -67,6 +69,10 @@ return [
             ],
             'Flex' => [
                 'name' => 'Flex',
+                'region' => 'global',
+            ],
+            'bv' => [
+                'name' => 'Banco BV',
                 'region' => 'global',
             ],
             'bluelightconsulting' => [
@@ -126,6 +132,9 @@ return [
                 'name' => 'MJV Technology & Innovation',
             ],
 
+            'instacarro' => [
+                'name' => 'InstaCarro',
+            ],
             'bancopine' => [
                 'name' => 'Banco Pine',
             ],
@@ -293,6 +302,42 @@ return [
             'edgeuol' => [
                 'name' => 'Edge.UOL',
                 'url' => 'https://edgeuol.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vagas-youse' => [
+                'name' => 'Youse Seguros',
+                'url' => 'https://vagas-youse.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'cvccorp' => [
+                'name' => 'CVC Corp',
+                'url' => 'https://cvccorp.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'hurb' => [
+                'name' => 'Hurb',
+                'url' => 'https://hurb.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'intelipost' => [
+                'name' => 'Intelipost',
+                'url' => 'https://intelipost.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'porto' => [
+                'name' => 'Porto (Porto Seguro)',
+                'url' => 'https://porto.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vivo' => [
+                'name' => 'Vivo — Telefônica Brasil',
+                'url' => 'https://vivo.gupy.io/',
                 'technology_only' => true,
             ],
 
