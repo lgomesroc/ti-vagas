@@ -372,6 +372,55 @@ class WelcomeAcceptanceTest extends TestCase
             ->assertSessionHas('location_guard.locked_until');
     }
 
+
+    public function test_invalid_cookie_value_falls_back_to_a_valid_session_choice(): void
+    {
+        config(['app.google_analytics_id' => 'G-TEST123456']);
+
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'optional_cookies_choice' => 'accepted',
+            'location_mode' => 'limited',
+        ])->withCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE, 'invalid')
+            ->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('Preferências de cookies')
+            ->assertSee('googletagmanager.com')
+            ->assertSee('pagead2.googlesyndication.com');
+    }
+
+    public function test_valid_rejected_cookie_takes_precedence_over_accepted_session_choice(): void
+    {
+        config(['app.google_analytics_id' => 'G-TEST123456']);
+
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'optional_cookies_choice' => 'accepted',
+            'location_mode' => 'limited',
+        ])->withCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE, 'rejected')
+            ->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('Preferências de cookies')
+            ->assertDontSee('googletagmanager.com')
+            ->assertDontSee('pagead2.googlesyndication.com');
+    }
+
+    public function test_valid_accepted_cookie_takes_precedence_over_rejected_session_choice(): void
+    {
+        config(['app.google_analytics_id' => 'G-TEST123456']);
+
+        $this->withSession([
+            'terms_accepted_version' => EnsureWelcomeAccepted::TERMS_VERSION,
+            'optional_cookies_choice' => 'rejected',
+            'location_mode' => 'limited',
+        ])->withCookie(EnsureWelcomeAccepted::COOKIE_NOTICE_COOKIE, 'accepted')
+            ->get(route('vacancies.index'))
+            ->assertOk()
+            ->assertDontSee('Preferências de cookies')
+            ->assertSee('googletagmanager.com')
+            ->assertSee('pagead2.googlesyndication.com');
+    }
+
     private function assertNoStore($response): void
     {
         $cacheControl = (string) $response->headers->get('Cache-Control');
