@@ -416,6 +416,21 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+        $vagas = config('vacancy_sources.vagas', []);
+
+        foreach ($vagas['companies'] ?? [] as $companyKey => $company) {
+            $source = new VagasSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $vagas['ca_bundle'] ?? null,
+                maxJobs: (int) ($vagas['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         return $sources;
     }
 
