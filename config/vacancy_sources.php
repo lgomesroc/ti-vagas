@@ -117,6 +117,10 @@ return [
             'grupofour' => [
                 'name' => 'Uhuu / Grupo Four',
             ],
+
+            'amaro' => [
+                'name' => 'AMARO',
+            ],
         ],
     ],
 
