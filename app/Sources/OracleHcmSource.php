@@ -11,8 +11,6 @@ use RuntimeException;
 
 class OracleHcmSource implements VacancySource
 {
-    private const BASE_URL = 'https://iaziqy.fa.ocs.oraclecloud.com';
-
     private const PAGE_SIZE = 100;
 
     private readonly VacancyLocationFilter $locationFilter;
@@ -20,6 +18,7 @@ class OracleHcmSource implements VacancySource
     public function __construct(
         private readonly string $siteNumber,
         private readonly string $siteName,
+        private readonly string $baseUrl,
         private readonly string $companyName,
         private readonly ?string $caBundle = null,
         private readonly int $maxJobs = 1000,
@@ -46,7 +45,7 @@ class OracleHcmSource implements VacancySource
                 $this->maxJobs - $processed
             );
 
-            $url = self::BASE_URL .
+            $url = rtrim($this->baseUrl, '/') .
                 '/hcmRestApi/resources/latest/recruitingCEJobRequisitions' .
                 '?onlyData=true' .
                 '&expand=requisitionList' .
@@ -130,7 +129,7 @@ class OracleHcmSource implements VacancySource
 
     private function fetchDetails(string $id): ?array
     {
-        $url = self::BASE_URL .
+        $url = rtrim($this->baseUrl, '/') .
             '/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails' .
             '?onlyData=true' .
             '&finder=ById;Id="' . rawurlencode($id) .
@@ -346,7 +345,7 @@ class OracleHcmSource implements VacancySource
 
     private function buildApplicationUrl(string $id): string
     {
-        return self::BASE_URL .
+        return rtrim($this->baseUrl, '/') .
             '/hcmUI/CandidateExperience/en/sites/' .
             rawurlencode($this->siteName) .
             '/job/' . rawurlencode($id);
