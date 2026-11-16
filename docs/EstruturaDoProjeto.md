@@ -1,22 +1,17 @@
 # Estrutura do Projeto
 
-Árvore dos diretórios e arquivos versionados na branch `developer`, acrescida dos documentos criados nesta branch. Os nomes são apresentados como estão registrados no repositório e os itens de cada diretório estão em ordem alfabética.
+Árvore dos diretórios e arquivos versionados na branch `developer`, acrescida dos documentos desta branch. Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois aparecem os arquivos, também em ordem alfabética**. A regra é aplicada recursivamente.
 
 ```text
-├── .editorconfig
-├── .env.example
-├── .gitattributes
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
 │       └── vacancies.yml
-├── .gitignore
-├── .npmrc
-├── AGENTS.md
 ├── app/
 │   ├── Console/
 │   │   └── Commands/
 │   │       ├── CheckNetwork.php
+│   │       ├── CheckVacancyLinks.php
 │   │       ├── CollectVacancies.php
 │   │       ├── ImportIbgeGeography.php
 │   │       ├── PruneExpiredVacancies.php
@@ -33,6 +28,7 @@
 │   │   │   ├── VacancyController.php
 │   │   │   └── WelcomeController.php
 │   │   └── Middleware/
+│   │       ├── CaptureUtmParameters.php
 │   │       ├── EnsureWelcomeAccepted.php
 │   │       ├── EvaluateNetworkReputation.php
 │   │       └── RejectLocationOverrides.php
@@ -42,29 +38,29 @@
 │   │   ├── Job.php
 │   │   ├── Municipality.php
 │   │   ├── User.php
-│   │   └── Vacancy.php
+│   │   ├── Vacancy.php
+│   │   └── VacancyAvailabilityCheck.php
 │   ├── Providers/
 │   │   └── AppServiceProvider.php
 │   ├── Services/
 │   │   ├── Geo/
-│   │   │   ├── IbgeGeographyImporter.php
-│   │   │   ├── IpLocationResolver.php
-│   │   │   ├── MunicipalityDirectory.php
-│   │   │   ├── RegionScope.php
 │   │   │   ├── Security/
 │   │   │   │   ├── LocationAssessment.php
 │   │   │   │   ├── LocationGuard.php
 │   │   │   │   ├── LocationProof.php
 │   │   │   │   ├── LocationSample.php
 │   │   │   │   └── LocationSpoofingDetector.php
+│   │   │   ├── IbgeGeographyImporter.php
+│   │   │   ├── IpLocationResolver.php
+│   │   │   ├── MunicipalityDirectory.php
+│   │   │   ├── RegionScope.php
 │   │   │   ├── VacancyLocationResolver.php
 │   │   │   └── VisitorLocationResolver.php
-│   │   ├── GeoLocationNormalizer.php
 │   │   ├── Network/
-│   │   │   ├── AbuseTracker.php
 │   │   │   ├── Detectors/
 │   │   │   │   ├── AbuseIpDbDetector.php
 │   │   │   │   └── ListDetector.php
+│   │   │   ├── AbuseTracker.php
 │   │   │   ├── IpFingerprint.php
 │   │   │   ├── IpListStore.php
 │   │   │   ├── IpRangeSet.php
@@ -76,8 +72,10 @@
 │   │   │   ├── NetworkPolicy.php
 │   │   │   ├── NetworkSignal.php
 │   │   │   └── SignalConfidence.php
+│   │   ├── GeoLocationNormalizer.php
 │   │   ├── VacancyAvailabilityDetector.php
 │   │   ├── VacancyImporter.php
+│   │   ├── VacancyLinkChecker.php
 │   │   ├── VacancyLocationFilter.php
 │   │   └── VacancySourceFactory.php
 │   └── Sources/
@@ -99,15 +97,11 @@
 │       ├── WorkableSource.php
 │       ├── WorkdaySource.php
 │       └── ZohoRecruitSource.php
-├── artisan
 ├── bootstrap/
-│   ├── app.php
 │   ├── cache/
 │   │   └── .gitignore
+│   ├── app.php
 │   └── providers.php
-├── CLAUDE.md
-├── composer.json
-├── composer.lock
 ├── config/
 │   ├── app.php
 │   ├── auth.php
@@ -124,7 +118,6 @@
 │   ├── session.php
 │   └── vacancy_sources.php
 ├── database/
-│   ├── .gitignore
 │   ├── data/
 │   │   └── municipios.csv
 │   ├── factories/
@@ -136,11 +129,12 @@
 │   │   ├── 2026_11_03_144228_create_jobs_table.php
 │   │   ├── 2026_11_08_000001_add_geographic_fields_to_vacancies.php
 │   │   ├── 2026_11_10_000001_create_municipalities_table.php
-│   │   └── 2026_11_10_000002_create_geography_import_status_table.php
-│   └── seeders/
-│       ├── DatabaseSeeder.php
-│       └── VacancySeeder.php
-├── Dockerfile
+│   │   ├── 2026_11_10_000002_create_geography_import_status_table.php
+│   │   └── 2026_11_14_220000_add_vacancy_availability_monitoring.php
+│   ├── seeders/
+│   │   ├── DatabaseSeeder.php
+│   │   └── VacancySeeder.php
+│   └── .gitignore
 ├── docs/
 │   ├── ArquiteturaEFluxoDeDados.md
 │   ├── AutomacaoETestes.md
@@ -152,14 +146,12 @@
 │   ├── RegrasDeElegibilidade.md
 │   ├── SegurancaDeRedeELocalizacao.md
 │   └── VisaoGeralDaAplicacao.md
-├── package.json
-├── phpunit.xml
 ├── public/
 │   ├── .htaccess
 │   ├── favicon.ico
+│   ├── favicon.svg
 │   ├── index.php
 │   └── robots.txt
-├── render.yaml
 ├── resources/
 │   ├── css/
 │   │   └── app.css
@@ -181,25 +173,25 @@
 │   └── web.php
 ├── storage/
 │   ├── app/
-│   │   ├── .gitignore
 │   │   ├── private/
 │   │   │   └── .gitignore
-│   │   └── public/
-│   │       └── .gitignore
+│   │   ├── public/
+│   │   │   └── .gitignore
+│   │   └── .gitignore
 │   ├── framework/
-│   │   ├── .gitignore
 │   │   ├── cache/
-│   │   │   ├── .gitignore
 │   │   │   ├── data/
 │   │   │   │   └── .gitignore
-│   │   │   └── locks/
-│   │   │       └── .gitignore
+│   │   │   ├── locks/
+│   │   │   │   └── .gitignore
+│   │   │   └── .gitignore
 │   │   ├── sessions/
 │   │   │   └── .gitignore
 │   │   ├── testing/
 │   │   │   └── .gitignore
-│   │   └── views/
-│   │       └── .gitignore
+│   │   ├── views/
+│   │   │   └── .gitignore
+│   │   └── .gitignore
 │   └── logs/
 │       └── .gitignore
 ├── tests/
@@ -232,24 +224,40 @@
 │   │   ├── RegionalizationTest.php
 │   │   ├── SensediaSourceTest.php
 │   │   ├── TotvsAtsSourceTest.php
+│   │   ├── UtmAttributionTest.php
 │   │   ├── VacancyControllerTest.php
 │   │   ├── VacancyImporterTest.php
+│   │   ├── VacancyLinkCheckerTest.php
 │   │   ├── WelcomeAcceptanceTest.php
 │   │   ├── WorkableSourceTest.php
 │   │   ├── WorkdaySourceTest.php
 │   │   └── ZohoRecruitSourceTest.php
-│   ├── TestCase.php
-│   └── Unit/
-│       ├── ExampleTest.php
-│       ├── GeoLocationNormalizerTest.php
-│       ├── IpRangeSetTest.php
-│       ├── ListParserTest.php
-│       ├── LocationProofTest.php
-│       ├── LocationSpoofingDetectorTest.php
-│       ├── NetworkPolicyTest.php
-│       ├── VacancyAvailabilityDetectorCoverageTest.php
-│       ├── VacancyAvailabilityDetectorTest.php
-│       └── VacancyLocationFilterTest.php
+│   ├── Unit/
+│   │   ├── ExampleTest.php
+│   │   ├── GeoLocationNormalizerTest.php
+│   │   ├── IpRangeSetTest.php
+│   │   ├── ListParserTest.php
+│   │   ├── LocationProofTest.php
+│   │   ├── LocationSpoofingDetectorTest.php
+│   │   ├── NetworkPolicyTest.php
+│   │   ├── VacancyAvailabilityDetectorCoverageTest.php
+│   │   ├── VacancyAvailabilityDetectorTest.php
+│   │   └── VacancyLocationFilterTest.php
+│   └── TestCase.php
+├── .editorconfig
+├── .env.example
+├── .gitattributes
+├── .gitignore
+├── .npmrc
+├── AGENTS.md
+├── artisan
+├── CLAUDE.md
+├── composer.json
+├── composer.lock
+├── Dockerfile
+├── package.json
+├── phpunit.xml
+├── render.yaml
 └── vite.config.js
 ```
 

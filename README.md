@@ -14,7 +14,7 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
-| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa de diretórios e arquivos versionados, em ordem alfabética. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
 
 O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
 
@@ -26,6 +26,12 @@ O **TI Vagas** é um portal independente de oportunidades profissionais na área
 O projeto reúne anúncios publicados em diferentes empresas e plataformas de recrutamento, aplicando critérios automatizados de área profissional, senioridade, experiência, localização e modalidade de trabalho.
 
 O objetivo é facilitar a busca por oportunidades em desenvolvimento de software, infraestrutura, DevOps, redes e suporte técnico.
+
+## Consentimento e atribuição de campanhas
+
+O aceite dos termos e a preferência sobre cookies não essenciais são registrados separadamente. A escolha de rejeitar cookies não essenciais não impede o uso do portal; nesse caso, os códigos do Google Analytics e do Google AdSense não são carregados. A escolha positiva permite o carregamento dessas ferramentas conforme a implementação atual.
+
+O middleware `CaptureUtmParameters` registra na sessão a primeira origem de campanha identificada pelos parâmetros UTM suportados. Os valores são sanitizados e limitados; atribuições posteriores não substituem a primeira origem durante a mesma sessão. O envio desses dados ao Google Analytics depende do consentimento para cookies não essenciais.
 
 ## Objetivo do projeto
 
