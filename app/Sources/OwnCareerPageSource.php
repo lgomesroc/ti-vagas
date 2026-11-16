@@ -285,6 +285,9 @@ class OwnCareerPageSource implements VacancySource
         $description = $this->cleanText(
             $container?->textContent ?? $heading->textContent
         );
+        $vacancyHtml = $container !== null
+            ? (new DOMDocument('1.0', 'UTF-8'))->saveHTML($container)
+            : '';
 
         if ($title === '' || mb_strlen($description) < 100) {
             return null;
@@ -292,7 +295,13 @@ class OwnCareerPageSource implements VacancySource
 
         // Verifica primeiro a própria página e seus metadados; se existir
         // uma URL individual descoberta, ela também já foi consultada acima.
-        $publishedAt = $this->extractPublicationDate($pageUrl, [], $html);
+        // Examina somente o bloco da oportunidade. Metadados globais da
+        // página podem representar a publicação do site, não desta vaga.
+        $publishedAt = $this->extractPublicationDate(
+            $pageUrl,
+            [],
+            $vacancyHtml
+        );
 
         if ($publishedAt === null) {
             Log::warning('Talklink: vaga Suporte Técnico ao Cliente encontrada, mas sem data original de publicação verificável.', [
@@ -301,7 +310,9 @@ class OwnCareerPageSource implements VacancySource
             return null;
         }
 
-        $location = 'Rio Claro, SP, Brasil';
+        // O endereço da empresa no rodapé não comprova o local de trabalho
+        // desta vaga; não inferir a localização a partir dele.
+        $location = '';
         $workModel = $this->locationFilter->classifyWorkModel(
             $title,
             $location,
