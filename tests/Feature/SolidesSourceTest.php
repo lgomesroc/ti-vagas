@@ -67,11 +67,14 @@ class SolidesSourceTest extends TestCase
         $this->assertSame('Presencial', $vacancies[0]['work_model']);
         $this->assertSame('CLT', $vacancies[0]['employment_type']);
         $this->assertSame('R$ 1.600 - R$ 2.200', $vacancies[0]['salary']);
+
         $this->assertSame(
-            now()->subDays(10)->startOfDay()->toIso8601String(),
+            now('UTC')->subDays(10)->startOfDay()->toIso8601String(),
             $vacancies[0]['original_published_at']
         );
+
         $this->assertStringContainsString('Suporte TI', $vacancies[0]['description']);
+
         Http::assertSentCount(1);
     }
 
