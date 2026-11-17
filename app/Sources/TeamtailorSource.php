@@ -162,11 +162,12 @@ class TeamtailorSource implements VacancySource
             ? 'Brasil (remoto)'
             : implode(' / ', array_values(array_unique(array_filter(
                 array_map(
-                    fn (array $location): string => implode(', ', array_filter([
-                        $location['city'],
-                        $location['country'],
-                        $location['name'],
-                    ])),
+                    fn (array $location): string => $location['name'] !== ''
+                        ? $location['name']
+                        : implode(', ', array_filter([
+                            $location['city'],
+                            $location['country'],
+                        ])),
                     $locations
                 )
             ))));
