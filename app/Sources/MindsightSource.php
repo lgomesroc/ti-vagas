@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Sources;
+namespace App\Sources;
 
-use App\\Contracts\\VacancySource;
-use App\\Services\\VacancyLocationFilter;
-use Carbon\\CarbonImmutable;
+use App\Contracts\\VacancySource;
+use App\Services\\VacancyLocationFilter;
+use Carbon\CarbonImmutable;
 use DOMDocument;
 use DOMXPath;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use Illuminate\Support\\Facades\\Http;
+use Illuminate\Support\\Str;
 use RuntimeException;
 use Throwable;
 
