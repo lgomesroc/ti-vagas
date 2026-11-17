@@ -47,5 +47,8 @@ jobs:
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Aplicar migrações pendentes
+        run: php artisan migrate
+
       - name: Coletar publicações públicas do LinkedIn
         run: php artisan linkedin:collect-posts
