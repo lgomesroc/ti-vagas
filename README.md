@@ -159,9 +159,10 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
+| Portal próprio / API SYDLE ONE | LEVTY |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
 
-A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
 ### Agregadores de vagas
 
