@@ -225,6 +225,11 @@ return [
                 'name' => 'Adecco',
                 'url' => 'https://adecco.pandape.infojobs.com.br/',
             ],
+
+            'minsaitbrasil' => [
+                'name' => 'Minsait Brasil',
+                'url' => 'https://minsaitbrasil.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
