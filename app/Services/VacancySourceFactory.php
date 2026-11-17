@@ -12,6 +12,7 @@ use App\Sources\InhireSource;
 use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
+use App\Sources\LevtySource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\OwnCareerPageSource;
@@ -427,6 +428,15 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+        $levty = config('vacancy_sources.levty', []);
+
+        $levtySource = new LevtySource(
+            caBundle: $levty['ca_bundle'] ?? null,
+            maxJobs: (int) ($levty['max_jobs'] ?? 500),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$levtySource->name()] = $levtySource;
 
         $vagas = config('vacancy_sources.vagas', []);
 
