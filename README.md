@@ -179,7 +179,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
 | Recrut.ai | Grupo Bamaq |
-| Pandapé | FIESC, SONDA IT e Adecco |
+| Pandapé | FIESC, SONDA IT, Adecco e Minsait Brasil |
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
