@@ -133,6 +133,16 @@ return [
                 'url' => 'https://vempraclaro.gupy.io/',
             ],
 
+            'globalhitss' => [
+                'name' => 'Global Hitss',
+                'url' => 'https://globalhitss.gupy.io/',
+            ],
+
+            'brasilcenter' => [
+                'name' => 'Brasil Center (BCC)',
+                'url' => 'https://vemprabcc.gupy.io/',
+            ],
+
             'azzas' => [
                 'name' => 'AZZAS 2154',
                 'url' => 'https://azzasfashion.gupy.io/',
