@@ -28,6 +28,7 @@ use App\Sources\TalentbrandSource;
 use App\Sources\BizneoSource;
 use App\Sources\BtgPactualSource;
 use App\Sources\SolidesSource;
+use App\Sources\SmartRecruitersSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
