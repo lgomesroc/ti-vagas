@@ -37,6 +37,14 @@ return [
                 'locale' => 'pt-BR',
                 'name' => 'PwC',
             ],
+
+            'abcfitness' => [
+                'host' => 'abcfinancial.wd5.myworkdayjobs.com',
+                'tenant' => 'abcfinancial',
+                'site' => 'ABCFinancialServices',
+                'locale' => '',
+                'name' => 'ABC Fitness',
+            ],
         ],
     ],
 
