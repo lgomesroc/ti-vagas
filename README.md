@@ -164,7 +164,7 @@ A configuração efetiva de cada empresa e plataforma está em `config/vacancy_s
 
 ### Agregadores de vagas
 
-Até esta implementação, DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta** do TI Vagas. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
+O RJ Empregos está integrado como agregador via feed RSS público. O coletor percorre as publicações recentes, preserva a data original do feed e só importa anúncios cuja página apresente um link externo direto de candidatura. Links internos do próprio RJ Empregos, redirecionamentos sem destino verificável e anúncios sem data original são descartados. Como o portal divulga vagas de diferentes áreas e níveis, os critérios gerais do TI Vagas continuam responsáveis por selecionar o que será exibido ao público.\n\nDEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta**. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
 
 A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
 
