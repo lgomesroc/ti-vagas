@@ -46,6 +46,20 @@ class VacancySourceFactory
     {
         $sources = [];
 
+        $smartRecruiters = config('vacancy_sources.smartrecruiters', []);
+
+        foreach ($smartRecruiters['companies'] ?? [] as $identifier => $company) {
+            $source = new SmartRecruitersSource(
+                companyIdentifier: $identifier,
+                companyName: $company['name'] ?? $identifier,
+                caBundle: $smartRecruiters['ca_bundle'] ?? null,
+                maxJobs: (int) ($smartRecruiters['max_jobs'] ?? 500),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $greenhouse = config('vacancy_sources.greenhouse', []);
 
         foreach ($greenhouse['companies'] ?? [] as $board => $company) {
