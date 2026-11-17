@@ -104,6 +104,18 @@ return [
         'max_jobs' => 200,
     ],
 
+    'teamtailor' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'abgi' => [
+                'name' => 'ABGi Consulting',
+                'feed_url' => 'https://jobs.abgi-consulting.com/jobs.rss',
+            ],
+        ],
+    ],
+
     'workable' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
