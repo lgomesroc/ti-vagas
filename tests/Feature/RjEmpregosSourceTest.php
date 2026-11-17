@@ -12,7 +12,7 @@ class RjEmpregosSourceTest extends TestCase
     public function test_it_collects_a_post_and_preserves_the_original_external_application_url(): void
     {
         Http::fake([
-            'rjempregos.net/feed/*' => Http::response($this->feed(), 200, ['Content-Type' => 'application/rss+xml']),
+            'rjempregos.net/feed*' => Http::response($this->feed(), 200, ['Content-Type' => 'application/rss+xml']),
             'rjempregos.net/vagasrio/*' => Http::response($this->article('https://qualitydigital.gupy.io/jobs/12869427'), 200),
         ]);
 
@@ -29,7 +29,7 @@ class RjEmpregosSourceTest extends TestCase
     public function test_it_ignores_posts_without_a_direct_external_application_link(): void
     {
         Http::fake([
-            'rjempregos.net/feed/*' => Http::response($this->feed(), 200),
+            'rjempregos.net/feed*' => Http::response($this->feed(), 200),
             'rjempregos.net/vagasrio/*' => Http::response($this->article('https://rjempregos.net/vagasrio/redirect/'), 200),
         ]);
 
@@ -42,7 +42,7 @@ class RjEmpregosSourceTest extends TestCase
         $feed = str_replace('<pubDate>Thu, 12 Nov 2026 11:43:00 +0000</pubDate>', '<pubDate></pubDate>', $this->feed());
 
         Http::fake([
-            'rjempregos.net/feed/*' => Http::response($feed, 200),
+            'rjempregos.net/feed*' => Http::response($feed, 200),
         ]);
 
         $source = new RjEmpregosSource();
@@ -96,7 +96,7 @@ XML;
       <p>Descrição da vaga: Desenvolvimento de APIs e aplicações PHP.</p>
       <p>Requisitos: PHP e Laravel.</p>
       <p>Regime de contratação: Efetivo</p>
-      <p>Local: Home Office</p>
+      <p>Local: Home Office - Brasil</p>
       <a href="{$applicationUrl}">Candidatar-se no site da empresa</a>
     </div>
   </article>
