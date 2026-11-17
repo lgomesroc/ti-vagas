@@ -30,6 +30,8 @@ jobs:
       QUEUE_CONNECTION: database
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+      MOJEEK_SEARCH_API_KEY: ${{ secrets.MOJEEK_SEARCH_API_KEY }}
 
     steps:
       - name: Checkout
@@ -48,7 +50,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Aplicar migrações pendentes
-        run: php artisan migrate --force
+        run: php artisan migrate
 
       - name: Coletar publicações públicas do LinkedIn
         run: php artisan linkedin:collect-posts
