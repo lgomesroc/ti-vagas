@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\VacancyLocationFilter;
-use App\\Sources\\MindsightSource;
-use Illuminate\\Support\\Facades\\Http;
+use App\Services\\VacancyLocationFilter;
+use App\Sources\\MindsightSource;
+use Illuminate\Support\\Facades\\Http;
 use Mockery;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class MindsightSourceTest extends TestCase
 {
@@ -89,6 +89,7 @@ class MindsightSourceTest extends TestCase
             'props' => [
                 'pageProps' => [
                     'job' => [
+                        '@type' => 'JobPosting',
                         'title' => 'Analista de Suporte Júnior',
                         'description' => '<p>Atendimento e suporte técnico.</p>',
                         'datePosted' => '2026-11-11',
