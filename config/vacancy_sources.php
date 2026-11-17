@@ -706,6 +706,13 @@ return [
         ],
     ],
 
+    'rjempregos' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'base_url' => 'https://rjempregos.net',
+        'max_pages' => 5,
+        'max_jobs' => 50,
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
