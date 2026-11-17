@@ -140,6 +140,11 @@ return [
                 'name' => 'Quality Digital',
                 'url' => 'https://qualitydigital.gupy.io/',
             ],
+
+            'vempranexdom' => [
+                'name' => 'NEXDOM Healthtech',
+                'url' => 'https://vempranexdom.gupy.io/',
+            ],
         ],
     ],
 
