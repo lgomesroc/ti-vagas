@@ -263,11 +263,11 @@ class TeamtailorSource implements VacancySource
             $content
         );
 
-        $content = preg_replace('/<\\s*li\\b[^>]*>/i', "\\n- ", $content);
+        $content = preg_replace('/<\\s*li\\b[^>]*>/i', "\n- ", $content);
         $content = strip_tags($content);
         $content = preg_replace('/[ \\t]+/', ' ', $content);
         $content = preg_replace('/ *\\n */', "\n", $content);
-        $content = preg_replace('/\\n{3,}/', "\\n\\n", $content);
+        $content = preg_replace('/\\n{3,}/', "\n\\n", $content);
 
         return trim($content);
     }
