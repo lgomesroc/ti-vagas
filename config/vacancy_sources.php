@@ -202,6 +202,11 @@ return [
                 'name' => 'Grupo Bamaq',
                 'domain' => 'grupobamaq.jobs.recrut.ai',
             ],
+
+            'tpfengenharia' => [
+                'name' => 'TPF Engenharia',
+                'domain' => 'tpfengenharia.jobs.recrut.ai',
+            ],
         ],
     ],
 
