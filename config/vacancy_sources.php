@@ -157,6 +157,10 @@ return [
                 'name' => 'Riachuelo',
             ],
 
+            'alun' => [
+                'name' => 'FIAP / Alura / PM3',
+            ],
+
         ],
     ],
 
