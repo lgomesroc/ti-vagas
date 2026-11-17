@@ -328,6 +328,7 @@ return [
             'vemproitau' => [
                 'name' => 'Itaú',
                 'url' => 'https://vemproitau.gupy.io/',
+                'career_page_url' => 'https://carreiras.itau.com.br/',
                 'technology_only' => true,
             ],
 
@@ -781,11 +782,6 @@ return [
             'colmeia-fortaleza' => [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
-            ],
-
-            'itau-carreiras' => [
-                'name' => 'Itaú',
-                'url' => 'https://carreiras.itau.com.br/',
             ],
 
         ],
