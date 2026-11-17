@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\TeamtailorSource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Sources\TeamtailorSource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class TeamtailorSourceTest extends TestCase
 {
