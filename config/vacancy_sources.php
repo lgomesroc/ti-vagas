@@ -173,6 +173,10 @@ return [
                 'name' => 'FIAP / Alura / PM3',
             ],
 
+            'avenue' => [
+                'name' => 'Avenue',
+            ],
+
         ],
     ],
 
