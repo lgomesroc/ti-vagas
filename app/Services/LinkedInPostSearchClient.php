@@ -221,7 +221,7 @@ class LinkedInPostSearchClient
         if (str_ends_with($host, 'duckduckgo.com')) {
             parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
             if (isset($query['uddg']) && is_string($query['uddg'])) {
-                return rawurldecode($query['uddg']);
+                return $query['uddg'];
             }
         }
 
