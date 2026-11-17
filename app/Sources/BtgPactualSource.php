@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Sources;
+namespace App\Sources;
 
-use App\\Contracts\\VacancySource;
-use App\\Services\\VacancyLocationFilter;
-use Illuminate\\Support\\Facades\\Http;
+use App\Contracts\VacancySource;
+use App\Services\VacancyLocationFilter;
+use Illuminate\Support\Facades\Http;
 
 class BtgPactualSource implements VacancySource
 {
