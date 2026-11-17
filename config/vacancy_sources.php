@@ -754,4 +754,13 @@ return [
         ],
     ],
 
+    'smartrecruiters' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 500,
+        'companies' => [
+            // Use o identificador no endereço:
+            // https://careers.smartrecruiters.com/{companyIdentifier}
+        ],
+    ],
+
 ];
