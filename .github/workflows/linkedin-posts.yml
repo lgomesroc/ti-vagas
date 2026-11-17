@@ -50,7 +50,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Aplicar migrações pendentes
-        run: php artisan migrate
+        run: php artisan migrate --force
 
       - name: Coletar publicações públicas do LinkedIn
         run: php artisan linkedin:collect-posts
