@@ -125,6 +125,21 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+        $mindsight = config('vacancy_sources.mindsight', []);
+
+        foreach ($mindsight['companies'] ?? [] as $tenant => $company) {
+            $source = new MindsightSource(
+                tenant: $tenant,
+                companyName: $company['name'] ?? $tenant,
+                baseUrl: $company['url'],
+                caBundle: $mindsight['ca_bundle'] ?? null,
+                maxJobs: (int) ($mindsight['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $gupy = config('vacancy_sources.gupy', []);
 
         foreach ($gupy['companies'] ?? [] as $subdomain => $company) {
