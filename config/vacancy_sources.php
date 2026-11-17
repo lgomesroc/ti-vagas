@@ -106,6 +106,18 @@ return [
         ],
     ],
 
+    'mindsight' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'guidance' => [
+                'name' => 'Guidance',
+                'url' => 'https://oportunidades.mindsight.com.br/guidance',
+            ],
+        ],
+    ],
+
     'gupy' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
