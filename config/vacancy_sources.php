@@ -712,6 +712,11 @@ return [
         'max_jobs' => 50,
     ],
 
+    'levty' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 500,
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
