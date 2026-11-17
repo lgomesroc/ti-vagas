@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\VacancySourceFactory;
-use App\\Sources\\RjEmpregosSource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Services\VacancySourceFactory;
+use App\Sources\RjEmpregosSource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class RjEmpregosSourceTest extends TestCase
 {
