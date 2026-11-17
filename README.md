@@ -160,6 +160,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
 | Portal próprio / API SYDLE ONE | LEVTY |\n| SmartRecruiters | Empresas configuradas em `config/vacancy_sources.php` |
+| Cornerstone CSOD | Bradesco |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
 
 A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
