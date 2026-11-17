@@ -738,7 +738,7 @@ return [
         'max_jobs' => 500,
     ],
 
-    'csod' => [
+    'bradesco_csod' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 500,
         'companies' => [
