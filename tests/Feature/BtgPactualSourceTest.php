@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\VacancySourceFactory;
-use App\\Services\\VacancyLocationFilter;
-use App\\Sources\\BtgPactualSource;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Services\VacancySourceFactory;
+use App\Services\VacancyLocationFilter;
+use App\Sources\BtgPactualSource;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class BtgPactualSourceTest extends TestCase
 {
