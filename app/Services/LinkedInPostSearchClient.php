@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -9,10 +10,13 @@ use Throwable;
 
 class LinkedInPostSearchClient
 {
+    private const LINKEDIN_QUERY = '(site:linkedin.com/posts OR site:linkedin.com/feed/update)';
+
     /**
-     * Pesquisa publicações públicas indexadas pelo Bing RSS.
+     * Combina resultados de DuckDuckGo, Brave Search e Mojeek.
      *
-     * Não utiliza API paga, login, senha ou cookies do LinkedIn.
+     * Brave e Mojeek usam suas APIs oficiais e exigem chaves configuradas.
+     * DuckDuckGo usa a página HTML pública de resultados.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -24,123 +28,179 @@ class LinkedInPostSearchClient
         )));
 
         if ($keywords === []) {
-            throw new RuntimeException(
-                'Nenhuma palavra-chave do LinkedIn foi configurada.'
-            );
+            throw new RuntimeException('Nenhuma palavra-chave do LinkedIn foi configurada.');
         }
 
         $posts = [];
 
         foreach ($keywords as $keyword) {
-            $query = '(site:linkedin.com/posts OR site:linkedin.com/feed/update) '
-                . '"' . $keyword . '"';
+            $query = self::LINKEDIN_QUERY . ' "' . $keyword . '"';
 
-            try {
-                $response = Http::withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
-                    'Accept' => 'application/rss+xml, application/xml, text/xml',
-                    'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
-                ])
-                    ->timeout(20)
-                    ->get('https://www.bing.com/search', [
-                        'q' => $query,
-                        'format' => 'rss',
-                        'setlang' => 'pt-BR',
-                    ]);
-
-                if (!$response->successful()) {
+            foreach ([
+                fn () => $this->searchDuckDuckGo($query, $keyword),
+                fn () => $this->searchBrave($query, $keyword),
+                fn () => $this->searchMojeek($query, $keyword),
+            ] as $searchProvider) {
+                try {
+                    foreach ($searchProvider() as $post) {
+                        $url = $post['postUrl'];
+                        if (!isset($posts[$url])) {
+                            $posts[$url] = $post;
+                        } else {
+                            $providers = $posts[$url]['searchProviders'] ?? [
+                                $posts[$url]['searchProvider'],
+                            ];
+                            $providers[] = $post['searchProvider'];
+                            $posts[$url]['searchProviders'] = array_values(array_unique($providers));
+                        }
+                    }
+                } catch (Throwable) {
+                    // Falha de um buscador não interrompe os demais.
                     continue;
                 }
-
-                foreach ($this->parseResults($response->body(), $keyword) as $post) {
-                    $posts[$post['postUrl']] = $post;
-                }
-            } catch (Throwable) {
-                // Uma consulta indisponível não impede as demais.
-                continue;
             }
 
-            usleep(700000);
+            usleep(500000);
         }
 
         return array_values($posts);
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function parseResults(string $xml, string $keyword): array
+    /** @return array<int, array<string, mixed>> */
+    private function searchDuckDuckGo(string $query, string $keyword): array
+    {
+        $response = Http::withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
+            'Accept' => 'text/html,application/xhtml+xml',
+            'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
+        ])->timeout(20)->get('https://html.duckduckgo.com/html/', [
+            'q' => $query,
+            'kl' => 'br-pt',
+        ]);
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        return $this->parseDuckDuckGoHtml($response->body(), $keyword);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function searchBrave(string $query, string $keyword): array
+    {
+        $apiKey = trim((string) config('linkedin.brave_api_key'));
+        if ($apiKey === '') {
+            return [];
+        }
+
+        $response = Http::withHeaders([
+            'X-Subscription-Token' => $apiKey,
+            'Accept' => 'application/json',
+            'Accept-Encoding' => 'gzip',
+        ])->timeout(20)->get('https://api.search.brave.com/res/v1/web/search', [
+            'q' => $query,
+            'country' => 'BR',
+            'search_lang' => 'pt',
+            'ui_lang' => 'pt-BR',
+            'freshness' => 'pw',
+            'count' => 20,
+        ]);
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $results = $response->json('web.results', []);
+
+        return $this->normalizeApiResults(
+            is_array($results) ? $results : [],
+            $keyword,
+            'brave-api',
+            'url',
+            'title',
+            'description'
+        );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function searchMojeek(string $query, string $keyword): array
+    {
+        $apiKey = trim((string) config('linkedin.mojeek_api_key'));
+        if ($apiKey === '') {
+            return [];
+        }
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'User-Agent' => 'TIVagas/1.0',
+        ])->timeout(20)->get('https://www.mojeek.com/search', [
+            'api_key' => $apiKey,
+            'q' => $query,
+            'fmt' => 'json',
+            't' => 20,
+            'rb' => 'BR',
+            'lb' => 'PT',
+            'dlen' => 511,
+        ]);
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $results = $response->json('response.results', []);
+
+        return $this->normalizeApiResults(
+            is_array($results) ? $results : [],
+            $keyword,
+            'mojeek-api',
+            'url',
+            'title',
+            'desc',
+            true
+        );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function parseDuckDuckGoHtml(string $html, string $keyword): array
     {
         if (!class_exists(\DOMDocument::class)) {
-            throw new RuntimeException(
-                'A extensão PHP DOM/XML é necessária para ler os resultados.'
-            );
+            throw new RuntimeException('A extensão PHP DOM/XML é necessária para ler os resultados.');
         }
 
         $previous = libxml_use_internal_errors(true);
 
         try {
             $document = new \DOMDocument();
-
-            if (!$document->loadXML($xml)) {
+            if (!$document->loadHTML($html)) {
                 return [];
             }
 
             $xpath = new \DOMXPath($document);
-            $nodes = $xpath->query('//item');
-
+            $nodes = $xpath->query('//a[contains(concat(" ", normalize-space(@class), " "), " result__a ")]');
             $results = [];
 
             foreach ($nodes ?: [] as $node) {
-                $title = trim(
-                    $xpath->query('./title', $node)?->item(0)?->textContent ?? ''
+                $url = $this->resolveDuckDuckGoUrl(
+                    trim($node->getAttribute('href'))
                 );
 
-                $url = trim(
-                    $xpath->query('./link', $node)?->item(0)?->textContent ?? ''
+                $container = $node->parentNode?->parentNode;
+                $snippetNode = $container instanceof \DOMNode
+                    ? $xpath->query('.//*[contains(concat(" ", normalize-space(@class), " "), " result__snippet ")]', $container)?->item(0)
+                    : null;
+                $snippet = trim($snippetNode?->textContent ?? '');
+
+                $post = $this->makePost(
+                    $url,
+                    trim($node->textContent),
+                    $snippet,
+                    $keyword,
+                    'duckduckgo-html'
                 );
 
-                $snippet = trim(
-                    $xpath->query('./description', $node)?->item(0)?->textContent ?? ''
-                );
-
-                $pubDate = trim(
-                    $xpath->query('./pubDate', $node)?->item(0)?->textContent ?? ''
-                );
-
-                if (!$this->isLinkedInPostUrl($url)) {
-                    continue;
+                if ($post !== null) {
+                    $results[] = $post;
                 }
-
-                $publishedAt = $this->parsePublishedAt($pubDate)
-                    ?? $this->extractPublishedAt($title . "\n" . $snippet);
-
-                if (
-                    $publishedAt === null
-                    || $publishedAt->lt(
-                        now()->subHours((int) config('linkedin.lookback_hours', 72))
-                    )
-                    || $publishedAt->gt(now()->addHours(2))
-                ) {
-                    continue;
-                }
-
-                $results[] = [
-                    'postId' => hash('sha256', $url),
-                    'postUrl' => $url,
-                    'title' => $title,
-                    'text' => trim($title . "\n" . $snippet),
-                    'datePosted' => $publishedAt->toIso8601String(),
-                    'matchedKeyword' => $keyword,
-                    'authorName' => null,
-                    'authorUrl' => null,
-                    'authorHeadline' => null,
-                    'authorType' => null,
-                    'topComments' => [],
-                    'links' => [],
-                    'searchProvider' => 'bing-rss',
-                    'searchSnippet' => $snippet,
-                ];
             }
 
             return $results;
@@ -150,17 +210,107 @@ class LinkedInPostSearchClient
         }
     }
 
-    private function parsePublishedAt(string $date): ?\Illuminate\Support\Carbon
+    private function resolveDuckDuckGoUrl(string $url): string
     {
-        if ($date === '') {
+        if (str_starts_with($url, '//')) {
+            $url = 'https:' . $url;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (str_ends_with($host, 'duckduckgo.com')) {
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+            if (isset($query['uddg']) && is_string($query['uddg'])) {
+                return rawurldecode($query['uddg']);
+            }
+        }
+
+        return $url;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $results
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeApiResults(
+        array $results,
+        string $keyword,
+        string $provider,
+        string $urlKey,
+        string $titleKey,
+        string $snippetKey,
+        bool $usePublishedTimestamp = false
+    ): array {
+        $posts = [];
+
+        foreach ($results as $result) {
+            if (!is_array($result)) {
+                continue;
+            }
+
+            $url = trim((string) ($result[$urlKey] ?? ''));
+            $title = trim((string) ($result[$titleKey] ?? ''));
+            $snippet = trim((string) ($result[$snippetKey] ?? ''));
+
+            $post = $this->makePost($url, $title, $snippet, $keyword, $provider);
+
+            if ($post !== null && $usePublishedTimestamp && !empty($result['pdate'])) {
+                try {
+                    $publishedAt = Carbon::createFromTimestamp((int) $result['pdate']);
+                    if ($this->isWithinLookback($publishedAt)) {
+                        $post['datePosted'] = $publishedAt->toIso8601String();
+                    }
+                } catch (Throwable) {
+                    // Sem data de publicação válida, permanece a data relativa do snippet.
+                }
+            }
+
+            if ($post !== null) {
+                $posts[] = $post;
+            }
+        }
+
+        return $posts;
+    }
+
+    private function makePost(
+        string $url,
+        string $title,
+        string $snippet,
+        string $keyword,
+        string $provider
+    ): ?array {
+        if (!$this->isLinkedInPostUrl($url)) {
             return null;
         }
 
-        try {
-            return \Illuminate\Support\Carbon::parse($date);
-        } catch (Throwable) {
+        $publishedAt = $this->extractPublishedAt($title . "\n" . $snippet);
+        if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
             return null;
         }
+
+        return [
+            'postId' => hash('sha256', $url),
+            'postUrl' => $url,
+            'title' => $title,
+            'text' => trim($title . "\n" . $snippet),
+            'datePosted' => $publishedAt->toIso8601String(),
+            'matchedKeyword' => $keyword,
+            'authorName' => null,
+            'authorUrl' => null,
+            'authorHeadline' => null,
+            'authorType' => null,
+            'topComments' => [],
+            'links' => [],
+            'searchProvider' => $provider,
+            'searchSnippet' => $snippet,
+        ];
+    }
+
+    private function isWithinLookback(Carbon $publishedAt): bool
+    {
+        return !$publishedAt->lt(
+            now()->subHours((int) config('linkedin.lookback_hours', 72))
+        ) && !$publishedAt->gt(now()->addHours(2));
     }
 
     private function isLinkedInPostUrl(string $url): bool
@@ -175,35 +325,25 @@ class LinkedInPostSearchClient
             );
     }
 
-    private function extractPublishedAt(string $text): ?\Illuminate\Support\Carbon
+    private function extractPublishedAt(string $text): ?Carbon
     {
         $normalized = Str::ascii(mb_strtolower($text));
 
-        if (preg_match('/\b(\d{1,2})\s*(min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|sem|week|weeks)\s+ago\b/', $normalized, $matches)) {
+        if (preg_match('/\b(?:ha\s+)?(\d{1,2})\s*(min|minuto|minutos|h|hr|hrs|hora|horas|d|dia|dias|sem|semana|semanas)\s*(?:ago|atras)?\b/', $normalized, $matches)) {
             $amount = (int) $matches[1];
             $unit = $matches[2];
 
             if (str_starts_with($unit, 'min')) {
                 return now()->subMinutes($amount);
             }
-
-            if (in_array($unit, ['h', 'hr', 'hrs', 'hour', 'hours'], true)) {
+            if (in_array($unit, ['h', 'hr', 'hrs', 'hora', 'horas'], true)) {
                 return now()->subHours($amount);
             }
-
-            if (in_array($unit, ['d', 'day', 'days'], true)) {
+            if (in_array($unit, ['d', 'dia', 'dias'], true)) {
                 return now()->subDays($amount);
             }
 
             return now()->subWeeks($amount);
-        }
-
-        if (preg_match('/\b(\d{1,2})\s*(m|h|d)\b/', $normalized, $matches)) {
-            return match ($matches[2]) {
-                'm' => now()->subMinutes((int) $matches[1]),
-                'h' => now()->subHours((int) $matches[1]),
-                'd' => now()->subDays((int) $matches[1]),
-            };
         }
 
         if (preg_match('/\b(today|hoje)\b/', $normalized)) {
@@ -212,30 +352,6 @@ class LinkedInPostSearchClient
 
         if (preg_match('/\b(yesterday|ontem)\b/', $normalized)) {
             return now()->subDay();
-        }
-
-        if (preg_match('/\b(\d{1,2})\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?\b/u', $normalized, $matches)) {
-            $months = [
-                'jan' => 1, 'fev' => 2, 'mar' => 3, 'abr' => 4,
-                'mai' => 5, 'jun' => 6, 'jul' => 7, 'ago' => 8,
-                'set' => 9, 'out' => 10, 'nov' => 11, 'dez' => 12,
-            ];
-
-            $month = $months[$matches[2]] ?? null;
-
-            if ($month !== null) {
-                $date = now()->setDate(
-                    now()->year,
-                    $month,
-                    (int) $matches[1]
-                )->startOfDay();
-
-                if ($date->gt(now()->addDay())) {
-                    $date->subYear();
-                }
-
-                return $date;
-            }
         }
 
         return null;
