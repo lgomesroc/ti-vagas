@@ -21,6 +21,7 @@ use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
 use App\Sources\QuickinSource;
+use App\Sources\RjEmpregosSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
 use App\Sources\BizneoSource;
