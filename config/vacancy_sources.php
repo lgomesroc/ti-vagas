@@ -45,6 +45,14 @@ return [
                 'locale' => '',
                 'name' => 'ABC Fitness',
             ],
+
+            'hostgator' => [
+                'host' => 'web.wd1.myworkdayjobs.com',
+                'tenant' => 'hostgator',
+                'site' => 'HostGator',
+                'locale' => 'pt-BR',
+                'name' => 'HostGator',
+            ],
         ],
     ],
 
@@ -308,7 +316,7 @@ return [
 
             'vagasnetfive' => [
                 'name' => 'Netfive',
-                'url' => 'https://atracaodetalentos.totvs.app/vagasnetfive',
+                'url' => 'https://atracaodetalentos.totals.app/vagasnetfive',
             ],
 
             'vagasolor' => [
