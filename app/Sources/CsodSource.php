@@ -179,7 +179,12 @@ class CsodSource implements VacancySource
             return null;
         }
 
-        $applicationUrl = rtrim($this->careerSiteUrl, '/')
+        $site = parse_url($this->careerSiteUrl);
+        $siteBaseUrl = ($site['scheme'] ?? 'https') . '://'
+            . ($site['host'] ?? '');
+        $sitePath = rtrim($site['path'] ?? '', '/');
+
+        $applicationUrl = $siteBaseUrl . $sitePath
             . '/requisition/' . rawurlencode((string) $id)
             . '?c=' . rawurlencode($this->companyKey);
 
