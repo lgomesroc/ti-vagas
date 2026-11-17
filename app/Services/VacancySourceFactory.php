@@ -132,6 +132,21 @@ class VacancySourceFactory
 
         $sources[$source->name()] = $source;
 
+        $teamtailor = config('vacancy_sources.teamtailor', []);
+
+        foreach ($teamtailor['companies'] ?? [] as $companyKey => $company) {
+            $source = new TeamtailorSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                feedUrl: $company['feed_url'],
+                caBundle: $teamtailor['ca_bundle'] ?? null,
+                maxJobs: (int) ($teamtailor['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $workable = config('vacancy_sources.workable', []);
 
         foreach ($workable['companies'] ?? [] as $account => $company) {
