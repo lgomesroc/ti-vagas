@@ -25,6 +25,7 @@ use App\Sources\RjEmpregosSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
 use App\Sources\BizneoSource;
+use App\Sources\BtgPactualSource;
 use App\Sources\SolidesSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
@@ -56,6 +57,15 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+        // O portal próprio do BTG usa o mesmo board público Greenhouse.
+        // Mantém o identificador greenhouse-btgpactual para atualizar os
+        // registros já importados, sem criar uma segunda cópia das vagas.
+        $btg = new BtgPactualSource(
+            caBundle: $greenhouse['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$btg->name()] = $btg;
 
         $sensedia = new SensediaSource(
             caBundle: config('vacancy_sources.sensedia.ca_bundle'),
