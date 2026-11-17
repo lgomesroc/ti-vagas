@@ -270,6 +270,11 @@ return [
                 'name' => 'Minsait Brasil',
                 'url' => 'https://minsaitbrasil.pandape.infojobs.com.br/',
             ],
+
+            '3am' => [
+                'name' => '3AM IT Services',
+                'url' => 'https://3amitservices.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
