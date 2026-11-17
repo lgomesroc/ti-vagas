@@ -1,15 +1,15 @@
 <?php
 
-namespace App\\Sources;
+namespace App\Sources;
 
-use App\\Contracts\\VacancySource;
-use App\\Services\\VacancyLocationFilter;
-use Carbon\\CarbonImmutable;
+use App\Contracts\VacancySource;
+use App\Services\VacancyLocationFilter;
+use Carbon\CarbonImmutable;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class TeamtailorSource implements VacancySource
@@ -259,14 +259,14 @@ class TeamtailorSource implements VacancySource
 
         $content = preg_replace(
             '/<\\s*br\\s*\\/?>|<\\/\\s*p\\s*>|<\\/\\s*div\\s*>|<\\/\\s*h[1-6]\\s*>/i',
-            "\\n",
+            "\n",
             $content
         );
 
         $content = preg_replace('/<\\s*li\\b[^>]*>/i', "\\n- ", $content);
         $content = strip_tags($content);
         $content = preg_replace('/[ \\t]+/', ' ', $content);
-        $content = preg_replace('/ *\\n */', "\\n", $content);
+        $content = preg_replace('/ *\\n */', "\n", $content);
         $content = preg_replace('/\\n{3,}/', "\\n\\n", $content);
 
         return trim($content);
@@ -280,7 +280,7 @@ class TeamtailorSource implements VacancySource
 
         try {
             return CarbonImmutable::parse($date)->utc()->toIso8601String();
-        } catch (\\Throwable) {
+        } catch (\Throwable) {
             return null;
         }
     }
