@@ -1,16 +1,16 @@
 <?php
 
-namespace App\\Sources;
+namespace App\Sources;
 
-use App\\Contracts\\VacancySource;
-use App\\Services\\VacancyLocationFilter;
-use Carbon\\CarbonImmutable;
+use App\Contracts\VacancySource;
+use App\Services\VacancyLocationFilter;
+use Carbon\CarbonImmutable;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Facades\\Log;
-use Illuminate\\Support\\Str;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class RjEmpregosSource implements VacancySource
@@ -75,7 +75,7 @@ class RjEmpregosSource implements VacancySource
                     if ($vacancy !== null) {
                         $vacancies[] = $vacancy;
                     }
-                } catch (\\Throwable $exception) {
+                } catch (\Throwable $exception) {
                     Log::warning('Falha ao coletar anúncio no RJ Empregos.', [
                         'url' => $articleUrl,
                         'error' => $exception->getMessage(),
@@ -109,9 +109,9 @@ class RjEmpregosSource implements VacancySource
 
     private function parseFeed(string $xml): array
     {
-        $feed = simplexml_load_string($xml, \\SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
+        $feed = simplexml_load_string($xml, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
 
-        if (!$feed instanceof \\SimpleXMLElement) {
+        if (!$feed instanceof \SimpleXMLElement) {
             throw new RuntimeException('Não foi possível interpretar o feed RSS do RJ Empregos.');
         }
 
@@ -126,7 +126,7 @@ class RjEmpregosSource implements VacancySource
 
             try {
                 $publishedAt = CarbonImmutable::parse($publishedAt, 'UTC')->toIso8601String();
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 continue;
             }
 
@@ -273,14 +273,14 @@ class RjEmpregosSource implements VacancySource
 
         $lookahead = $quotedStops === []
             ? '$'
-            : '(?=\\s+(?:' . implode('|', $quotedStops) . ')|$)';
+            : '(?=\s+(?:' . implode('|', $quotedStops) . ')|$)';
 
-        $pattern = '/' . preg_quote($label, '/') . '\\s*(.+?)' . $lookahead . '/iu';
+        $pattern = '/' . preg_quote($label, '/') . '\s*(.+?)' . $lookahead . '/iu';
         if (!preg_match($pattern, $text, $match)) {
             return '';
         }
 
-        return trim($match[1], " \\t\\n\\r\\0\\x0B:-");
+        return trim($match[1], " \t\n\r\0\x0B:-");
     }
 
     private function isHttpUrl(string $url): bool
@@ -298,7 +298,7 @@ class RjEmpregosSource implements VacancySource
     {
         $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        return trim(preg_replace('/\\s+/u', ' ', $text) ?? '');
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? '');
     }
 
     private function xpath(string $html): DOMXPath
