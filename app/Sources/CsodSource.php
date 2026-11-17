@@ -128,13 +128,12 @@ class CsodSource implements VacancySource
             return null;
         }
 
-        if (!preg_match('/"cloud"\s*:\s*"https?:\\\\?\/\\\\?\/([a-z0-9.-]+\.api\.csod\.com)\\\\?\/?"/i', $html, $cloudMatch)) {
-            if (!preg_match('/(?:cloud|apiEndpoint)\s*[:=]\s*["\']https?:\/\/([a-z0-9.-]+\.api\.csod\.com)\/?["\']/i', $html, $cloudMatch)) {
-                return null;
-            }
+        if (!preg_match('/([a-z0-9-]+\.api\.csod\.com)/i', $html, $cloudMatch)) {
+            return null;
         }
 
         $cloud = 'https://' . strtolower($cloudMatch[1]);
+
         $cultureId = 1;
         $cultureName = 'pt-BR';
 
@@ -243,7 +242,7 @@ class CsodSource implements VacancySource
         }
 
         try {
-            foreach (['!n/j/Y', '!m/d/Y', DATE_ATOM] as $format) {
+            foreach (['!d/m/Y', '!m/d/Y', DATE_ATOM] as $format) {
                 $date = CarbonImmutable::createFromFormat($format, $value);
 
                 if ($date !== false) {
