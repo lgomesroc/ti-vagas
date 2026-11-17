@@ -431,6 +431,18 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+        $rjEmpregos = config('vacancy_sources.rjempregos', []);
+
+        $rjEmpregosSource = new RjEmpregosSource(
+            baseUrl: $rjEmpregos['base_url'] ?? 'https://rjempregos.net',
+            caBundle: $rjEmpregos['ca_bundle'] ?? null,
+            maxPages: (int) ($rjEmpregos['max_pages'] ?? 5),
+            maxJobs: (int) ($rjEmpregos['max_jobs'] ?? 50),
+            locationFilter: $this->locationFilter,
+        );
+
+        $sources[$rjEmpregosSource->name()] = $rjEmpregosSource;
+
         return $sources;
     }
 
