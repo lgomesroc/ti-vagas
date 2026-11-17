@@ -337,10 +337,10 @@ class LinkedInPostSearchClient
             if (str_starts_with($unit, 'min')) {
                 return now()->subMinutes($amount);
             }
-            if (in_array($unit, ['h', 'hr', 'hrs', 'hora', 'horas'], true)) {
+            if (in_array($unit, ['h', 'hr', 'hrs', 'hora', 'horas', 'hour', 'hours'], true)) {
                 return now()->subHours($amount);
             }
-            if (in_array($unit, ['d', 'dia', 'dias'], true)) {
+            if (in_array($unit, ['d', 'dia', 'dias', 'day', 'days'], true)) {
                 return now()->subDays($amount);
             }
 
