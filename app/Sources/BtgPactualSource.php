@@ -21,7 +21,7 @@ class BtgPactualSource implements VacancySource
 
     public function name(): string
     {
-        return 'btg-pactual-careers';
+        return 'greenhouse-btgpactual';
     }
 
     public function fetch(): iterable
