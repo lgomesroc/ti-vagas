@@ -737,6 +737,18 @@ return [
         'max_jobs' => 500,
     ],
 
+    'csod' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 500,
+        'companies' => [
+            'bradesco' => [
+                'name' => 'Bradesco',
+                'url' => 'https://bradesco.csod.com/ux/ats/careersite/1/home?c=bradesco',
+                'site_number' => 1,
+            ],
+        ],
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
@@ -769,6 +781,11 @@ return [
             'colmeia-fortaleza' => [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
+            ],
+
+            'itau-carreiras' => [
+                'name' => 'Itaú',
+                'url' => 'https://carreiras.itau.com.br/',
             ],
 
         ],
