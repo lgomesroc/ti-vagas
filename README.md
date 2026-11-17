@@ -184,6 +184,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
+| Mindsight | Guidance |
 
 A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
