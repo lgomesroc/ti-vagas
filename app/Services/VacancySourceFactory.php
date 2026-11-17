@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Sources\AshbySource;
 use App\Sources\CompleoSource;
+use App\Sources\CsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
@@ -46,6 +47,22 @@ class VacancySourceFactory
     public function all(): array
     {
         $sources = [];
+
+        $csod = config('vacancy_sources.csod', []);
+
+        foreach ($csod['companies'] ?? [] as $companyKey => $company) {
+            $source = new CsodSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                careerSiteUrl: $company['url'],
+                siteNumber: (int) ($company['site_number'] ?? 1),
+                maxJobs: (int) ($csod['max_jobs'] ?? 500),
+                caBundle: $csod['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
 
         $smartRecruiters = config('vacancy_sources.smartrecruiters', []);
 
