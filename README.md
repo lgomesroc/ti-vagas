@@ -172,7 +172,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 |---|---|
 | Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip e Banco Inter |
 | Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
-| Workday | PwC |
+| Workday | PwC e ABC Fitness |
 | Workable | RecargaPay |
 | InHire | Orizon e Brivia |
 | Gupy | Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Quality Digital e NEXDOM Healthtech |
