@@ -146,6 +146,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Plataforma / integração | Empresas configuradas |
 |---|---|
 | Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip e Banco Inter |
+| Portal próprio de carreiras | BTG Pactual (API pública do board, com identidade de importação preservada para evitar duplicidade com o cadastro Greenhouse anterior) |
 | Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
 | Workday | PwC |
 | Workable | RecargaPay |
