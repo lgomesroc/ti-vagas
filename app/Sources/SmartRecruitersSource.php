@@ -164,17 +164,32 @@ class SmartRecruitersSource implements VacancySource
         }
 
         $descriptionParts = [];
-        foreach ([
-            'jobDescription',
-            'qualifications',
-            'additionalInformation',
-            'companyDescription',
-        ] as $sectionKey) {
-            $section = $sections[$sectionKey] ?? [];
-            $content = is_array($section) ? ($section['text'] ?? '') : '';
-            if (is_string($content) && trim($content) !== '') {
-                $descriptionParts[] = $this->cleanDescription($content);
+        foreach ($sections as $section) {
+            if (!is_array($section)) {
+                continue;
             }
+
+            $content = $section['text'] ?? '';
+            if (!is_string($content) || trim($content) === '') {
+                continue;
+            }
+
+            $sectionTitle = trim((string) ($section['title'] ?? ''));
+            $cleanContent = $this->cleanDescription($content);
+
+            if ($cleanContent !== '') {
+                $descriptionParts[] = $sectionTitle !== ''
+                    ? $sectionTitle . "\n" . $cleanContent
+                    : $cleanContent;
+            }
+        }
+
+        $experienceLevel = trim((string) (
+            $posting['experienceLevel']['label'] ?? ''
+        ));
+        if ($experienceLevel !== '') {
+            $descriptionParts[] = 'Nível de experiência informado pela plataforma: ' .
+                $experienceLevel;
         }
 
         $description = trim(implode("\n\n", array_filter($descriptionParts)));
