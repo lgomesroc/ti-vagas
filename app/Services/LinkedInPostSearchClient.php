@@ -139,7 +139,9 @@ class LinkedInPostSearchClient
             'fmt' => 'json',
             't' => 20,
             'rb' => 'BR',
+            'rbb' => 10,
             'lb' => 'PT',
+            'lbb' => 100,
             'dlen' => 511,
         ]);
 
@@ -155,8 +157,7 @@ class LinkedInPostSearchClient
             'mojeek-api',
             'url',
             'title',
-            'desc',
-            true
+            'desc'
         );
     }
 
