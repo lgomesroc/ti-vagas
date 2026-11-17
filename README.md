@@ -178,7 +178,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Gupy | Montreal, Claro, AZZAS 2154, CEPEL, E-Deploy / 3S Checkout e Quality Digital |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
-| Recrut.ai | Grupo Bamaq |
+| Recrut.ai | Grupo Bamaq e TPF Engenharia |
 | Pandapé | FIESC, SONDA IT, Adecco e Minsait Brasil |
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
