@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Sources\AshbySource;
 use App\Sources\CompleoSource;
-use App\Sources\CsodSource;
+use App\Sources\BradescoCsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
@@ -48,16 +48,16 @@ class VacancySourceFactory
     {
         $sources = [];
 
-        $csod = config('vacancy_sources.csod', []);
+        $bradescoCsod = config('vacancy_sources.bradesco_csod', []);
 
-        foreach ($csod['companies'] ?? [] as $companyKey => $company) {
-            $source = new CsodSource(
+        foreach ($bradescoCsod['companies'] ?? [] as $companyKey => $company) {
+            $source = new BradescoCsodSource(
                 companyKey: $companyKey,
                 companyName: $company['name'] ?? $companyKey,
                 careerSiteUrl: $company['url'],
                 siteNumber: (int) ($company['site_number'] ?? 1),
-                maxJobs: (int) ($csod['max_jobs'] ?? 500),
-                caBundle: $csod['ca_bundle'] ?? null,
+                maxJobs: (int) ($bradescoCsod['max_jobs'] ?? 500),
+                caBundle: $bradescoCsod['ca_bundle'] ?? null,
                 locationFilter: $this->locationFilter,
             );
 
