@@ -11,6 +11,7 @@ use App\Sources\GupySource;
 use App\Sources\InhireSource;
 use App\Sources\JobConvoSource;
 use App\Sources\LeverSource;
+use App\Sources\MindsightSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\PandapeSource;
