@@ -135,6 +135,11 @@ return [
                 'name' => 'E-Deploy / 3S Checkout',
                 'url' => 'https://e-deploy.gupy.io/',
             ],
+
+            'qualitydigital' => [
+                'name' => 'Quality Digital',
+                'url' => 'https://qualitydigital.gupy.io/',
+            ],
         ],
     ],
 
