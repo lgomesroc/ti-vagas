@@ -24,6 +24,12 @@ class CollectLinkedInPosts extends Command
             return self::SUCCESS;
         }
 
+        if (!config('linkedin.authorized_source_enabled', false)) {
+            $this->warn('Coleta desativada: nenhuma fonte autorizada com metadados de promoção e candidatura foi configurada.');
+
+            return self::SUCCESS;
+        }
+
         try {
             $posts = $client->search();
         } catch (Throwable $exception) {
