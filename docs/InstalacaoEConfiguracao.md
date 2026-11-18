@@ -43,6 +43,32 @@ php artisan vacancies:resolve-municipalities
 
 A importação geográfica depende de acesso à API do IBGE. Para o modo offline, consulte as opções do comando `geo:import-ibge`.
 
+## Banco exclusivo para testes locais
+
+Os testes automatizados **não utilizam o banco definido no `.env`**. O `phpunit.xml` força a conexão `pgsql` e o banco `ti_vagas_test`, evitando que a suíte acesse acidentalmente o banco de desenvolvimento ou produção.
+
+Crie um banco PostgreSQL local exclusivo para testes:
+
+```sql
+CREATE DATABASE ti_vagas_test;
+```
+
+Copie o modelo de ambiente de testes e informe as credenciais do PostgreSQL instalado na máquina:
+
+```powershell
+Copy-Item .env.testing.example .env.testing
+```
+
+No `.env.testing`, ajuste `DB_HOST`, `DB_PORT`, `DB_USERNAME` e `DB_PASSWORD` conforme sua instalação local. O arquivo `.env.testing` é ignorado pelo Git.
+
+Execute a suíte normalmente:
+
+```powershell
+php artisan test
+```
+
+As migrations executadas pelo trait `RefreshDatabase` serão aplicadas somente ao banco local `ti_vagas_test`. Não configure nesse arquivo a URL ou as credenciais do Neon.
+
 ## Compilar os recursos frontend
 
 ```bash
