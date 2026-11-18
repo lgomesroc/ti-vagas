@@ -867,6 +867,10 @@ return [
         'max_jobs' => 300,
     ],
 
+    'cwi' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
