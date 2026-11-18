@@ -100,12 +100,12 @@ class LinkedInPostCandidateProcessor
         $links = $this->extractUrls($combinedText, $post);
         $emails = $this->extractEmails($combinedText);
 
-        if (!$this->hasCorporateEmail($emails)) {
+        if (!$this->hasCorporateEmail($emails) && $links === []) {
             $candidate->fill($base + [
-                'embedded_links' => array_map(fn (string $url): array => ['url' => $url], $links),
+                'embedded_links' => [],
                 'emails' => $emails,
                 'status' => 'rejected',
-                'decision_reason' => 'Publicação sem e-mail corporativo de candidatura.',
+                'decision_reason' => 'Publicação sem link de candidatura ou e-mail corporativo.',
             ])->save();
 
             return $this->emptyResult('rejected');
