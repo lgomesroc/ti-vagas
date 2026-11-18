@@ -60,6 +60,25 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         ]);
     }
 
+    public function test_engagement_bait_in_comments_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => "Estamos contratando Desenvolvedor PHP Júnior.\nEmpresa: Acme Tecnologia\ncontato@acme.example",
+            'topComments' => [
+                ['text' => 'Comente EU QUERO que envio o link por mensagem privada.'],
+            ],
+        ]);
+
+        $result = app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertSame(1, $result['rejected']);
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
+        ]);
+    }
+
     public function test_known_job_aggregator_link_is_blocked(): void
     {
         config(['linkedin.aggregator_domains' => ['indeed.com']]);
