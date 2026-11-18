@@ -29,6 +29,7 @@ use App\Sources\TalentbrandSource;
 use App\Sources\BizneoSource;
 use App\Sources\BtgPactualSource;
 use App\Sources\SolidesSource;
+use App\Sources\FactorialSource;
 use App\Sources\SmartRecruitersSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
@@ -376,6 +377,21 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
+
+        $factorial = config('vacancy_sources.factorial', []);
+
+        foreach ($factorial['companies'] ?? [] as $companyKey => $company) {
+            $source = new FactorialSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                careerPageUrl: $company['url'],
+                caBundle: $factorial['ca_bundle'] ?? null,
+                maxJobs: (int) ($factorial['max_jobs'] ?? 100),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
 
         $quickin = config('vacancy_sources.quickin', []);
 
