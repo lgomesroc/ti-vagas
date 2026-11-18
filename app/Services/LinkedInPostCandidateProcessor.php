@@ -85,7 +85,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($this->isEngagementBait($text)) {
+        if ($this->isEngagementBait($combinedText)) {
             $candidate->fill($base + [
                 'status' => 'rejected',
                 'decision_reason' => 'Publicação condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
