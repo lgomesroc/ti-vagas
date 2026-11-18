@@ -17,7 +17,7 @@ class SmartRecruitersSourceTest extends TestCase
     public function test_it_fetches_posting_details_and_normalizes_a_brazilian_junior_vacancy(): void
     {
         Http::fake([
-            self::LIST_URL . '*' => Http::response([
+            self::LIST_URL . '?*' => Http::response([
                 'limit' => 100,
                 'offset' => 0,
                 'totalFound' => 1,
@@ -49,7 +49,7 @@ class SmartRecruitersSourceTest extends TestCase
     public function test_it_discards_postings_outside_brazil(): void
     {
         Http::fake([
-            self::LIST_URL . '*' => Http::response([
+            self::LIST_URL . '?*' => Http::response([
                 'totalFound' => 1,
                 'content' => [['id' => '12345']],
             ]),
