@@ -18,6 +18,7 @@ return [
             'stone' => 'Stone',
             'blip-global' => 'Blip',
             'inter' => 'Banco Inter',
+            'ifoodcarreiras' => 'iFood',
         ],
     ],
 
