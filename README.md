@@ -15,9 +15,19 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Resumo das mudanças recentes, descoberta e validação de publicações do LinkedIn, limites técnicos e organização documental. |
+| [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) | Empresas Gupy adicionadas recentemente e particularidades de seus cadastros. |
 
-O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
+O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) complementa o tópico de segurança.
 
+## Resumo das atualizações recentes
+
+- **LinkedIn:** descoberta de publicações públicas por DuckDuckGo, Brave Search e Mojeek, com deduplicação, validações editoriais e encaminhamento de candidatos para revisão manual. A descoberta por buscadores não garante acesso ao conteúdo integral, comentários ou identificação de publicações patrocinadas.
+- **Validação de recrutamento:** regras ampliadas para rejeitar chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM; exigência de e-mail corporativo e verificação de duplicidade de links.
+- **Fontes Gupy:** inclusão de Drogaria Globo, Skill Consultoria, Smart NX, C&A e Viceri, preservando as configurações específicas de cada fonte.
+- **Documentação:** criação de documentos de atualizações recentes e fontes Gupy, além da atualização da árvore completa do projeto com ordenação alfabética de pastas e arquivos.
+
+Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o contexto e as limitações de implementação, e [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) para os detalhes dos novos cadastros.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
