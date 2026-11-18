@@ -274,7 +274,11 @@ class LinkedInPostCandidateProcessor
                 && (
                     $hasRecruitmentSignal
                     || $isCompanyAuthor
-                    || ($post['searchProvider'] ?? null) === 'duckduckgo-html'
+                    || in_array(
+                        $post['searchProvider'] ?? null,
+                        ['duckduckgo-html', 'brave-api', 'mojeek-api'],
+                        true
+                    )
                 )
             ) {
                 return true;

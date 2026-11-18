@@ -8,6 +8,10 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
+    // Chaves opcionais das APIs oficiais. Sem chave, o respectivo provedor é ignorado.
+    'brave_api_key' => env('BRAVE_SEARCH_API_KEY'),
+    'mojeek_api_key' => env('MOJEEK_SEARCH_API_KEY'),
+
     'keywords' => [
         'estamos contratando',
         'vaga aberta',
