@@ -785,7 +785,10 @@ return [
         ],
     ],
 
-    'ibm' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 500],\n    'microsoft' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 300],\n\n    'own_career_pages' => [
+    'ibm' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 500],
+    'microsoft' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 300],
+
+    'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
         'companies' => [
