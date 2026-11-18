@@ -202,6 +202,12 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 
 A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
+### Publicações públicas do LinkedIn
+
+O projeto possui uma rotina experimental de descoberta de publicações públicas por mecanismos de busca. Ela não realiza login no LinkedIn nem garante acesso ao conteúdo integral ou aos comentários. Quando os dados disponíveis são suficientes e passam pelas validações, o sistema cadastra a oportunidade automaticamente; registros incompletos ou inválidos são rejeitados, sem fila de revisão manual.
+
+Detalhes, limitações e configuração: [docs/ColetaPublicacoesLinkedIn.md](docs/ColetaPublicacoesLinkedIn.md).
+
 ### Agregadores de vagas
 
 O RJ Empregos está integrado como agregador via feed RSS público. O coletor percorre as publicações recentes, preserva a data original do feed e só importa anúncios cuja página apresente um link externo direto de candidatura. Links internos do próprio RJ Empregos, redirecionamentos sem destino verificável e anúncios sem data original são descartados. Como o portal divulga vagas de diferentes áreas e níveis, os critérios gerais do TI Vagas continuam responsáveis por selecionar o que será exibido ao público.
