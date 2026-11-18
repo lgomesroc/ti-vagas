@@ -1,83 +1,34 @@
-# Coleta de publicações públicas do LinkedIn
+# Integração de oportunidades descobertas no LinkedIn
 
-## Escopo
+## Estado da coleta
 
-A coleta pesquisa publicações públicas indexadas no LinkedIn por três mecanismos independentes/complementares: DuckDuckGo, Brave Search e Mojeek. Não pesquisa LinkedIn Jobs, não usa login, senha ou cookies pessoais do LinkedIn.
+A coleta por mecanismos de busca públicos está ativa por agendamento quatro vezes ao dia (06h, 10h, 14h e 18h, horário de Brasília), além da execução manual pelo GitHub Actions.
 
-O DuckDuckGo é consultado pela página HTML pública de resultados. Brave Search e Mojeek são consultados por suas APIs oficiais. A integração não usa Bing nem Yahoo.
+A implementação atual consulta DuckDuckGo, Brave Search e Mojeek para descobrir URLs públicas de posts. Esses resultados são apenas descoberta: não garantem texto integral, comentários, data original nem indicador de publicação patrocinada.
 
-A descoberta é feita por palavras-chave e restrita a URLs de posts do LinkedIn. Os resultados dos três provedores são combinados e deduplicados pela URL da publicação. O mecanismo de busca não garante cobertura integral, nem acesso a publicações recentes ainda não indexadas.
+## Regras de processamento
 
-## Configuração
+1. Considerar apenas publicações recentes com data recuperável; a data relativa de snippets não equivale a uma data original verificada pela fonte.
+2. Rejeitar engagement bait identificado no texto do próprio post, por exemplo: "comente EU QUERO que envio o link por DM".
+3. Não rejeitar um post apenas porque um comentário contém uma frase desse tipo. Comentários públicos devem ser analisados como fonte de informações úteis de candidatura, links e e-mails, desde que a fonte de entrada os forneça.
+4. Exigir e-mail corporativo de candidatura; provedores pessoais conhecidos não são aceitos.
+5. Deduplicar links contra vagas e candidatos já existentes antes da inspeção HTTP completa.
+6. Bloquear agregadores e destinos não verificáveis.
+7. Aplicar as regras de área, senioridade, experiência, localidade e modalidade do TI Vagas.
+8. Gerar candidatos para revisão manual; nunca publicar o post de uma pessoa nem publicar automaticamente uma vaga.
 
-No arquivo `.env`:
+## Publicações promovidas
 
-```dotenv
-LINKEDIN_POSTS_ENABLED=true
-LINKEDIN_POSTS_LOOKBACK_HOURS=72
-BRAVE_SEARCH_API_KEY=
-MOJEEK_SEARCH_API_KEY=
-```
+Os buscadores atuais não fornecem metadado confiável que indique se o post original do LinkedIn foi promovido. Se uma fonte fornecer explicitamente `isPromoted=true`, o post será rejeitado. Quando o campo não existir, a implementação não inventa uma confirmação: a limitação permanece e a origem do resultado deve ser considerada apenas descoberta por buscador, não verificação de status patrocinado.
 
-- DuckDuckGo: não exige chave nesta integração.
-- Brave Search: exige uma chave da API Web Search.
-- Mojeek: exige uma chave da Search API.
+## Fonte completa
 
-Sem a chave de um provedor, ele é ignorado e os demais continuam funcionando. Para habilitar todos os três, configure as duas chaves. Em GitHub Actions, cadastre-as como secrets `BRAVE_SEARCH_API_KEY` e `MOJEEK_SEARCH_API_KEY`.
+A coleta atual não lê páginas autenticadas nem comentários. Para obter conteúdo integral e comentários, é necessária uma integração cuja autorização e escopo permitam esse acesso. Os termos da API do LinkedIn proíbem armazenar ou exibir conteúdo obtido por scraping, inclusive quando obtido indiretamente por terceiros. Portanto, fornecedores que apenas revendem dados raspados não são uma alternativa compatível.
 
-As chaves devem permanecer em variáveis de ambiente/secrets; nunca devem ser commitadas no repositório.
+## Caminhos oficiais investigados
 
-## Fluxo
+- Community Management API: exige análise/aprovação e organização legal registrada; não oferece pesquisa irrestrita de publicações de qualquer membro.
+- `r_member_social`: permissão fechada; o LinkedIn informa que não está aceitando novas solicitações.
+- Talent Solutions Job Posting API: voltada a parceiros ATS/distribuidores para publicação e gestão de vagas, não para pesquisar posts e comentários de recrutadores. O LinkedIn informa que não está aceitando novas parcerias para a Job Posting API, orientando interessados a Apply Connect.
 
-1. Consultar os três buscadores para cada palavra-chave configurada.
-2. Manter URLs de publicações do LinkedIn, descartando perfis, páginas de vagas e outros destinos.
-3. Extrair datas relativas explícitas dos títulos/trechos e manter somente resultados dentro da janela configurada. Sem data verificável, o resultado não entra no banco.
-4. Combinar e deduplicar os resultados pela URL, registrando o provedor de origem e os provedores adicionais que também encontraram o post.
-5. Aplicar filtros de recrutamento, área, senioridade, experiência, localização e modalidade.
-6. Procurar links e e-mails no texto disponível; se houver link, seguir redirecionamentos, bloquear agregadores e extrair conteúdo público.
-7. Deduplicar contra vagas existentes e candidatos coletados.
-8. Gravar candidatos em `linkedin_post_candidates`, sem publicação automática.
-
-## Limitações importantes
-
-- Os buscadores indexam apenas parte do conteúdo público. A coleta pode retornar poucos resultados ou nenhum.
-- A API de busca retorna títulos, URLs e trechos; não equivale à leitura integral da publicação original.
-- A pesquisa pública não fornece comentários completos de forma confiável. Nesta implementação, comentários não são obtidos. Portanto, uma publicação que dependa de link/e-mail escondido em comentários pode passar despercebida; não se deve presumir que a ausência de link no resultado significa ausência no post original.
-- Autor, headline e data exata nem sempre aparecem nos resultados. Sem data legível no trecho, o resultado é descartado para não inventar data.
-- Datas fornecidas pelos buscadores podem representar atualização ou rastreamento da página, não necessariamente a publicação original. Por isso, a integração não as trata como data de publicação confirmada.
-- A extração de cargo, empresa e localidade é heurística e exige revisão manual.
-- Não há contorno de autenticação, CAPTCHA, bloqueios ou controles do LinkedIn.
-
-## Migração e teste manual
-
-```bash
-php artisan migrate
-php artisan test --filter=LinkedInPostSearchClientTest
-php artisan linkedin:collect-posts
-php artisan linkedin:review list
-```
-
-Para inspecionar um candidato:
-
-```bash
-php artisan linkedin:review show ID
-```
-
-Aprovação e rejeição permanecem manuais:
-
-```bash
-php artisan linkedin:review approve ID
-php artisan linkedin:review reject ID --reason="Motivo"
-```
-
-## Agendamento local
-
-O Laravel Scheduler executa o comando LinkedIn às 10:00 e 14:00 em `America/Sao_Paulo`. As fontes tradicionais permanecem com seu agendamento atual.
-
-Para manter o scheduler ativo em desenvolvimento, deixe este processo rodando em um terminal:
-
-```bash
-php artisan schedule:work
-```
-
-Em produção Linux, configure o cron padrão do Laravel para executar `php artisan schedule:run` a cada minuto. O workflow GitHub Actions desta integração também pode executar a coleta conforme o agendamento configurado no próprio arquivo.
+A coleta de descoberta permanece agendada enquanto a integração completa é investigada. Não se deve apresentar snippets como se fossem conteúdo integral.

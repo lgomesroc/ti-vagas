@@ -12,28 +12,21 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_post_without_email_or_application_link_is_kept_for_manual_review(): void
+    public function test_post_without_corporate_email_is_rejected_even_when_it_has_an_application_link(): void
     {
         $post = $this->makePost([
-            'text' => "Estamos contratando!\nDesenvolvedor PHP Júnior\nEmpresa: Acme Tecnologia\nRemoto Brasil\nAtuação com PHP e Laravel.",
+            'isPromoted' => false,
+            'text' => "Estamos contratando!\nDesenvolvedor PHP Júnior\nEmpresa: Acme Tecnologia\nRemoto Brasil\nCandidatura: https://acme.example/jobs/123\ncontato@gmail.com",
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $this->assertSame(1, $result['created']);
+        $this->assertSame(1, $result['rejected']);
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
-            'status' => 'pending_review',
-            'application_url' => null,
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação sem e-mail corporativo de candidatura.',
         ]);
-
-        $candidate = LinkedInPostCandidate::query()->firstOrFail();
-
-        $this->assertSame([], $candidate->emails);
-        $this->assertSame(
-            'Sem link ou e-mail; encaminhado para revisão manual com base na publicação pública.',
-            $candidate->decision_reason
-        );
     }
 
     public function test_engagement_bait_asking_people_to_comment_for_a_private_message_is_rejected(): void
@@ -70,6 +63,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
             'authorName' => 'Recrutadora de Tecnologia',
             'authorHeadline' => 'Tech Recruiter',
             'datePosted' => now()->toIso8601String(),
+            'isPromoted' => false,
             'text' => 'Estamos contratando Desenvolvedor PHP Júnior.',
             'topComments' => [],
         ], $overrides);
