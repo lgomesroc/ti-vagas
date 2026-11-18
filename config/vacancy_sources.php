@@ -113,6 +113,10 @@ return [
                 'name' => 'ABGi Consulting',
                 'feed_url' => 'https://jobs.abgi-consulting.com/jobs.rss',
             ],
+            'amanco-wavin' => [
+                'name' => 'Amanco Wavin',
+                'feed_url' => 'https://careers.wavin.com/jobs.rss',
+            ],
         ],
     ],
 
@@ -766,6 +770,11 @@ return [
                 'name' => 'Bradesco',
                 'url' => 'https://bradesco.csod.com/ux/ats/careersite/1/home?c=bradesco',
                 'site_number' => 1,
+            ],
+            'bradesco-seguros' => [
+                'name' => 'Bradesco Seguros',
+                'url' => 'https://bradesco.csod.com/ux/ats/careersite/3/home?c=bradesco',
+                'site_number' => 3,
             ],
         ],
     ],
