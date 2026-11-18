@@ -284,6 +284,12 @@ return [
                 'url' => 'https://e-deploy.gupy.io/',
             ],
 
+            'daniel-ip' => [
+                'name' => 'DANIEL / Daniel Advogados',
+                'url' => 'https://daniel-ip.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'alpargatas' => [
                 'name' => 'Alpargatas',
                 'url' => 'https://alpargatas.gupy.io/',
