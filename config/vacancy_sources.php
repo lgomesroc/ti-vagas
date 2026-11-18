@@ -749,6 +749,12 @@ return [
                 'slug' => 'cashway',
                 'url' => 'https://cashway.vagas.solides.com.br',
             ],
+
+            'sondotecnica' => [
+                'name' => 'SONDOTECNICA ENGENHARIA DE SOLOS S A',
+                'slug' => 'sondotecnica',
+                'url' => 'https://sondotecnica.vagas.solides.com.br',
+            ],
         ],
     ],
 
