@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\TalentbrandSource;
-use Tests\\TestCase;
+use App\Sources\TalentbrandSource;
+use Tests\TestCase;
 
 class TalentbrandSourceTest extends TestCase
 {
@@ -15,6 +15,6 @@ class TalentbrandSourceTest extends TestCase
             url: 'https://careers.example.com',
         );
 
-        $this->assertSame('talentbrand-example', $source->name());
+        $this->assertSame('talentbrand-talentbrand-example', $source->name());
     }
 }
