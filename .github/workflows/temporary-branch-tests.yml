@@ -37,4 +37,4 @@ jobs:
           find app bootstrap config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 
       - name: Executar suíte completa de testes
-        run: php artisan test --compact
+        run: php artisan test --display-warnings --display-phpunit-warnings --display-deprecations --display-phpunit-deprecations
