@@ -9,7 +9,7 @@ use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\GupySource;
-use App\Sources\InhireSource;
+use App\Sources\InhireSource;\nuse App\Sources\IbmSource;\nuse App\Sources\MicrosoftSource;
 use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
@@ -527,6 +527,14 @@ class VacancySourceFactory
         );
 
         $sources[$rjEmpregosSource->name()] = $rjEmpregosSource;
+
+        $ibm = config('vacancy_sources.ibm', []);
+        $ibmSource = new IbmSource(caBundle: $ibm['ca_bundle'] ?? null, maxJobs: (int) ($ibm['max_jobs'] ?? 500), locationFilter: $this->locationFilter);
+        $sources[$ibmSource->name()] = $ibmSource;
+
+        $microsoft = config('vacancy_sources.microsoft', []);
+        $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
+        $sources[$microsoftSource->name()] = $microsoftSource;
 
         return $sources;
     }

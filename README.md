@@ -488,3 +488,11 @@ Sugestões, identificação de anúncios incorretos e contribuições para melho
 ---
 
 **TI Vagas — Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
+
+
+## Integrações IBM e Microsoft
+
+- **IBM:** consulta a API de busca de carreiras, restringe a coleta aos níveis Entry Level e Internship e filtra oportunidades de tecnologia. Registros sem data original de publicação são descartados.
+- **Microsoft:** consulta o portal Eightfold para vagas no Brasil, recupera a descrição individual e mantém oportunidades de tecnologia com indicação de júnior, início de carreira ou estágio.
+
+As integrações possuem testes automatizados com respostas simuladas. A disponibilidade real depende das APIs externas e deve ser monitorada após a publicação.
