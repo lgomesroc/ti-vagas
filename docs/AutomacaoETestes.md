@@ -18,7 +18,11 @@ Os workflows ficam em `.github/workflows`:
 - `ci.yml`: valida dependências, sintaxe PHP, testes automatizados e compilação frontend.
 - `vacancies.yml`: executa o agendador e permite disparo manual da coleta.
 
-Consulte os arquivos de workflow para detalhes de gatilhos, secrets e serviços utilizados.
+Os testes usam PostgreSQL, mas nunca o banco de produção:
+
+- **Execução local:** conecta ao PostgreSQL instalado na máquina, no banco exclusivo `ti_vagas_test`. O `phpunit.xml` força `DB_CONNECTION=pgsql`, `DB_DATABASE=ti_vagas_test` e `DB_URL` vazio, sem reutilizar a conexão definida no `.env`. As credenciais locais ficam em `.env.testing` (criado a partir de `.env.testing.example`).
+- **GitHub Actions:** cada job de testes sobe um serviço PostgreSQL descartável (`postgres:18`) com banco `ti_vagas_test`. O banco é criado para a execução e não depende de Neon, secrets de produção ou dados reais.
+- Os workflows `ci.yml` e `linkedin-posts-ci.yml` seguem essa configuração.
 
 ## Comandos úteis
 
