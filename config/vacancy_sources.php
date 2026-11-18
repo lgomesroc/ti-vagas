@@ -184,6 +184,10 @@ return [
                 'name' => 'Avenue',
             ],
 
+            'dtidigital' => [
+                'name' => 'dti digital',
+            ],
+
         ],
     ],
 
