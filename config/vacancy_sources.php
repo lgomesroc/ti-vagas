@@ -141,6 +141,9 @@ return [
             'idwall' => [
                 'name' => 'idwall',
             ],
+            'rposolutions' => [
+                'name' => 'RPO Solutions',
+            ],
 
             'aarin' => [
                 'name' => 'Aarin Techfin',
