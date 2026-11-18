@@ -56,6 +56,24 @@ class LinkedInPostCandidateProcessor
             'metadata' => $post,
         ];
 
+        if (!array_key_exists('isPromoted', $post) || !is_bool($post['isPromoted'])) {
+            $candidate->fill($base + [
+                'status' => 'rejected',
+                'decision_reason' => 'Não foi possível confirmar se a publicação é orgânica; publicações sem indicador confiável de promoção são descartadas.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
+        if ($post['isPromoted'] === true) {
+            $candidate->fill($base + [
+                'status' => 'rejected',
+                'decision_reason' => 'Publicação promovida/patrocinada descartada.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
         if ($publishedAt === null || $publishedAt->lt(now()->subHours(
             (int) config('linkedin.lookback_hours', 72)
         ))) {
@@ -87,6 +105,45 @@ class LinkedInPostCandidateProcessor
 
         $links = $this->extractUrls($combinedText, $post);
         $emails = $this->extractEmails($combinedText);
+
+        if (!$this->hasCorporateEmail($emails)) {
+            $candidate->fill($base + [
+                'embedded_links' => array_map(fn (string $url): array => ['url' => $url], $links),
+                'emails' => $emails,
+                'status' => 'rejected',
+                'decision_reason' => 'Publicação sem e-mail corporativo de candidatura.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
+        foreach ($links as $link) {
+            $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
+            $duplicateCandidate = $this->findDuplicateCandidate(
+                null,
+                null,
+                null,
+                null,
+                $link,
+                '',
+                $postId
+            );
+
+            if ($duplicateVacancy !== null || $duplicateCandidate !== null) {
+                $candidate->fill($base + [
+                    'embedded_links' => [['url' => $link]],
+                    'emails' => $emails,
+                    'status' => 'duplicate',
+                    'decision_reason' => $duplicateVacancy !== null
+                        ? 'Link de candidatura já cadastrado na vaga #' . $duplicateVacancy->id . '.'
+                        : 'Link de candidatura já encontrado no candidato #' . $duplicateCandidate->id . '.',
+                    'duplicate_of_vacancy_id' => $duplicateVacancy?->id,
+                    'duplicate_of_candidate_id' => $duplicateCandidate?->id,
+                ])->save();
+
+                return $this->emptyResult('duplicates');
+            }
+        }
 
         $verifiedLinks = [];
         foreach ($links as $link) {
@@ -649,6 +706,39 @@ class LinkedInPostCandidateProcessor
             fn ($url) => rtrim($url, ".,);]}>"),
             array_filter($urls, fn ($url) => filter_var($url, FILTER_VALIDATE_URL))
         )));
+    }
+
+    /**
+     * Exige endereço em domínio corporativo conhecido; provedores públicos
+     * de e-mail e domínios descartáveis não são aceitos como contato da empresa.
+     */
+    private function hasCorporateEmail(array $emails): bool
+    {
+        $personalDomains = [
+            'gmail.com', 'googlemail.com', 'hotmail.com', 'outlook.com',
+            'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
+            'yahoo.com', 'yahoo.com.br', 'icloud.com', 'me.com',
+            'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
+            'gmx.com', 'mail.com', 'uol.com.br', 'bol.com.br',
+            'terra.com.br', 'ig.com.br', 'yandex.com', 'yandex.ru',
+        ];
+
+        foreach ($emails as $email) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+
+            $domain = strtolower(substr(strrchr($email, '@'), 1));
+            if (
+                $domain !== ''
+                && !in_array($domain, $personalDomains, true)
+                && !str_contains($domain, 'linkedin.')
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function extractEmails(string $text): array
