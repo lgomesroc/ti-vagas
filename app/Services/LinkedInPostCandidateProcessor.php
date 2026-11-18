@@ -409,6 +409,10 @@ class LinkedInPostCandidateProcessor
             return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
         }
 
+        if ($applicationUrl === null && !$this->hasCorporateEmail($emails)) {
+            return 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.';
+        }
+
         if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
