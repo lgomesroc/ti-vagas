@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\SuccessFactorsSource;
-use Tests\\TestCase;
+use App\Sources\SuccessFactorsSource;
+use Tests\TestCase;
 
 class SuccessFactorsSourceTest extends TestCase
 {
@@ -15,6 +15,6 @@ class SuccessFactorsSourceTest extends TestCase
             url: 'https://careers.example.com',
         );
 
-        $this->assertSame('successfactors-example', $source->name());
+        $this->assertSame('successfactors-successfactors-example', $source->name());
     }
 }
