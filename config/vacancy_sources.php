@@ -260,6 +260,12 @@ return [
                 'url' => 'https://e-deploy.gupy.io/',
             ],
 
+            'alpargatas' => [
+                'name' => 'Alpargatas',
+                'url' => 'https://alpargatas.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'oceanica' => [
                 'name' => 'Oceânica Engenharia e Consultoria S.A.',
                 'url' => 'https://sejaoceanica.gupy.io/',

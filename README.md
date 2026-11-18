@@ -152,7 +152,7 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Workable | RecargaPay |
 | Teamtailor | ABGi Consulting e Amanco Wavin |
 | InHire | Orizon e Brivia |
-| Gupy | Itaú, Montreal, Claro, AZZAS 2154, CEPEL e E-Deploy / 3S Checkout |
+| Gupy | Itaú, Montreal, Claro, AZZAS 2154, CEPEL, E-Deploy / 3S Checkout e Alpargatas (somente TI) |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
 | Recrut.ai | Grupo Bamaq |
