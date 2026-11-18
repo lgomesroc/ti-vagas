@@ -67,7 +67,11 @@ class BradescoCsodSourceTest extends TestCase
             ]),
         ]);
 
-        $source = new CsodSource('bradesco', 'Bradesco', $home);
+        $source = new BradescoCsodSource(
+            companyKey: 'bradesco',
+            companyName: 'Bradesco',
+            careerSiteUrl: $home,
+        );
 
         $this->assertSame([], collect($source->fetch())->all());
     }
