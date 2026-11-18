@@ -643,6 +643,17 @@ return [
             ],
         ],
     ],
+    'factorial' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 100,
+        'companies' => [
+            'ibrowse' => [
+                'name' => 'Ibrowse Consultoria e Informatica Ltda',
+                'url' => 'https://ibrowse.factorialhr.com.br',
+            ],
+        ],
+    ],
+
     'quickin' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'companies' => [
