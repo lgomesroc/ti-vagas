@@ -187,6 +187,9 @@ return [
             'dtidigital' => [
                 'name' => 'dti digital',
             ],
+            'trinca' => [
+                'name' => 'TRINCA',
+            ],
         ],
     ],
 
