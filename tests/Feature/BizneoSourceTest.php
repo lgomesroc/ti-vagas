@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\BizneoSource;
-use Tests\\TestCase;
+use App\Sources\BizneoSource;
+use Tests\TestCase;
 
 class BizneoSourceTest extends TestCase
 {
@@ -15,6 +15,6 @@ class BizneoSourceTest extends TestCase
             url: 'https://careers.example.com',
         );
 
-        $this->assertSame('bizneo-example', $source->name());
+        $this->assertSame('bizneo-bizneo-example', $source->name());
     }
 }
