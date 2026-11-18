@@ -636,6 +636,12 @@ return [
                 'url' => 'https://nethouserj.vagas.solides.com.br',
             ],
 
+            'magis5' => [
+                'name' => 'Magis5',
+                'slug' => 'recrutamentomagis5',
+                'url' => 'https://recrutamentomagis5.vagas.solides.com.br',
+            ],
+
             'cashway' => [
                 'name' => 'CashWay',
                 'slug' => 'cashway',
