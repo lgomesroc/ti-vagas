@@ -118,6 +118,15 @@ class GupySourceTest extends TestCase
         $this->assertSame([], collect($source->fetch())->all());
     }
 
+    public function test_skill_consultoria_is_registered_without_technology_only_restriction(): void
+    {
+        $skill = config('vacancy_sources.gupy.companies.skill-consultoria');
+
+        $this->assertSame('Skill Consultoria', $skill['name']);
+        $this->assertSame('https://skillconsultoria.gupy.io/', $skill['url']);
+        $this->assertArrayNotHasKey('technology_only', $skill);
+    }
+
     public function test_drogaria_globo_is_registered_separately_from_globo(): void
     {
         $drogariaGlobo = config('vacancy_sources.gupy.companies.drogaria-globo');

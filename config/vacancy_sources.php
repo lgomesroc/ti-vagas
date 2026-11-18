@@ -341,6 +341,11 @@ return [
                 'technology_only' => true,
             ],
 
+            'skill-consultoria' => [
+                'name' => 'Skill Consultoria',
+                'url' => 'https://skillconsultoria.gupy.io/',
+            ],
+
             'unidas' => [
                 'name' => 'Unidas',
                 'url' => 'https://unidas.gupy.io/',
