@@ -56,16 +56,10 @@ class LinkedInPostCandidateProcessor
             'metadata' => $post,
         ];
 
-        if (!array_key_exists('isPromoted', $post) || !is_bool($post['isPromoted'])) {
-            $candidate->fill($base + [
-                'status' => 'rejected',
-                'decision_reason' => 'Não foi possível confirmar se a publicação é orgânica; publicações sem indicador confiável de promoção são descartadas.',
-            ])->save();
-
-            return $this->emptyResult('rejected');
-        }
-
-        if ($post['isPromoted'] === true) {
+        // Rejeita quando a fonte informa explicitamente que o post é promovido.
+        // Os buscadores atuais não fornecem esse metadado; nesse caso não inventamos
+        // um valor e mantemos a limitação documentada.
+        if (($post['isPromoted'] ?? false) === true) {
             $candidate->fill($base + [
                 'status' => 'rejected',
                 'decision_reason' => 'Publicação promovida/patrocinada descartada.',
@@ -85,7 +79,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($this->isEngagementBait($combinedText)) {
+        if ($this->isEngagementBait($text)) {
             $candidate->fill($base + [
                 'status' => 'rejected',
                 'decision_reason' => 'Publicação condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
