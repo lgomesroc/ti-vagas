@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Services\LinkedInPostAutoPublisher;
 use App\Services\LinkedInPostCandidateProcessor;
 use App\Services\LinkedInPostSearchClient;
+use App\Services\LinkedInPublicPostFetcher;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -12,14 +14,16 @@ class CollectLinkedInPosts extends Command
 {
     protected $signature = 'linkedin:collect-posts';
 
-    protected $description = 'Busca publicações públicas de recrutadores e empresas no LinkedIn';
+    protected $description = 'Busca, analisa, aprova e cadastra automaticamente oportunidades de publicações públicas do LinkedIn';
 
     public function handle(
         LinkedInPostSearchClient $client,
-        LinkedInPostCandidateProcessor $processor
+        LinkedInPublicPostFetcher $fetcher,
+        LinkedInPostCandidateProcessor $processor,
+        LinkedInPostAutoPublisher $publisher
     ): int {
         if (!config('linkedin.enabled')) {
-            $this->warn('Coleta do LinkedIn desabilitada. Configure LINKEDIN_POSTS_ENABLED=true no .env.');
+            $this->warn('Coleta do LinkedIn desabilitada. Configure LINKEDIN_POSTS_ENABLED=true.');
 
             return self::SUCCESS;
         }
@@ -30,7 +34,6 @@ class CollectLinkedInPosts extends Command
             Log::error('Falha na pesquisa de publicações do LinkedIn.', [
                 'error' => $exception->getMessage(),
             ]);
-
             $this->error($exception->getMessage());
 
             return self::FAILURE;
@@ -42,10 +45,14 @@ class CollectLinkedInPosts extends Command
             'updated' => 0,
             'rejected' => 0,
             'duplicates' => 0,
+            'approved' => 0,
+            'publish_rejected' => 0,
+            'failed' => 0,
         ];
 
         foreach ($posts as $post) {
             try {
+                $post = $fetcher->fetch($post);
                 $result = $processor->process($post);
 
                 foreach (['created', 'updated', 'rejected', 'duplicates'] as $key) {
@@ -56,22 +63,28 @@ class CollectLinkedInPosts extends Command
                     'post_url' => $post['postUrl'] ?? null,
                     'error' => $exception->getMessage(),
                 ]);
+                $totals['failed']++;
             }
         }
 
+        $publication = $publisher->publishPending();
+        $totals['approved'] = $publication['approved'];
+        $totals['publish_rejected'] = $publication['rejected'];
+        $totals['failed'] += $publication['failed'];
+
         $this->table(
-            ['Recebidas', 'Novas', 'Atualizadas', 'Rejeitadas', 'Duplicadas'],
+            ['Recebidas', 'Novas', 'Atualizadas', 'Rejeitadas', 'Duplicadas', 'Cadastradas', 'Falhas'],
             [[
                 $totals['received'],
                 $totals['created'],
                 $totals['updated'],
-                $totals['rejected'],
+                $totals['rejected'] + $totals['publish_rejected'],
                 $totals['duplicates'],
+                $totals['approved'],
+                $totals['failed'],
             ]]
         );
 
-        $this->info('Candidatos aprovados automaticamente permanecem pendentes de revisão manual.');
-
-        return self::SUCCESS;
+        return $totals['failed'] > 0 ? self::FAILURE : self::SUCCESS;
     }
 }
