@@ -117,4 +117,17 @@ class GupySourceTest extends TestCase
 
         $this->assertSame([], collect($source->fetch())->all());
     }
+
+    public function test_drogaria_globo_is_registered_separately_from_globo(): void
+    {
+        $drogariaGlobo = config('vacancy_sources.gupy.companies.drogaria-globo');
+        $globo = config('vacancy_sources.gupy.companies.globo');
+
+        $this->assertSame('Drogaria Globo', $drogariaGlobo['name']);
+        $this->assertSame('https://drogariaglobo.gupy.io/', $drogariaGlobo['url']);
+        $this->assertTrue($drogariaGlobo['technology_only']);
+
+        $this->assertSame('Globo', $globo['name']);
+        $this->assertSame('https://globo.gupy.io/', $globo['url']);
+    }
 }

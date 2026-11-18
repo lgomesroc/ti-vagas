@@ -335,6 +335,12 @@ return [
                 'technology_only' => true,
             ],
 
+            'drogaria-globo' => [
+                'name' => 'Drogaria Globo',
+                'url' => 'https://drogariaglobo.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'unidas' => [
                 'name' => 'Unidas',
                 'url' => 'https://unidas.gupy.io/',
