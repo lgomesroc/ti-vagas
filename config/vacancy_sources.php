@@ -207,6 +207,12 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'vemprabip' => [
+                'name' => 'BIP Brasil',
+                'url' => 'https://vemprabip.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'riachuelo' => [
                 'name' => 'Riachuelo',
                 'url' => 'https://riachuelo.gupy.io/',
