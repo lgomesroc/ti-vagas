@@ -293,6 +293,22 @@ return [
                 'url' => 'https://e-deploy.gupy.io/',
             ],
 
+            'smartnx' => [
+                'name' => 'Smart NX',
+                'url' => 'https://smartnx.gupy.io/',
+            ],
+
+            'cea' => [
+                'name' => 'C&A',
+                'url' => 'https://cea.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'viceri-vagas' => [
+                'name' => 'Viceri',
+                'url' => 'https://viceri-vagas.gupy.io/',
+            ],
+
             'daniel-ip' => [
                 'name' => 'DANIEL / Daniel Advogados',
                 'url' => 'https://daniel-ip.gupy.io/',
