@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Sources\AshbySource;
 use App\Sources\CompleoSource;
+use App\Sources\CwiSource;
 use App\Sources\BradescoCsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
@@ -510,6 +511,15 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+        $cwi = config('vacancy_sources.cwi', []);
+
+        $cwiSource = new CwiSource(
+            caBundle: $cwi['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+
+        $sources[$cwiSource->name()] = $cwiSource;
 
         $levty = config('vacancy_sources.levty', []);
 
