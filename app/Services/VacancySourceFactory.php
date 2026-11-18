@@ -28,6 +28,7 @@ use App\Sources\QuickinSource;
 use App\Sources\RjEmpregosSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
+use App\Sources\TeamtailorSource;
 use App\Sources\BizneoSource;
 use App\Sources\BtgPactualSource;
 use App\Sources\SolidesSource;
