@@ -21,6 +21,7 @@ return [
             'elo' => 'Elo Serviços S.A.',
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
+            'ifoodcarreiras' => 'iFood',
         ],
     ],
 
@@ -35,10 +36,10 @@ return [
         'companies' => [
             'hostgator' => [
                 'host' => 'web.wd1.myworkdayjobs.com',
-                'tenant' => 'HostGator',
+                'tenant' => 'hostgator',
                 'site' => 'HostGator',
                 'locale' => 'pt-BR',
-                'name' => 'HostGator América Latina',
+                'name' => 'HostGator',
             ],
 
             'natura' => [
@@ -55,6 +56,14 @@ return [
                 'site' => 'Global_Experienced_Careers',
                 'locale' => 'pt-BR',
                 'name' => 'PwC',
+            ],
+
+            'abcfitness' => [
+                'host' => 'abcfinancial.wd5.myworkdayjobs.com',
+                'tenant' => 'abcfinancial',
+                'site' => 'ABCFinancialServices',
+                'locale' => '',
+                'name' => 'ABC Fitness',
             ],
         ],
     ],
@@ -148,46 +157,48 @@ return [
             'rposolutions' => [
                 'name' => 'RPO Solutions',
             ],
-
             'aarin' => [
                 'name' => 'Aarin Techfin',
             ],
-
             'grupofour' => [
                 'name' => 'Uhuu / Grupo Four',
             ],
-
             'amaro' => [
                 'name' => 'AMARO',
             ],
-
             'mjv' => [
                 'name' => 'MJV Technology & Innovation',
             ],
-
             'instacarro' => [
                 'name' => 'InstaCarro',
             ],
             'bancopine' => [
                 'name' => 'Banco Pine',
             ],
-
             'riachuelo' => [
                 'name' => 'Riachuelo',
             ],
-
             'alun' => [
                 'name' => 'FIAP / Alura / PM3',
             ],
-
             'avenue' => [
                 'name' => 'Avenue',
             ],
-
             'dtidigital' => [
                 'name' => 'dti digital',
             ],
+        ],
+    ],
 
+    'mindsight' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 200,
+
+        'companies' => [
+            'guidance' => [
+                'name' => 'Guidance',
+                'url' => 'https://oportunidades.mindsight.com.br/guidance',
+            ],
         ],
     ],
 
@@ -196,7 +207,6 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
-
             'riachuelo' => [
                 'name' => 'Riachuelo',
                 'url' => 'https://riachuelo.gupy.io/',
@@ -247,6 +257,16 @@ return [
             'claro' => [
                 'name' => 'Claro',
                 'url' => 'https://vempraclaro.gupy.io/',
+            ],
+
+            'globalhitss' => [
+                'name' => 'Global Hitss',
+                'url' => 'https://globalhitss.gupy.io/',
+            ],
+
+            'brasilcenter' => [
+                'name' => 'Brasil Center (BCC)',
+                'url' => 'https://vemprabcc.gupy.io/',
             ],
 
             'azzas' => [
@@ -449,6 +469,16 @@ return [
                 'url' => 'https://localiza.gupy.io/',
                 'technology_only' => true,
             ],
+
+            'qualitydigital' => [
+                'name' => 'Quality Digital',
+                'url' => 'https://qualitydigital.gupy.io/',
+            ],
+
+            'vempranexdom' => [
+                'name' => 'NEXDOM Healthtech',
+                'url' => 'https://vempranexdom.gupy.io/',
+            ],
         ],
     ],
 
@@ -484,7 +514,6 @@ return [
                 'site_name' => 'jobsearch',
                 'name' => 'Oracle',
             ],
-
         ],
     ],
 
@@ -534,6 +563,11 @@ return [
                 'name' => 'Grupo Bamaq',
                 'domain' => 'grupobamaq.jobs.recrut.ai',
             ],
+
+            'tpfengenharia' => [
+                'name' => 'TPF Engenharia',
+                'domain' => 'tpfengenharia.jobs.recrut.ai',
+            ],
         ],
     ],
 
@@ -564,6 +598,14 @@ return [
             'inklua' => [
                 'name' => 'Inklua',
                 'url' => 'https://inklua.pandape.infojobs.com.br/',
+            ],
+            'minsaitbrasil' => [
+                'name' => 'Minsait Brasil',
+                'url' => 'https://minsaitbrasil.pandape.infojobs.com.br/',
+            ],
+            '3am' => [
+                'name' => '3AM IT Services',
+                'url' => 'https://3amitservices.pandape.infojobs.com.br/',
             ],
         ],
     ],
@@ -598,7 +640,7 @@ return [
 
             'vagasnetfive' => [
                 'name' => 'Netfive',
-                'url' => 'https://atracaodetalentos.totvs.app/vagasnetfive',
+                'url' => 'https://atracaodetalentos.totals.app/vagasnetfive',
             ],
 
             'vagasolor' => [
@@ -667,9 +709,11 @@ return [
             ],
         ],
     ],
+
     'factorial' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 100,
+
         'companies' => [
             'ibrowse' => [
                 'name' => 'Ibrowse Consultoria e Informatica Ltda',
@@ -680,6 +724,7 @@ return [
 
     'quickin' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+
         'companies' => [
             'sinqia' => [
                 'name' => 'Sinqia (Evertec Brasil)',
@@ -694,6 +739,7 @@ return [
 
     'successfactors' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+
         'companies' => [
             'dafiti' => [
                 'name' => 'Dafiti',
@@ -708,6 +754,7 @@ return [
 
     'bizneo' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+
         'companies' => [
             'veloe' => [
                 'name' => 'Veloe',
@@ -718,6 +765,7 @@ return [
 
     'talentbrand' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+
         'companies' => [
             'vr-beneficios' => [
                 'name' => 'VR Benefícios',
@@ -729,6 +777,7 @@ return [
     'jobylon' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
+
         'companies' => [
             'agiletv' => [
                 'name' => 'AgileTV (Agile Content)',
@@ -741,6 +790,7 @@ return [
     'plooral' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
+
         'companies' => [
             'lopes' => [
                 'name' => 'Lopes Consultoria',
@@ -752,6 +802,7 @@ return [
     'vagas' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 200,
+
         'companies' => [
             'sgr' => [
                 'name' => 'SGR',
@@ -779,6 +830,7 @@ return [
     'bradesco_csod' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 500,
+
         'companies' => [
             'bradesco' => [
                 'name' => 'Bradesco',
@@ -793,8 +845,15 @@ return [
         ],
     ],
 
-    'ibm' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 500],
-    'microsoft' => ['ca_bundle' => env('VACANCY_CA_BUNDLE'), 'max_jobs' => 300],
+    'ibm' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 500,
+    ],
+
+    'microsoft' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_jobs' => 300,
+    ],
 
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
@@ -829,17 +888,16 @@ return [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
             ],
-
         ],
     ],
 
     'smartrecruiters' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 500,
+
         'companies' => [
             // Use o identificador no endereço:
             // https://careers.smartrecruiters.com/{companyIdentifier}
         ],
     ],
-
 ];

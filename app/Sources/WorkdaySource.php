@@ -206,10 +206,14 @@ class WorkdaySource implements VacancySource
                     $applicationUrl,
                     FILTER_VALIDATE_URL
                 )) {
+                    $localePath = trim($this->locale, '/') !== ''
+                        ? '/' . trim($this->locale, '/')
+                        : '';
+
                     $applicationUrl = sprintf(
-                        'https://%s/%s/%s%s',
+                        'https://%s%s/%s%s',
                         $host,
-                        $this->locale,
+                        $localePath,
                         $this->site,
                         $externalPath
                     );

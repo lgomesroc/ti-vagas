@@ -16,6 +16,7 @@ use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
 use App\Sources\LevtySource;
+use App\Sources\MindsightSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\OwnCareerPageSource;
@@ -190,6 +191,21 @@ class VacancySourceFactory
                 companyName: $company['name'] ?? $tenant,
                 caBundle: $inhire['ca_bundle'] ?? null,
                 maxJobs: (int) ($inhire['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $mindsight = config('vacancy_sources.mindsight', []);
+
+        foreach ($mindsight['companies'] ?? [] as $tenant => $company) {
+            $source = new MindsightSource(
+                tenant: $tenant,
+                companyName: $company['name'] ?? $tenant,
+                baseUrl: $company['url'],
+                caBundle: $mindsight['ca_bundle'] ?? null,
+                maxJobs: (int) ($mindsight['max_jobs'] ?? 200),
                 locationFilter: $this->locationFilter,
             );
 

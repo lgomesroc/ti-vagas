@@ -1,5 +1,24 @@
 # TI Vagas
 
+## Documentação
+
+A documentação técnica está organizada por assunto na pasta [docs/](docs/).
+
+| Tópico | Resumo |
+|---|---|
+| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público-alvo, funcionalidades e limites do portal. |
+| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Organização das camadas, responsabilidades e fluxo de dados. |
+| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato das fontes, normalização, importação e filas. |
+| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas atendidas, senioridade, tipo de oportunidade e filtros. |
+| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Resolução de município, regras regionais e base territorial. |
+| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
+| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
+| [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
+
+O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
+
+
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
 O **TI Vagas** é um portal independente de oportunidades profissionais na área de tecnologia, com foco em vagas efetivas de nível júnior.
@@ -7,6 +26,12 @@ O **TI Vagas** é um portal independente de oportunidades profissionais na área
 O projeto reúne anúncios publicados em diferentes empresas e plataformas de recrutamento, aplicando critérios automatizados de área profissional, senioridade, experiência, localização e modalidade de trabalho.
 
 O objetivo é facilitar a busca por oportunidades em desenvolvimento de software, infraestrutura, DevOps, redes e suporte técnico.
+
+## Consentimento e atribuição de campanhas
+
+O aceite dos termos e a preferência sobre cookies não essenciais são registrados separadamente. A escolha de rejeitar cookies não essenciais não impede o uso do portal; nesse caso, os códigos do Google Analytics e do Google AdSense não são carregados. A escolha positiva permite o carregamento dessas ferramentas conforme a implementação atual.
+
+O middleware `CaptureUtmParameters` registra na sessão a primeira origem de campanha identificada pelos parâmetros UTM suportados. Os valores são sanitizados e limitados; atribuições posteriores não substituem a primeira origem durante a mesma sessão. O envio desses dados ao Google Analytics depende do consentimento para cookies não essenciais.
 
 ## Objetivo do projeto
 
@@ -145,24 +170,25 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 
 | Plataforma / integração | Empresas configuradas |
 |---|---|
-| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip e Banco Inter |
+| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip, Banco Inter e iFood |
 | Portal próprio de carreiras | BTG Pactual (API pública do board, com identidade de importação preservada para evitar duplicidade com o cadastro Greenhouse anterior) |
 | Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
-| Workday | PwC |
+| Workday | PwC e ABC Fitness |
 | Workable | RecargaPay |
 | Teamtailor | ABGi Consulting e Amanco Wavin |
 | InHire | Orizon e Brivia |
-| Gupy | Itaú, Montreal, Claro, AZZAS 2154, CEPEL, E-Deploy / 3S Checkout e Alpargatas (somente TI) |
+| Gupy | Itaú, Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Alpargatas (somente TI), Quality Digital e NEXDOM Healthtech |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
-| Recrut.ai | Grupo Bamaq |
-| Pandapé | FIESC, SONDA IT e Adecco |
+| Recrut.ai | Grupo Bamaq e TPF Engenharia |
+| Pandapé | FIESC, SONDA IT, Adecco e Minsait Brasil |
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
 | Portal próprio / API SYDLE ONE | LEVTY |\n| SmartRecruiters | Empresas configuradas em `config/vacancy_sources.php` |
 | Bradesco CSOD | Bradesco e Bradesco Seguros |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
+| Mindsight | Guidance |
 
 A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
@@ -319,13 +345,13 @@ Entre os cenários cobertos estão:
 - Comportamento da listagem diante de oportunidades indisponíveis;
 - Bloqueio de acesso a anúncios indisponíveis;
 - Importação de oportunidades;
-- Tratamento de registros duplicados e indisponíveis.
+- Tratamento de registros duplicados e indisponíveis;
+- Verificação HTTP dos links de candidatura, redirecionamentos e respostas inconclusivas;
+- Captura, sanitização e preservação da primeira atribuição UTM;
+- Aceite dos termos, persistência de cookies e preferências de cookies não essenciais;
+- Primeira autorização de localização a partir do modo limitado.
 
-**Última execução completa registrada:**
-
-- **73 testes aprovados**
-- **213 asserções**
-- **Nenhuma falha na execução**
+A quantidade de testes e as asserções muda conforme o projeto evolui. Não há nesta documentação uma contagem fixa apresentada como resultado atual; consulte a execução mais recente do CI ou execute a suíte no ambiente local.
 
 Para executar a suíte localmente:
 
