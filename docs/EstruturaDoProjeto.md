@@ -5,8 +5,8 @@
 Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois aparecem os arquivos, também em ordem alfabética**. A regra é aplicada recursivamente.
 
 - Branch: `developer`
-- Total: 315 entradas (53 pastas e 262 arquivos).
-- Referência da árvore: `46c7221da6440a391ad34b2199af44e6643efe96`
+- Total: 317 entradas (53 pastas e 264 arquivos).
+- Referência da árvore antes desta atualização: `4c0b380b6f97a74a3f4582ff10395a7cded89e9f`
 
 ```text
 ├── .github/
@@ -176,11 +176,13 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   └── .gitignore
 ├── docs/
 │   ├── ArquiteturaEFluxoDeDados.md
+│   ├── AtualizacoesRecentes.md
 │   ├── AutomacaoETestes.md
 │   ├── ColetaEIntegracaoDeVagas.md
 │   ├── ColetaPublicacoesLinkedIn.md
 │   ├── deteccao-de-redes-suspeitas.md
 │   ├── EstruturaDoProjeto.md
+│   ├── FontesGupyRecentes.md
 │   ├── InstalacaoEConfiguracao.md
 │   ├── LocalizacaoERegionalizacao.md
 │   ├── RegrasDeElegibilidade.md
@@ -326,4 +328,4 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 └── vite.config.js
 ```
 
-> Observação: diretórios de dependências e arquivos gerados ignorados pelo Git não aparecem nesta árvore. O próprio arquivo `docs/EstruturaDoProjeto.md` está incluído.
+> Observação: diretórios de dependências e arquivos gerados ignorados pelo Git não aparecem nesta árvore. O arquivo `docs/EstruturaDoProjeto.md` está incluído.
