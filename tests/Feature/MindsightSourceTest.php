@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Services\\VacancyLocationFilter;
-use App\Sources\\MindsightSource;
-use Illuminate\Support\\Facades\\Http;
+use App\Services\VacancyLocationFilter;
+use App\Sources\MindsightSource;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
 
