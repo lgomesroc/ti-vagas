@@ -4,24 +4,41 @@ namespace App\Services;
 
 use App\Sources\AshbySource;
 use App\Sources\CompleoSource;
+use App\Sources\BradescoCsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\GupySource;
 use App\Sources\InhireSource;
+use App\Sources\IbmSource;
+use App\Sources\MicrosoftSource;
 use App\Sources\JobConvoSource;
+use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
+use App\Sources\LevtySource;
 use App\Sources\MindsightSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
+use App\Sources\OwnCareerPageSource;
 use App\Sources\PandapeSource;
+use App\Sources\PlooralSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
+use App\Sources\QuickinSource;
+use App\Sources\RjEmpregosSource;
+use App\Sources\SuccessFactorsSource;
+use App\Sources\TalentbrandSource;
+use App\Sources\TeamtailorSource;
+use App\Sources\BizneoSource;
+use App\Sources\BtgPactualSource;
 use App\Sources\SolidesSource;
+use App\Sources\FactorialSource;
+use App\Sources\SmartRecruitersSource;
 use App\Sources\TotvsAtsSource;
 use App\Sources\WorkableSource;
 use App\Sources\WorkdaySource;
+use App\Sources\VagasSource;
 use App\Sources\ZohoRecruitSource;
 use InvalidArgumentException;
 
@@ -36,6 +53,36 @@ class VacancySourceFactory
     {
         $sources = [];
 
+        $bradescoCsod = config('vacancy_sources.bradesco_csod', []);
+
+        foreach ($bradescoCsod['companies'] ?? [] as $companyKey => $company) {
+            $source = new BradescoCsodSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                careerSiteUrl: $company['url'],
+                siteNumber: (int) ($company['site_number'] ?? 1),
+                maxJobs: (int) ($bradescoCsod['max_jobs'] ?? 500),
+                caBundle: $bradescoCsod['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $smartRecruiters = config('vacancy_sources.smartrecruiters', []);
+
+        foreach ($smartRecruiters['companies'] ?? [] as $identifier => $company) {
+            $source = new SmartRecruitersSource(
+                companyIdentifier: $identifier,
+                companyName: $company['name'] ?? $identifier,
+                caBundle: $smartRecruiters['ca_bundle'] ?? null,
+                maxJobs: (int) ($smartRecruiters['max_jobs'] ?? 500),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
         $greenhouse = config('vacancy_sources.greenhouse', []);
 
         foreach ($greenhouse['companies'] ?? [] as $board => $company) {
@@ -48,6 +95,15 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+        // O portal próprio do BTG usa o mesmo board público Greenhouse.
+        // Mantém o identificador greenhouse-btgpactual para atualizar os
+        // registros já importados, sem criar uma segunda cópia das vagas.
+        $btg = new BtgPactualSource(
+            caBundle: $greenhouse['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$btg->name()] = $btg;
 
         $sensedia = new SensediaSource(
             caBundle: config('vacancy_sources.sensedia.ca_bundle'),
@@ -97,6 +153,21 @@ class VacancySourceFactory
         );
 
         $sources[$source->name()] = $source;
+
+        $teamtailor = config('vacancy_sources.teamtailor', []);
+
+        foreach ($teamtailor['companies'] ?? [] as $companyKey => $company) {
+            $source = new TeamtailorSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                feedUrl: $company['feed_url'],
+                caBundle: $teamtailor['ca_bundle'] ?? null,
+                maxJobs: (int) ($teamtailor['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
 
         $workable = config('vacancy_sources.workable', []);
 
@@ -150,6 +221,7 @@ class VacancySourceFactory
                 caBundle: $gupy['ca_bundle'] ?? null,
                 maxJobs: (int) ($gupy['max_jobs'] ?? 200),
                 baseUrl: $company['url'] ?? null,
+                technologyOnly: (bool) ($company['technology_only'] ?? false),
             );
 
             $sources[$source->name()] = $source;
@@ -161,6 +233,7 @@ class VacancySourceFactory
             $source = new OracleHcmSource(
                 siteNumber: $company['site_number'],
                 siteName: $company['site_name'],
+                baseUrl: $company['base_url'],
                 companyName: $company['name'] ?? $companyKey,
                 caBundle: $oracle['ca_bundle'] ?? null,
                 maxJobs: (int) ($oracle['max_jobs'] ?? 1000),
@@ -322,6 +395,165 @@ class VacancySourceFactory
 
             $sources[$source->name()] = $source;
         }
+
+
+        $factorial = config('vacancy_sources.factorial', []);
+
+        foreach ($factorial['companies'] ?? [] as $companyKey => $company) {
+            $source = new FactorialSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                careerPageUrl: $company['url'],
+                caBundle: $factorial['ca_bundle'] ?? null,
+                maxJobs: (int) ($factorial['max_jobs'] ?? 100),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $quickin = config('vacancy_sources.quickin', []);
+
+        foreach ($quickin['companies'] ?? [] as $companyKey => $company) {
+            $source = new QuickinSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $quickin['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $successFactors = config('vacancy_sources.successfactors', []);
+
+        foreach ($successFactors['companies'] ?? [] as $companyKey => $company) {
+            $source = new SuccessFactorsSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $successFactors['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $bizneo = config('vacancy_sources.bizneo', []);
+
+        foreach ($bizneo['companies'] ?? [] as $companyKey => $company) {
+            $source = new BizneoSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $bizneo['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $talentbrand = config('vacancy_sources.talentbrand', []);
+
+        foreach ($talentbrand['companies'] ?? [] as $companyKey => $company) {
+            $source = new TalentbrandSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $talentbrand['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $plooral = config('vacancy_sources.plooral', []);
+        foreach ($plooral['companies'] ?? [] as $companyKey => $company) {
+            $source = new PlooralSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                subdomain: $company['subdomain'] ?? $companyKey,
+                caBundle: $plooral['ca_bundle'] ?? null,
+                maxJobs: (int) ($plooral['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+            $sources[$source->name()] = $source;
+        }
+
+        $jobylon = config('vacancy_sources.jobylon', []);
+
+        foreach ($jobylon['companies'] ?? [] as $companyKey => $company) {
+            $source = new JobylonSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                companyId: (int) $company['company_id'],
+                careerUrl: $company['url'],
+                caBundle: $jobylon['ca_bundle'] ?? null,
+                maxJobs: (int) ($jobylon['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $ownCareerPages = config('vacancy_sources.own_career_pages', []);
+
+        foreach ($ownCareerPages['companies'] ?? [] as $companyKey => $company) {
+            $source = new OwnCareerPageSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $ownCareerPages['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $levty = config('vacancy_sources.levty', []);
+
+        $levtySource = new LevtySource(
+            caBundle: $levty['ca_bundle'] ?? null,
+            maxJobs: (int) ($levty['max_jobs'] ?? 500),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$levtySource->name()] = $levtySource;
+
+        $vagas = config('vacancy_sources.vagas', []);
+
+        foreach ($vagas['companies'] ?? [] as $companyKey => $company) {
+            $source = new VagasSource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $vagas['ca_bundle'] ?? null,
+                maxJobs: (int) ($vagas['max_jobs'] ?? 200),
+                locationFilter: $this->locationFilter,
+            );
+
+            $sources[$source->name()] = $source;
+        }
+
+        $rjEmpregos = config('vacancy_sources.rjempregos', []);
+
+        $rjEmpregosSource = new RjEmpregosSource(
+            baseUrl: $rjEmpregos['base_url'] ?? 'https://rjempregos.net',
+            caBundle: $rjEmpregos['ca_bundle'] ?? null,
+            maxPages: (int) ($rjEmpregos['max_pages'] ?? 5),
+            maxJobs: (int) ($rjEmpregos['max_jobs'] ?? 50),
+            locationFilter: $this->locationFilter,
+        );
+
+        $sources[$rjEmpregosSource->name()] = $rjEmpregosSource;
+
+        $ibm = config('vacancy_sources.ibm', []);
+        $ibmSource = new IbmSource(caBundle: $ibm['ca_bundle'] ?? null, maxJobs: (int) ($ibm['max_jobs'] ?? 500), locationFilter: $this->locationFilter);
+        $sources[$ibmSource->name()] = $ibmSource;
+
+        $microsoft = config('vacancy_sources.microsoft', []);
+        $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
+        $sources[$microsoftSource->name()] = $microsoftSource;
 
         return $sources;
     }

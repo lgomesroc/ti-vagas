@@ -239,16 +239,18 @@ class LocationRefreshTest extends TestCase
             ->get(route('vacancies.index'))
             ->assertSee('id="location-refresh"', false)
             ->assertSee(json_encode(route('location.refresh')), false)
-            ->assertSee('getCurrentPosition(', false)
+            ->assertSee('watchPosition(', false)
             ->assertSee('enableHighAccuracy: true', false)
-            ->assertSee('timeout: 20000', false)
-            // Nenhuma chamada de rastreamento contínuo (o comentário não conta).
-            ->assertDontSee('watchPosition(', false);
+            ->assertSee('ACQUISITION_WINDOW_MS = 12000', false)
+            ->assertSee('permissionState === \'granted\'', false)
+            ->assertSee('Ativar localização', false)
+            ->assertDontSee('getCurrentPosition(', false);
 
         $this->withSession($this->sessionData('limited'))
             ->get(route('vacancies.index'))
             ->assertSee('id="location-refresh"', false)
-            ->assertSee('var LOCATION_MODE = "limited"', false);
+            ->assertSee('var LOCATION_MODE = "limited"', false)
+            ->assertSee('Ativar localização', false);
 
         $this->withSession($this->sessionData('available'))
             ->get(route('welcome'))

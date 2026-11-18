@@ -171,11 +171,13 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Plataforma / integração | Empresas configuradas |
 |---|---|
 | Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip, Banco Inter e iFood |
+| Portal próprio de carreiras | BTG Pactual (API pública do board, com identidade de importação preservada para evitar duplicidade com o cadastro Greenhouse anterior) |
 | Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
 | Workday | PwC e ABC Fitness |
 | Workable | RecargaPay |
+| Teamtailor | ABGi Consulting e Amanco Wavin |
 | InHire | Orizon e Brivia |
-| Gupy | Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Quality Digital e NEXDOM Healthtech |
+| Gupy | Itaú, Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Alpargatas (somente TI), Quality Digital e NEXDOM Healthtech |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
 | Recrut.ai | Grupo Bamaq e TPF Engenharia |
@@ -183,14 +185,18 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
+| Portal próprio / API SYDLE ONE | LEVTY |\n| SmartRecruiters | Empresas configuradas em `config/vacancy_sources.php` |
+| Bradesco CSOD | Bradesco e Bradesco Seguros |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
 | Mindsight | Guidance |
 
-A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
 ### Agregadores de vagas
 
-Até esta implementação, DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta** do TI Vagas. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
+O RJ Empregos está integrado como agregador via feed RSS público. O coletor percorre as publicações recentes, preserva a data original do feed e só importa anúncios cuja página apresente um link externo direto de candidatura. Links internos do próprio RJ Empregos, redirecionamentos sem destino verificável e anúncios sem data original são descartados. Como o portal divulga vagas de diferentes áreas e níveis, os critérios gerais do TI Vagas continuam responsáveis por selecionar o que será exibido ao público.
+
+DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta**. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
 
 A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
 
@@ -508,3 +514,11 @@ Sugestões, identificação de anúncios incorretos e contribuições para melho
 ---
 
 **TI Vagas — Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
+
+
+## Integrações IBM e Microsoft
+
+- **IBM:** consulta a API de busca de carreiras, restringe a coleta aos níveis Entry Level e Internship e filtra oportunidades de tecnologia. Registros sem data original de publicação são descartados.
+- **Microsoft:** consulta o portal Eightfold para vagas no Brasil, recupera a descrição individual e mantém oportunidades de tecnologia com indicação de júnior, início de carreira ou estágio.
+
+As integrações possuem testes automatizados com respostas simuladas. A disponibilidade real depende das APIs externas e deve ser monitorada após a publicação.

@@ -61,6 +61,38 @@ class GupySourceTest extends TestCase
         $this->assertSame('full_time', $vacancies[0]['employment_type']);
     }
 
+
+    public function test_it_excludes_non_technology_roles_when_technology_only_is_enabled(): void
+    {
+        $baseUrl = 'https://empresa-teste.gupy.io';
+        $listing = '<script id="__NEXT_DATA__" type="application/json">'
+            . json_encode(['props' => ['pageProps' => ['jobs' => [['id' => 987]]]]])
+            . '</script><a href="/jobs/987">Vaga</a>';
+        $posting = [
+            '@type' => 'JobPosting',
+            'title' => 'Analista de BI Júnior',
+            'description' => 'Atuação com indicadores e relatórios.',
+            'datePosted' => '2026-11-10',
+        ];
+        $detail = '<script type="application/ld+json">'
+            . json_encode($posting)
+            . '</script>';
+
+        Http::fake([
+            $baseUrl . '/' => Http::response($listing),
+            $baseUrl . '/jobs/987' => Http::response($detail),
+        ]);
+
+        $source = new GupySource(
+            subdomain: 'empresa-teste',
+            companyName: 'Empresa Teste',
+            baseUrl: $baseUrl,
+            technologyOnly: true,
+        );
+
+        $this->assertSame([], collect($source->fetch())->all());
+    }
+
     public function test_it_discards_talent_pool_announcements(): void
     {
         $baseUrl = 'https://empresa-teste.gupy.io';
