@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Sources\InhireSource;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
