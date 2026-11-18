@@ -12,7 +12,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_post_without_corporate_email_is_rejected_even_when_it_has_an_application_link(): void
+    public function test_post_without_corporate_email_or_verified_application_link_is_rejected(): void
     {
         $post = $this->makePost([
             'isPromoted' => false,
@@ -25,7 +25,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
-            'decision_reason' => 'Publicação sem e-mail corporativo de candidatura.',
+            'decision_reason' => 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.',
         ]);
     }
 
