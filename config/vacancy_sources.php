@@ -561,6 +561,10 @@ return [
                 'name' => 'Catho',
                 'url' => 'https://catho.pandape.infojobs.com.br/',
             ],
+            'inklua' => [
+                'name' => 'Inklua',
+                'url' => 'https://inklua.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
