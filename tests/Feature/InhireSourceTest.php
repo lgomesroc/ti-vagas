@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Sources\InhireSource;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -88,6 +89,23 @@ class InhireSourceTest extends TestCase
         $vacancies = iterator_to_array($this->makeSource()->fetch());
 
         $this->assertSame([], $vacancies);
+    }
+
+    public function test_it_sends_the_configured_tenant_header_to_both_public_endpoints(): void
+    {
+        $this->mockInhire();
+
+        iterator_to_array($this->makeSource()->fetch());
+
+        Http::assertSent(fn (Request $request) =>
+            $request->url() === 'https://api.inhire.app/job-posts/public/pages'
+            && $request->hasHeader('X-Tenant', 'empresa-teste')
+        );
+
+        Http::assertSent(fn (Request $request) =>
+            $request->url() === 'https://api.inhire.app/job-posts/public/pages/12345'
+            && $request->hasHeader('X-Tenant', 'empresa-teste')
+        );
     }
 
     private function makeSource(): InhireSource
