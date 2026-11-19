@@ -8,6 +8,9 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
+    // Certificado raiz da rede, quando há inspeção TLS corporativa.
+    'ca_bundle' => env('LINKEDIN_CA_BUNDLE', env('CURL_CA_BUNDLE')),
+
     // Exige uma fonte contratada/autorizada com sinalização confiável de promoção.
     'authorized_source_enabled' => filter_var(
         env('LINKEDIN_AUTHORIZED_SOURCE_ENABLED', false),
