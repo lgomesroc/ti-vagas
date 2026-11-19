@@ -37,11 +37,15 @@ Crie o banco e ajuste a conexão antes de executar:
 
 ```bash
 php artisan migrate
+
+# Gere o CSV oficial a partir do ZIP DTB 2025 (PowerShell/Windows):
+.\scripts\ibge\import-dtb-2025.ps1
+
 php artisan geo:import-ibge
 php artisan vacancies:resolve-municipalities
 ```
 
-A importação geográfica depende de acesso à API do IBGE. Para o modo offline, consulte as opções do comando `geo:import-ibge`.
+A importação utiliza o arquivo `database/data/ibge/municipios_dtb_2025.csv`, gerado a partir de `ibge/DTB_2025.zip` pelo script PowerShell versionado em `scripts/ibge/import-dtb-2025.ps1`. O CSV normalizado deve ser incluído no repositório para que o Docker e os ambientes de produção também tenham a base territorial. A rotina não consulta a API do IBGE.
 
 ## Banco exclusivo para testes locais
 
