@@ -196,6 +196,9 @@ return [
             'brq' => [
                 'name' => 'BRQ Digital Solutions',
             ],
+            'dock' => [
+                'name' => 'Dock',
+            ],
         ],
     ],
 
@@ -566,12 +569,6 @@ return [
             'softexpert' => [
                 'name' => 'SoftExpert',
                 'url' => 'https://softexpert.gupy.io/',
-                'technology_only' => true,
-            ],
-
-            'dock' => [
-                'name' => 'Dock',
-                'url' => 'https://dock.gupy.io/',
                 'technology_only' => true,
             ],
 
