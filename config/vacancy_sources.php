@@ -521,6 +521,21 @@ return [
                 'name' => 'NEXDOM Healthtech',
                 'url' => 'https://vempranexdom.gupy.io/',
             ],
+            'anbima' => [
+                'name' => 'ANBIMA',
+                'url' => 'https://anbima.gupy.io/',
+            ],
+
+            'golcarreiras' => [
+                'name' => 'GOL Linhas Aéreas',
+                'url' => 'https://golcarreiras.gupy.io/',
+            ],
+
+            'voeazul' => [
+                'name' => 'Azul Linhas Aéreas',
+                'url' => 'https://voeazul.gupy.io/',
+            ],
+
         ],
     ],
 
