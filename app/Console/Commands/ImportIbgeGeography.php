@@ -10,7 +10,6 @@ use Throwable;
 class ImportIbgeGeography extends Command
 {
     protected $signature = 'geo:import-ibge
-        {--csv= : Caminho do CSV normalizado da DTB 2025}
         {--if-empty : Só executa se a DTB 2025 ainda não foi importada}';
 
     protected $description = 'Importa municípios e regiões geográficas da DTB 2025 do IBGE';
