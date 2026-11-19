@@ -127,7 +127,7 @@ O portal prioriza oportunidades destinadas a profissionais residentes no Brasil 
 O município do visitante e o da vaga são identificados pelo código do IBGE. A região é definida em camadas:
 
 1. **Região Metropolitana (RM) ou RIDE:** se o município pertence a uma delas, o visitante vê apenas vagas dos municípios da mesma RM ou RIDE. Um visitante de Rio Bonito, por exemplo, vê vagas de Niterói e Nova Iguaçu, mas não de Teresópolis, de São Paulo ou de Campinas.
-2. **Região Geográfica Intermediária do IBGE (2017):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
+2. **Região Geográfica Intermediária do IBGE (DTB 2025):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
 
 As vagas só são exibidas se o município puder ser identificado. Quando o texto informa uma cidade que não existe na UF indicada (por exemplo, "Santos, Rio de Janeiro"), a vaga não é associada a nenhum município.
 
@@ -168,7 +168,7 @@ php artisan geo:import-ibge
 php artisan vacancies:resolve-municipalities
 ```
 
-O primeiro comando precisa acessar `servicodados.ibge.gov.br`. A opção `--offline` carrega apenas municípios e os ajustes de `config/geo_regions.php`. O segundo identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
+A importação usa `database/data/ibge/municipios_dtb_2025.csv`, gerado a partir do arquivo oficial `ibge/DTB_2025.zip` pelo script PowerShell `scripts/ibge/import-dtb-2025.ps1`. O CSV normalizado deve ser versionado no repositório para estar disponível no Docker e em produção. A rotina não consulta a API do IBGE. O segundo comando identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
 
 ## Coleta e integração de vagas
 
