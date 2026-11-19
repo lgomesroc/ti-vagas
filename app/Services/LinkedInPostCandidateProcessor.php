@@ -100,6 +100,20 @@ class LinkedInPostCandidateProcessor
         $links = $this->extractUrls($combinedText, $post);
         $emails = $this->extractEmails($combinedText);
 
+        if (
+            ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
+            && !$this->hasCorporateEmail($emails)
+        ) {
+            $candidate->fill($base + [
+                'embedded_links' => [],
+                'emails' => $emails,
+                'status' => 'rejected',
+                'decision_reason' => 'Conta secundária: publicação sem e-mail corporativo.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
         if (!$this->hasCorporateEmail($emails) && $links === []) {
             $candidate->fill($base + [
                 'embedded_links' => [],
@@ -328,7 +342,7 @@ class LinkedInPostCandidateProcessor
                     || $isCompanyAuthor
                     || in_array(
                         $post['searchProvider'] ?? null,
-                        ['duckduckgo-html', 'brave-api', 'mojeek-api'],
+                        ['duckduckgo-html', 'bing-rss', 'linkedin-secondary-account'],
                         true
                     )
                 )
