@@ -44,6 +44,82 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         ]);
     }
 
+    public function test_open_to_work_and_job_search_posts_are_rejected_as_not_vacancies(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Open to Work. Estou em busca de recolocação e disponível para novas oportunidades em suporte técnico.',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação de pessoa buscando recolocação, emprego ou divulgando disponibilidade profissional; não é anúncio de vaga.',
+        ]);
+    }
+
+    public function test_personal_new_job_announcement_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estou muito feliz em compartilhar que comecei em um novo cargo na empresa Acme. Obrigado a todos!',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Relato pessoal de novo emprego, contratação ou promoção; não é anúncio de oportunidade.',
+        ]);
+    }
+
+    public function test_personal_promotion_announcement_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Fui promovida a coordenadora de tecnologia. Muito orgulho dessa conquista!',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Relato pessoal de novo emprego, contratação ou promoção; não é anúncio de oportunidade.',
+        ]);
+    }
+
+    public function test_service_advertisement_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Oferecemos soluções de outsourcing de TI e alocação de profissionais para empresas. Conheça nossos serviços.',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicidade de serviços, consultoria, cursos ou fornecimento de profissionais; não é anúncio de contratação.',
+        ]);
+    }
+
+    public function test_happy_recruiter_announcing_a_real_vacancy_is_not_misclassified_as_a_personal_update(): void
+    {
+        $post = $this->makePost([
+            'authorHeadline' => 'Senior Tech Recruiter',
+            'text' => 'Estou muito feliz e orgulhosa em anunciar que estamos contratando Desenvolvedor PHP Júnior para nosso time!',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação sem link de candidatura ou e-mail corporativo.',
+        ]);
+    }
+
     public function test_known_job_aggregator_link_is_blocked(): void
     {
         config(['linkedin.aggregator_domains' => ['indeed.com']]);
