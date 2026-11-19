@@ -360,6 +360,48 @@ class LinkedInPostCandidateProcessor
             return 'Publicação de pessoa buscando recolocação, emprego ou divulgando disponibilidade profissional; não é anúncio de vaga.';
         }
 
+        // Notícias e relatos sobre cortes de pessoal. "Layoff(s)" isolado não
+        // deve derrubar uma vaga real que apenas mencione cortes no mercado.
+        $layoffContext = preg_match(
+            '/\\b(?:layoffs?|laid\\s+off|mass\\s+layoffs?|workforce\\s+(?:reduction|cuts)|job\\s+cuts|cortes?\\s+(?:de\\s+)?pessoal|demissoes?\\s+em\\s+massa|redu[cç][aã]o\\s+de\\s+quadro|funcionarios\\s+(?:demitidos|desligados)|colaboradores\\s+(?:demitidos|desligados)|fui\\s+afetad[oa]\\s+pel[oa]s?\\s+layoffs?)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($layoffContext && !$explicitVacancy) {
+            return 'Publicação sobre layoff, layoffs, cortes de pessoal ou demissões; não anuncia uma vaga.';
+        }
+
+        // Relatos sobre candidatura sem retorno, demora ou eliminação em
+        // processo seletivo. Exigimos contexto de recrutamento para não
+        // confundir "demora" ou "eliminado" com outros assuntos.
+        $recruitmentProcessContext = preg_match(
+            '/\\b(?:processo\\s+seletivo|processos\\s+seletivos|processo\\s+de\\s+selecao|candidatura|candidaturas|candidato|candidata|entrevista|entrevistas|recrutador|recrutadora|recrutamento|selecao|rh|vaga|vagas|application|hiring\\s+process|recruitment\\s+process|interview|job\\s+application)\\b/',
+            $normalized
+        ) === 1;
+
+        $applicationRejection = preg_match(
+            '/\\b(?:eliminad[oa]s?|reprovad[oa]s?|nao\\s+aprovad[oa]s?|rejeitad[oa]s?|rejected|not\\s+selected|unsuccessful)\\b/',
+            $normalized
+        ) === 1;
+
+        $noRecruiterResponse = preg_match(
+            '/\\b(?:sem\\s+(?:nenhum\\s+)?retorno|nao\\s+(?:tive|recebi|obtive)\\s+(?:nenhum\\s+)?retorno|nunca\\s+recebi\\s+retorno|no\\s+response|no\\s+feedback|ghosting)\\b/',
+            $normalized
+        ) === 1;
+
+        $slowRecruitmentProcess = preg_match(
+            '/\\b(?:demora|demorado|demorada|demorando|muito\\s+tempo|tempo\\s+de\\s+espera|processo\\s+lento|demorado\\s+demais|taking\\s+too\\s+long|long\\s+waiting\\s+time)\\b/',
+            $normalized
+        ) === 1;
+
+        if (
+            $recruitmentProcessContext
+            && ($applicationRejection || $noRecruiterResponse || $slowRecruitmentProcess)
+            && !$explicitVacancy
+        ) {
+            return 'Relato ou reclamação sobre candidatura, eliminação, falta de retorno ou demora em processo seletivo; não é anúncio de vaga.';
+        }
+
         // Relatos pessoais de contratação, promoção ou início em novo emprego.
         // "Orgulho" e "feliz" só contam quando ligados a um evento pessoal.
         $personalCareerUpdate = preg_match(
