@@ -256,6 +256,34 @@ async function main() {
           ariaLabel: t.getAttribute('aria-label')
         }))
       }))).catch(() => []);
+      diagnostic.timestampAncestors = await page.locator('main').evaluate(main => {
+        const candidates = [...main.querySelectorAll('*')].filter(node => {
+          const text = (node.innerText || '').trim();
+          return text.length >= 250 && text.length <= 10000 &&
+            /\\b\\d+\\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\\b/i.test(text) &&
+            ![...node.children].some(child => {
+              const childText = (child.innerText || '').trim();
+              return childText.length >= 250 && childText.length <= 10000 &&
+                /\\b\\d+\\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\\b/i.test(childText);
+            });
+        }).slice(0, 5);
+        return candidates.map(node => {
+          const chain = [];
+          let current = node;
+          for (let i = 0; current && i < 7; i++, current = current.parentElement) {
+            chain.push({
+              tag: current.tagName,
+              className: typeof current.className === 'string' ? current.className : '',
+              role: current.getAttribute('role'),
+              dataUrn: current.getAttribute('data-urn'),
+              text: (current.innerText || '').slice(0, 900),
+              links: [...current.querySelectorAll('a[href]')].slice(0, 8).map(a => ({text:(a.innerText||'').trim().slice(0,80),href:a.href})),
+              times: [...current.querySelectorAll('time')].slice(0, 3).map(t => ({text:(t.innerText||'').trim(),datetime:t.getAttribute('datetime'),aria:t.getAttribute('aria-label')}))
+            });
+          }
+          return chain;
+        });
+      }).catch(() => []);
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 3; pageNo++) {
