@@ -116,6 +116,162 @@ class IbgeGeographyImporter
     }
 
     /**
+     * Importa a base oficial DTB 2025 já normalizada em CSV.
+     * As coordenadas existentes são preservadas pelo código IBGE.
+     */
+    public function importFromDtbCsv(?string $csvPath = null): array
+    {
+        $csvPath ??= database_path('data/ibge/municipios_dtb_2025.csv');
+        $handle = is_readable($csvPath) ? fopen($csvPath, 'r') : false;
+
+        if ($handle === false) {
+            throw new InvalidArgumentException("Arquivo DTB 2025 não encontrado: {$csvPath}");
+        }
+
+        $header = fgetcsv($handle, 0, ',', '"', '');
+        if ($header === false) {
+            fclose($handle);
+            throw new InvalidArgumentException('O CSV da DTB 2025 está vazio.');
+        }
+
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]);
+        $columns = array_flip($header);
+        $required = [
+            'codigo_ibge', 'nome', 'codigo_uf',
+            'intermediate_region_code', 'intermediate_region_name',
+            'immediate_region_code', 'immediate_region_name',
+        ];
+
+        foreach ($required as $column) {
+            if (!array_key_exists($column, $columns)) {
+                fclose($handle);
+                throw new InvalidArgumentException("Coluna obrigatória ausente no CSV DTB 2025: {$column}");
+            }
+        }
+
+        $existingCoordinates = Municipality::query()
+            ->whereNotNull('latitude')
+            ->orWhereNotNull('longitude')
+            ->get(['ibge_code', 'latitude', 'longitude'])
+            ->keyBy('ibge_code');
+
+        $rows = [];
+        $seen = [];
+        $count = 0;
+        $batch = [];
+
+        while (($line = fgetcsv($handle, 0, ',', '"', '')) !== false) {
+            if (count($line) < count($header)) {
+                fclose($handle);
+                throw new InvalidArgumentException('Linha incompleta encontrada no CSV DTB 2025.');
+            }
+
+            $code = str_pad(trim((string) $line[$columns['codigo_ibge']]), 7, '0', STR_PAD_LEFT);
+            $state = self::STATE_BY_IBGE_PREFIX[substr($code, 0, 2)] ?? null;
+            $name = trim((string) $line[$columns['nome']]);
+
+            if (!preg_match('/^\d{7}$/', $code) || $state === null || $name === '') {
+                fclose($handle);
+                throw new InvalidArgumentException("Município inválido no CSV DTB 2025: {$code}.");
+            }
+
+            if (isset($seen[$code])) {
+                fclose($handle);
+                throw new InvalidArgumentException("Código de município duplicado na DTB 2025: {$code}.");
+            }
+            $seen[$code] = true;
+
+            $immediateCode = trim((string) $line[$columns['immediate_region_code']]);
+            $immediateName = trim((string) $line[$columns['immediate_region_name']]);
+            $intermediateCode = trim((string) $line[$columns['intermediate_region_code']]);
+            $intermediateName = trim((string) $line[$columns['intermediate_region_name']]);
+
+            if ($immediateCode === '' || $immediateName === '' || $intermediateCode === '' || $intermediateName === '') {
+                fclose($handle);
+                throw new InvalidArgumentException("Região imediata/intermediária ausente para {$code} - {$name}.");
+            }
+
+            $coordinates = $existingCoordinates->get($code);
+            $batch[] = [
+                'ibge_code' => $code,
+                'name' => $name,
+                'normalized_name' => MunicipalityDirectory::normalize($name),
+                'state_code' => $state,
+                'latitude' => $coordinates?->latitude,
+                'longitude' => $coordinates?->longitude,
+                'immediate_region_code' => $immediateCode,
+                'immediate_region_name' => $immediateName,
+                'intermediate_region_code' => $intermediateCode,
+                'intermediate_region_name' => $intermediateName,
+            ];
+
+            if (count($batch) >= 500) {
+                $rows[] = $batch;
+                $batch = [];
+            }
+            $count++;
+        }
+
+        fclose($handle);
+
+        if ($batch !== []) {
+            $rows[] = $batch;
+        }
+
+        if ($count < 5000) {
+            throw new InvalidArgumentException("Quantidade inesperada de municípios na DTB 2025: {$count}.");
+        }
+
+        DB::transaction(function () use ($rows): void {
+            foreach ($rows as $chunk) {
+                Municipality::query()->upsert(
+                    $chunk,
+                    ['ibge_code'],
+                    [
+                        'name', 'normalized_name', 'state_code', 'latitude', 'longitude',
+                        'immediate_region_code', 'immediate_region_name',
+                        'intermediate_region_code', 'intermediate_region_name',
+                    ]
+                );
+            }
+
+            Municipality::query()->whereNotIn(
+                'ibge_code',
+                array_keys(array_fill_keys(array_keys($this->codesFromRows($rows)), true))
+            )->delete();
+
+            DB::table('geography_import_status')->updateOrInsert(
+                ['source' => 'ibge-dtb-2025'],
+                ['records_count' => array_sum(array_map('count', $rows)), 'imported_at' => now()]
+            );
+        });
+
+        $this->directory->flush();
+
+        return [
+            'municipalities' => $count,
+            'immediate_regions' => Municipality::query()->whereNotNull('immediate_region_code')->distinct()->count('immediate_region_code'),
+            'intermediate_regions' => Municipality::query()->whereNotNull('intermediate_region_code')->distinct()->count('intermediate_region_code'),
+        ];
+    }
+
+    /**
+     * @param list<list<array<string, mixed>>> $rows
+     * @return list<string>
+     */
+    private function codesFromRows(array $rows): array
+    {
+        $codes = [];
+        foreach ($rows as $chunk) {
+            foreach ($chunk as $row) {
+                $codes[] = $row['ibge_code'];
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
      * Aplica as Regiões Imediatas e Intermediárias do IBGE.
      *
      * Cada item segue o formato da API de localidades:
