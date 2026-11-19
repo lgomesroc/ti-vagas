@@ -52,7 +52,7 @@ function parseDate(text, datetime) {
 
 async function expandComments(page, card) {
   const labels = /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 2; i++) {
     const buttons = card.getByRole('button');
     const count = Math.min(await buttons.count(), 60);
     let clicked = false;
@@ -61,7 +61,7 @@ async function expandComments(page, card) {
       const label = ((await button.getAttribute('aria-label')) ?? '') + ' ' + ((await button.innerText({ timeout: 1000 }).catch(() => '')) ?? '');
       if (labels.test(label)) {
         await button.click({ timeout: 1500 }).catch(() => {});
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(300);
         clicked = true;
         break;
       }
@@ -71,8 +71,8 @@ async function expandComments(page, card) {
 }
 
 async function enrichPost(page, post) {
-  await page.goto(post.postUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1400);
+  await page.goto(post.postUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForTimeout(900);
 
   const bodyText = (await page.locator('main').innerText().catch(() => '')) ||
     (await page.locator('body').innerText().catch(() => ''));
@@ -82,7 +82,7 @@ async function enrichPost(page, post) {
   }
 
   const moreLabels = /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     const buttons = page.getByRole('button');
     const count = Math.min(await buttons.count(), 80);
     let clicked = false;
@@ -92,7 +92,7 @@ async function enrichPost(page, post) {
         ' ' + ((await button.innerText().catch(() => '')) ?? '');
       if (moreLabels.test(label)) {
         await button.click({ timeout: 1200 }).catch(() => {});
-        await page.waitForTimeout(450);
+        await page.waitForTimeout(300);
         clicked = true;
         break;
       }
@@ -145,12 +145,12 @@ async function copyPostLink(page, card) {
       { origin: 'https://www.linkedin.com' }
     );
     await page.evaluate(() => navigator.clipboard.writeText(''));
-    await menuButton.click({ timeout: 3500 });
-    await copyItem.waitFor({ state: 'visible', timeout: 3000 });
-    await copyItem.click({ timeout: 3000 });
+    await menuButton.click({ timeout: 1800 });
+    await copyItem.waitFor({ state: 'visible', timeout: 1800 });
+    await copyItem.click({ timeout: 1800 });
 
-    for (let attempt = 0; attempt < 6; attempt++) {
-      await page.waitForTimeout(250);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await page.waitForTimeout(150);
       const copied = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
       if (copied) {
         const resolved = new URL(copied, 'https://www.linkedin.com');
@@ -361,9 +361,9 @@ async function main() {
       }).catch(() => []);
       keywordDiagnostics.set(keyword, diagnostic);
 
-      for (let pageNo = 0; pageNo < 3; pageNo++) {
+      for (let pageNo = 0; pageNo < 2; pageNo++) {
         const cards = page.locator('[componentkey^="update-card-focus"], [data-urn^="urn:li:activity"], [data-id^="urn:li:activity"], [data-urn^="urn:li:aggregate"]');
-        const count = Math.min(await cards.count(), 30);
+        const count = Math.min(await cards.count(), 12);
         const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
         diagnostic.cardElements = (diagnostic.cardElements ?? 0) + count;
         diagnostic.postContainers = '[componentkey^="update-card-focus"], activity/aggregate data-urn/data-id';
@@ -381,13 +381,13 @@ async function main() {
     }
 
     const enriched = [];
-    for (const post of [...posts.values()].slice(0, 60)) {
+    for (const post of [...posts.values()].slice(0, 25)) {
       try {
         enriched.push(await enrichPost(page, post));
       } catch {
         enriched.push(post);
       }
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(350);
     }
 
     process.stderr.write('[LinkedIn secondary diagnostics]\\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\\n');
