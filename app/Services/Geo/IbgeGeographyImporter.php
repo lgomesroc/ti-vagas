@@ -122,7 +122,7 @@ class IbgeGeographyImporter
     {
         $odsPath ??= base_path('ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods');
 
-        if (!class_exists(\\ZipArchive::class)) {
+        if (!class_exists(\ZipArchive::class)) {
             throw new InvalidArgumentException('A extensão PHP zip é necessária para ler a planilha ODS da DTB 2025.');
         }
 
@@ -130,7 +130,7 @@ class IbgeGeographyImporter
             throw new InvalidArgumentException("Planilha ODS da DTB 2025 não encontrada: {$odsPath}");
         }
 
-        $archive = new \\ZipArchive();
+        $archive = new \ZipArchive();
         if ($archive->open($odsPath) !== true) {
             throw new InvalidArgumentException("Não foi possível abrir a planilha ODS da DTB 2025: {$odsPath}");
         }
@@ -145,17 +145,17 @@ class IbgeGeographyImporter
             throw new InvalidArgumentException('A planilha ODS da DTB 2025 não contém content.xml.');
         }
 
-        $document = new \\DOMDocument();
+        $document = new \DOMDocument();
         if (!$document->loadXML($content, LIBXML_NONET | LIBXML_NOBLANKS)) {
             throw new InvalidArgumentException('Não foi possível interpretar o XML da planilha ODS da DTB 2025.');
         }
 
-        $xpath = new \\DOMXPath($document);
+        $xpath = new \DOMXPath($document);
         $xpath->registerNamespace('table', 'urn:oasis:names:tc:opendocument:xmlns:table:1.0');
         $xpath->registerNamespace('text', 'urn:oasis:names:tc:opendocument:xmlns:text:1.0');
 
         $sheet = $xpath->query("//table:table[@table:name='DTB_Municípios']")->item(0);
-        if (!$sheet instanceof \\DOMElement) {
+        if (!$sheet instanceof \DOMElement) {
             throw new InvalidArgumentException('A aba DTB_Municípios não foi encontrada na planilha ODS.');
         }
 
@@ -183,7 +183,7 @@ class IbgeGeographyImporter
 
                     foreach ($xpath->query('./table:table-cell | ./table:covered-table-cell', $row) as $cell) {
                         $value = trim(implode(' ', array_map(
-                            static fn (\\DOMNode $node): string => trim($node->textContent),
+                            static fn (\DOMNode $node): string => trim($node->textContent),
                             iterator_to_array($xpath->query('.//text:p', $cell))
                         )));
                         $repeat = (int) ($cell->attributes?->getNamedItemNS(
