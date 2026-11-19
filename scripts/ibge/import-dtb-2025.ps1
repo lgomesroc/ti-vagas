@@ -47,6 +47,13 @@ if ($null -eq $sheet) {
     throw "A aba DTB_Municípios não foi encontrada na planilha."
 }
 
+$baseDateFound = $document.SelectNodes("//text:p", $namespaces) |
+    Where-Object { $_.InnerText -match 'DATA BASE:\s*31/12/2025' } |
+    Select-Object -First 1
+if ($null -eq $baseDateFound) {
+    throw "A planilha não identifica a data-base oficial 31/12/2025."
+}
+
 $rows = $sheet.SelectNodes("./table:table-row", $namespaces)
 $header = $null
 $records = [System.Collections.Generic.List[object]]::new()
