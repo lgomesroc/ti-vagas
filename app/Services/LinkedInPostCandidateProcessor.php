@@ -118,7 +118,7 @@ class LinkedInPostCandidateProcessor
                 ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
                 || ($post['secondaryAccountSource'] ?? false) === true
                 || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
-            ) && !$this->hasCorporateEmail($emails)
+            ) && !$this->hasCorporateEmail($emails) && $links === []
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
