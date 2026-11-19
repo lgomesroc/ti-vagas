@@ -14,27 +14,37 @@ const browserExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
 const mode = process.argv[2] ?? 'search';
 const keywords = [
   'vaga suporte técnico',
+  'vaga suporte TI',
   'analista de suporte júnior',
   'suporte técnico júnior',
-  'help desk júnior',
-  'service desk júnior',
+  'técnico de suporte',
+  'help desk vaga',
+  'service desk vaga',
+  'suporte N1 vaga',
+  'suporte ao usuário vaga',
+  'field service suporte',
+  'infraestrutura suporte júnior',
   'technical support junior',
 ];
 const lookbackHours = Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72);
 
 function parseDate(text, datetime) {
   if (datetime && !Number.isNaN(Date.parse(datetime))) return new Date(datetime);
-  const value = (text ?? '').toLowerCase();
-  const match = value.match(/(\d+)\s*(m|min|minuto|minutos|h|hr|hora|horas|d|dia|dias|w|semana|semanas)/);
+  const value = (text ?? '').toLowerCase().trim();
+  // Unidades longas vêm antes das abreviações para não ler "9 meses" como "9 minutos".
+  const match = value.match(/\b(\d+)\s*(meses?|mos?|months?|minutos?|mins?|m|horas?|hrs?|h|dias?|days?|d|semanas?|sems?|weeks?|wks?|w|anos?|years?|yrs?|y)\b/i);
   if (match) {
     const amount = Number(match[1]);
-    const unit = match[2];
-    const ms = unit.startsWith('m') ? amount * 60000
-      : (unit.startsWith('h') ? amount * 3600000
-      : (unit.startsWith('w') || unit.startsWith('s') ? amount * 604800000 : amount * 86400000));
+    const unit = match[2].toLowerCase();
+    const ms = /^(mes|meses|mo|mos|month|months)$/.test(unit) ? amount * 30 * 86400000
+      : /^(ano|anos|year|years|yr|yrs|y)$/.test(unit) ? amount * 365 * 86400000
+      : /^(hora|horas|hr|hrs|h)$/.test(unit) ? amount * 3600000
+      : /^(dia|dias|day|days|d)$/.test(unit) ? amount * 86400000
+      : /^(sem|sems|semana|semanas|week|weeks|wk|wks|w)$/.test(unit) ? amount * 604800000
+      : amount * 60000;
     return new Date(Date.now() - ms);
   }
-  if (/\b(hoje|today)\b/.test(value)) return new Date(new Date().setHours(0,0,0,0));
+  if (/\b(hoje|today|agora|just now)\b/.test(value)) return new Date();
   if (/\b(ontem|yesterday)\b/.test(value)) return new Date(Date.now() - 86400000);
   return null;
 }
@@ -127,9 +137,16 @@ async function extractCard(card, keyword) {
   href.search = '';
   href.hash = '';
   const postUrl = href.toString();
-  const time = await card.locator('time').first().getAttribute('datetime', { timeout: 1000 }).catch(() => null);
-  const timeText = await card.locator('time').first().innerText().catch(() => '');
-  const date = parseDate(timeText || text, time);
+  const timeLocator = card.locator('time').first();
+  const time = await timeLocator.getAttribute('datetime', { timeout: 1000 }).catch(() => null);
+  const timeText = (await timeLocator.innerText().catch(() => '')).trim();
+  const timeLabel = (await timeLocator.getAttribute('aria-label').catch(() => '')).trim();
+  const actorTimestamp = card.locator(
+    '.feed-shared-actor__sub-description, .update-components-actor__sub-description, [data-test-id*="feed-update-timestamp"]'
+  ).first();
+  const actorTimestampText = (await actorTimestamp.innerText().catch(() => '')).trim();
+  const actorTimestampLabel = (await actorTimestamp.getAttribute('aria-label').catch(() => '')).trim();
+  const date = parseDate(timeText || timeLabel || actorTimestampText || actorTimestampLabel, time);
   if (!date || date < new Date(Date.now() - lookbackHours * 3600000) || date > new Date(Date.now() + 7200000)) return null;
 
   const comments = [];
@@ -196,7 +213,7 @@ async function main() {
 
     const posts = new Map();
     for (const keyword of keywords) {
-      const searchUrl = 'https://www.linkedin.com/search/results/content/?keywords=' + encodeURIComponent(keyword) + '&origin=GLOBAL_SEARCH_HEADER';
+      const searchUrl = 'https://www.linkedin.com/search/results/content/?keywords=' + encodeURIComponent(keyword) + '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-week%22&sortBy=%22date_posted%22';
       await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(2200);
 
