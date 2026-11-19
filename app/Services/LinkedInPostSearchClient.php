@@ -207,7 +207,7 @@ class LinkedInPostSearchClient
         $response = Http::withOptions($this->tlsOptions())->withHeaders([
             'Accept' => 'application/json',
             'User-Agent' => 'TIVagas/1.0',
-        ])->timeout(20)->get('https://www.mojeek.com/search', [
+        ])->timeout(20)->get('https://api.mojeek.com/search', [
             'api_key' => $apiKey,
             'q' => $query,
             'fmt' => 'json',
