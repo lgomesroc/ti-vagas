@@ -22,6 +22,8 @@ return [
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
+            'ilia' => 'ília',
+            'rdstation' => 'RD Station',
         ],
     ],
 
@@ -210,6 +212,36 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'grupojbs' => [
+                'name' => 'JBS',
+                'url' => 'https://grupojbs.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'lojasrenner' => [
+                'name' => 'Lojas Renner',
+                'url' => 'https://lojasrenner.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'rededor' => [
+                'name' => "Rede D'Or",
+                'url' => 'https://rededor.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'spread' => [
+                'name' => 'Spread Tecnologia',
+                'url' => 'https://spread.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'vemprotime' => [
+                'name' => 'TIM',
+                'url' => 'https://vemprotime.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'vemprabip' => [
                 'name' => 'BIP Brasil',
                 'url' => 'https://vemprabip.gupy.io/',
