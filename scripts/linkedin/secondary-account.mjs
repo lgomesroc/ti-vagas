@@ -5,9 +5,12 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 
 const profile = path.resolve(process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ?? '.local/linkedin-secondary-profile');
-const defaultChromePath = path.join(process.env.PROGRAMFILES ?? 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe');
-const chromeExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
-  (existsSync(defaultChromePath) ? defaultChromePath : undefined);
+const edgeCandidates = [
+  path.join(process.env['PROGRAMFILES(X86)'] ?? 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  path.join(process.env.PROGRAMFILES ?? 'C:\\Program Files', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+];
+const browserExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
+  edgeCandidates.find(candidate => existsSync(candidate));
 const mode = process.argv[2] ?? 'search';
 const keywords = [
   'vaga suporte técnico',
@@ -165,7 +168,7 @@ async function extractCard(card, keyword) {
 
 async function main() {
   const context = await chromium.launchPersistentContext(profile, {
-    ...(chromeExecutable ? { executablePath: chromeExecutable } : {}),
+    ...(browserExecutable ? { executablePath: browserExecutable } : {}),
     headless: false,
     viewport: { width: 1440, height: 1000 },
     locale: 'pt-BR',
