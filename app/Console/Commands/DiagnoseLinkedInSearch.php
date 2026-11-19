@@ -20,6 +20,8 @@ class DiagnoseLinkedInSearch extends Command
         $this->line('Chave Brave configurada: ' . (filled(config('linkedin.brave_api_key')) ? 'sim' : 'não'));
         $this->line('Chave Mojeek configurada: ' . (filled(config('linkedin.mojeek_api_key')) ? 'sim' : 'não'));
         $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 72) . ' horas');
+        $bundle = trim((string) config('linkedin.ca_bundle', ''));
+        $this->line('CA bundle configurado: ' . ($bundle !== '' && is_file($bundle) && is_readable($bundle) ? 'sim' : 'não (validação padrão)'));
         $this->newLine();
 
         $keyword = collect(config('linkedin.keywords', []))
@@ -34,7 +36,10 @@ class DiagnoseLinkedInSearch extends Command
         $query = '(site:linkedin.com/posts OR site:linkedin.com/feed/update) "' . $keyword . '"';
 
         try {
-            $response = Http::withHeaders([
+            $bundle = trim((string) config('linkedin.ca_bundle', ''));
+            $verify = $bundle !== '' && is_file($bundle) && is_readable($bundle) ? $bundle : true;
+
+            $response = Http::withOptions(['verify' => $verify])->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
                 'Accept' => 'text/html,application/xhtml+xml',
                 'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
