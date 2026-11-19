@@ -273,6 +273,11 @@ return [
                 'url' => 'https://globalhitss.gupy.io/',
             ],
 
+            'embarquejca' => [
+                'name' => 'Grupo JCA',
+                'url' => 'https://embarquejca.gupy.io/',
+            ],
+
             'brasilcenter' => [
                 'name' => 'Brasil Center (BCC)',
                 'url' => 'https://vemprabcc.gupy.io/',
