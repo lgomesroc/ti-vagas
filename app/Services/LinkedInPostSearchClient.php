@@ -82,19 +82,19 @@ class LinkedInPostSearchClient
             return [];
         }
 
-        if (!class_exists(\\DOMDocument::class)) {
+        if (!class_exists(\DOMDocument::class)) {
             throw new RuntimeException('A extensão PHP DOM/XML é necessária para ler os resultados.');
         }
 
         $previous = libxml_use_internal_errors(true);
 
         try {
-            $document = new \\DOMDocument();
+            $document = new \DOMDocument();
             if (!$document->loadXML($response->body())) {
                 return [];
             }
 
-            $xpath = new \\DOMXPath($document);
+            $xpath = new \DOMXPath($document);
             $nodes = $xpath->query('//item');
             $posts = [];
 
@@ -110,7 +110,7 @@ class LinkedInPostSearchClient
                 }
 
                 $publishedAt = $this->parsePublishedAt($pubDate)
-                    ?? $this->extractPublishedAt($title . "\\n" . $snippet);
+                    ?? $this->extractPublishedAt($title . "\n" . $snippet);
 
                 if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
                     continue;
