@@ -235,11 +235,6 @@ class IbgeGeographyImporter
                 );
             }
 
-            Municipality::query()->whereNotIn(
-                'ibge_code',
-                array_keys(array_fill_keys(array_keys($this->codesFromRows($rows)), true))
-            )->delete();
-
             DB::table('geography_import_status')->updateOrInsert(
                 ['source' => 'ibge-dtb-2025'],
                 ['records_count' => array_sum(array_map('count', $rows)), 'imported_at' => now()]
@@ -253,22 +248,6 @@ class IbgeGeographyImporter
             'immediate_regions' => Municipality::query()->whereNotNull('immediate_region_code')->distinct()->count('immediate_region_code'),
             'intermediate_regions' => Municipality::query()->whereNotNull('intermediate_region_code')->distinct()->count('intermediate_region_code'),
         ];
-    }
-
-    /**
-     * @param list<list<array<string, mixed>>> $rows
-     * @return list<string>
-     */
-    private function codesFromRows(array $rows): array
-    {
-        $codes = [];
-        foreach ($rows as $chunk) {
-            foreach ($chunk as $row) {
-                $codes[] = $row['ibge_code'];
-            }
-        }
-
-        return $codes;
     }
 
     /**
