@@ -52,6 +52,59 @@ async function expandComments(card) {
   }
 }
 
+async function enrichPost(page, post) {
+  await page.goto(post.postUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1400);
+
+  const bodyText = (await page.locator('main').innerText().catch(() => '')) ||
+    (await page.locator('body').innerText().catch(() => ''));
+  if (/\\b(promoted|patrocinado|promovido)\\b/i.test(bodyText.slice(0, 1800))) {
+    post.isPromoted = true;
+    return post;
+  }
+
+  const moreLabels = /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const buttons = page.getByRole('button');
+    const count = Math.min(await buttons.count(), 80);
+    let clicked = false;
+    for (let i = 0; i < count; i++) {
+      const button = buttons.nth(i);
+      const label = ((await button.getAttribute('aria-label').catch(() => '')) ?? '') +
+        ' ' + ((await button.innerText().catch(() => '')) ?? '');
+      if (moreLabels.test(label)) {
+        await button.click({ timeout: 1200 }).catch(() => {});
+        await page.waitForTimeout(450);
+        clicked = true;
+        break;
+      }
+    }
+    if (!clicked) break;
+  }
+
+  const commentNodes = await page.locator(
+    '.comments-comment-item, .comments-comment-entity, [class*="comments-comment-item"], [data-test-id*="comment"]'
+  ).all();
+  const comments = [];
+  for (const node of commentNodes.slice(0, 60)) {
+    const value = (await node.innerText().catch(() => '')).trim();
+    if (value && !comments.some(comment => comment.text === value)) comments.push({ text: value });
+  }
+
+  const links = await page.locator('main a[href], article a[href]').evaluateAll(nodes =>
+    nodes.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\\.com/i.test(url))
+  ).catch(() => []);
+  const allText = [bodyText, ...comments.map(comment => comment.text)].join('\\n');
+  const emails = [...new Set([...allText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi)].map(match => match[0].toLowerCase()))];
+
+  post.text = bodyText.slice(0, 12000) || post.text;
+  post.topComments = comments;
+  post.links = [...new Set([...(post.links ?? []), ...links])];
+  post.emails = emails;
+  post.searchSnippet = post.text.slice(0, 1000);
+  return post;
+}
+
 async function extractCard(card, keyword) {
   const text = (await card.innerText().catch(() => '')).trim();
   if (!text || /\\b(promoted|patrocinado|promovido)\\b/i.test(text)) return null;
@@ -154,7 +207,17 @@ async function main() {
       await page.waitForTimeout(1100);
     }
 
-    process.stdout.write(JSON.stringify([...posts.values()]));
+    const enriched = [];
+    for (const post of [...posts.values()].slice(0, 60)) {
+      try {
+        enriched.push(await enrichPost(page, post));
+      } catch {
+        enriched.push(post);
+      }
+      await page.waitForTimeout(700);
+    }
+
+    process.stdout.write(JSON.stringify(enriched));
   } finally {
     await context.close();
   }
