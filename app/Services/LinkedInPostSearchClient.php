@@ -330,7 +330,7 @@ class LinkedInPostSearchClient
     {
         $normalized = Str::ascii(mb_strtolower($text));
 
-        if (preg_match('/\b(?:ha\s+)?(\d{1,2})\s*(min|minuto|minutos|h|hr|hrs|hora|horas|d|dia|dias|sem|semana|semanas)\s*(?:ago|atras)?\b/', $normalized, $matches)) {
+        if (preg_match('/\b(?:ha\s+)?(\d{1,2})\s*(min|minuto|minutos|h|hr|hrs|hora|horas|d|day|days|dia|dias|sem|semana|semanas)\s*(?:ago|atras)?\b/', $normalized, $matches)) {
             $amount = (int) $matches[1];
             $unit = $matches[2];
 
