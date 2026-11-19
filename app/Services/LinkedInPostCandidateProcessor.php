@@ -474,9 +474,9 @@ class LinkedInPostCandidateProcessor
 
         foreach ([
             'estagio', 'estagiario', 'trainee', 'internship', 'intern',
-            'pleno', 'senior', 'staff', 'principal', 'lead', 'manager',
-            'gerente', 'diretor', 'head', 'especialista', 'coordenador',
-            'supervisor',
+            'pleno', 'senior', 'sr', 'mid-level', 'mid level',
+            'staff', 'principal', 'lead', 'manager', 'gerente', 'diretor',
+            'head', 'especialista', 'coordenador', 'supervisor',
         ] as $term) {
             if (preg_match('/(^|[^a-z0-9])' . preg_quote($term, '/') . '([^a-z0-9]|$)/', $titleText)) {
                 return 'Nível fora do escopo: somente vagas efetivas júnior.';
@@ -488,7 +488,7 @@ class LinkedInPostCandidateProcessor
         }
 
         if (preg_match(
-            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
+            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|mid[- ]level|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|sr|mid[- ]level|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b|\\b(?:experienced|experiente)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
             $descriptionText
         )) {
             return 'A descrição identifica explicitamente a oportunidade como nível pleno, sênior ou equivalente.';
