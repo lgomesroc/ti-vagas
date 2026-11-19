@@ -352,7 +352,7 @@ class LinkedInPostCandidateProcessor
         // Publicações de recolocação: a pessoa fala de si, procura emprego
         // ou informa disponibilidade. "Open to work" sozinho não basta.
         $jobSeeking = preg_match(
-            '/\\b( estou\\s+)?(?:open\\s+to\\s+work|open\\s+for\\s+work|looking\\s+for\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|seeking\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|buscando\\s+(?:uma\\s+)?(?:recolocacao|oportunidade|emprego)|em\\s+busca\\s+de\\s+(?:recolocacao|oportunidade|emprego)|procuro\\s+(?:uma\\s+)?(?:vaga|oportunidade|emprego)|disponivel\\s+para\\s+(?:novas\\s+)?oportunidades|disponivel\\s+no\\s+mercado|em\\s+transicao\\s+de\\s+carreira|fui\\s+desligad[oa]|fui\\s+demitid[oa]|estou\\s+desempregad[oa]|desempregad[oa]\\s+em\\s+busca)\\b/',
+            '/\\b(?:estou\\s+)?(?:open\\s+to\\s+work|open\\s+for\\s+work|looking\\s+for\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|seeking\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|buscando\\s+(?:uma\\s+)?(?:recolocacao|oportunidade|emprego)|em\\s+busca\\s+de\\s+(?:recolocacao|oportunidade|emprego)|procuro\\s+(?:uma\\s+)?(?:vaga|oportunidade|emprego)|disponivel\\s+para\\s+(?:novas\\s+)?oportunidades|disponivel\\s+no\\s+mercado|em\\s+transicao\\s+de\\s+carreira|fui\\s+desligad[oa]|fui\\s+demitid[oa]|perdi\\s+(?:meu\\s+)?emprego|fiquei\\s+desempregad[oa]|estou\\s+desempregad[oa]|desempregad[oa]\\s+em\\s+busca|desemprego|unemployed|laid\\s+off|between\\s+jobs|looking\\s+for\\s+work|actively\\s+seeking)\\b/',
             $normalized
         ) === 1;
 
@@ -363,12 +363,12 @@ class LinkedInPostCandidateProcessor
         // Relatos pessoais de contratação, promoção ou início em novo emprego.
         // "Orgulho" e "feliz" só contam quando ligados a um evento pessoal.
         $personalCareerUpdate = preg_match(
-            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|honrad[oa]|grateful|excited|thrilled)\\s+(?:em\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
+            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|orgulho|honrad[oa]|grateful|excited|thrilled)\\s+(?:em\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
             $normalized
         ) === 1;
 
         $firstPersonCareerChange = preg_match(
-            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|recebi\\s+uma\\s+promocao|minha\\s+promocao|meu\\s+novo\\s+(?:emprego|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
+            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovid[oa]\\s+a\\s+(?:um\\s+)?(?:cargo|posicao|gerente|coordenador)|promoted\\s+to|recebi\\s+uma\\s+promocao|minha\\s+promocao|meu\\s+novo\\s+(?:emprego|trabalho|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
             $normalized
         ) === 1;
 
