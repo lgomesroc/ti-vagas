@@ -27,6 +27,7 @@ const keywords = [
   'technical support junior',
 ];
 const lookbackHours = Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72);
+const keywordDiagnostics = new Map();
 
 function parseDate(text, datetime) {
   if (datetime && !Number.isNaN(Date.parse(datetime))) return new Date(datetime);
@@ -147,6 +148,20 @@ async function extractCard(card, keyword) {
   const actorTimestampText = (await actorTimestamp.innerText().catch(() => '')).trim();
   const actorTimestampLabel = (await actorTimestamp.getAttribute('aria-label').catch(() => '')).trim();
   const date = parseDate(timeText || timeLabel || actorTimestampText || actorTimestampLabel, time);
+  const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
+  diagnostic.cards++;
+  if (diagnostic.samples.length < 4) {
+    diagnostic.samples.push({
+      text: text.slice(0, 180).replace(/\\s+/g, ' '),
+      datetime: time,
+      timeText,
+      timeLabel,
+      actorTimestampText,
+      actorTimestampLabel,
+      parsedDate: date?.toISOString() ?? null,
+    });
+  }
+  keywordDiagnostics.set(keyword, diagnostic);
   if (!date || date < new Date(Date.now() - lookbackHours * 3600000) || date > new Date(Date.now() + 7200000)) return null;
 
   const comments = [];
@@ -216,10 +231,17 @@ async function main() {
       const searchUrl = 'https://www.linkedin.com/search/results/content/?keywords=' + encodeURIComponent(keyword) + '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-week%22&sortBy=%22date_posted%22';
       await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(2200);
+      const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
+      diagnostic.searchUrl = page.url();
+      diagnostic.pageTitle = await page.title().catch(() => '');
+      keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 3; pageNo++) {
         const cards = page.locator('div[data-urn], div.feed-shared-update-v2, li.reusable-search__result-container');
         const count = Math.min(await cards.count(), 30);
+        const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
+        diagnostic.cardElements = (diagnostic.cardElements ?? 0) + count;
+        keywordDiagnostics.set(keyword, diagnostic);
         for (let i = 0; i < count; i++) {
           const card = cards.nth(i);
           await expandComments(page, card);
@@ -242,6 +264,7 @@ async function main() {
       await page.waitForTimeout(700);
     }
 
+    process.stderr.write('[LinkedIn secondary diagnostics]\\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\\n');
     process.stdout.write(JSON.stringify(enriched));
   } finally {
     await context.close();
