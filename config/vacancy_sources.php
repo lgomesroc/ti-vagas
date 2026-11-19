@@ -639,6 +639,11 @@ return [
                 'name' => 'TPF Engenharia',
                 'domain' => 'tpfengenharia.jobs.recrut.ai',
             ],
+
+            'itrecruiter' => [
+                'name' => 'iTRecruiter',
+                'domain' => 'itrecruiter.jobs.recrut.ai',
+            ],
         ],
     ],
 
