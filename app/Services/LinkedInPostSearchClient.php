@@ -13,10 +13,8 @@ class LinkedInPostSearchClient
     private const LINKEDIN_QUERY = '(site:linkedin.com/posts OR site:linkedin.com/feed/update)';
 
     /**
-     * Combina resultados de DuckDuckGo, Brave Search e Mojeek.
-     *
-     * Brave e Mojeek usam suas APIs oficiais e exigem chaves configuradas.
-     * DuckDuckGo usa a página HTML pública de resultados.
+     * Combina resultados de Bing RSS, DuckDuckGo, Brave Search e Mojeek.
+     * Bing RSS e DuckDuckGo não exigem chave; Brave e Mojeek usam APIs oficiais.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -37,6 +35,7 @@ class LinkedInPostSearchClient
             $query = self::LINKEDIN_QUERY . ' "' . $keyword . '"';
 
             foreach ([
+                fn () => $this->searchBingRss($query, $keyword),
                 fn () => $this->searchDuckDuckGo($query, $keyword),
                 fn () => $this->searchBrave($query, $keyword),
                 fn () => $this->searchMojeek($query, $keyword),
@@ -64,6 +63,81 @@ class LinkedInPostSearchClient
         }
 
         return array_values($posts);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function searchBingRss(string $query, string $keyword): array
+    {
+        $response = Http::withOptions($this->tlsOptions())->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
+            'Accept' => 'application/rss+xml, application/xml, text/xml',
+            'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
+        ])->timeout(20)->get('https://www.bing.com/search', [
+            'q' => $query,
+            'format' => 'rss',
+            'setlang' => 'pt-BR',
+        ]);
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        if (!class_exists(\\DOMDocument::class)) {
+            throw new RuntimeException('A extensão PHP DOM/XML é necessária para ler os resultados.');
+        }
+
+        $previous = libxml_use_internal_errors(true);
+
+        try {
+            $document = new \\DOMDocument();
+            if (!$document->loadXML($response->body())) {
+                return [];
+            }
+
+            $xpath = new \\DOMXPath($document);
+            $nodes = $xpath->query('//item');
+            $posts = [];
+
+            foreach ($nodes ?: [] as $node) {
+                $title = trim($xpath->query('./title', $node)?->item(0)?->textContent ?? '');
+                $url = trim($xpath->query('./link', $node)?->item(0)?->textContent ?? '');
+                $snippet = trim($xpath->query('./description', $node)?->item(0)?->textContent ?? '');
+                $pubDate = trim($xpath->query('./pubDate', $node)?->item(0)?->textContent ?? '');
+
+                $post = $this->makePost($url, $title, $snippet, $keyword, 'bing-rss');
+                if ($post === null) {
+                    continue;
+                }
+
+                $publishedAt = $this->parsePublishedAt($pubDate)
+                    ?? $this->extractPublishedAt($title . "\\n" . $snippet);
+
+                if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
+                    continue;
+                }
+
+                $post['datePosted'] = $publishedAt->toIso8601String();
+                $posts[] = $post;
+            }
+
+            return $posts;
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
+
+    private function parsePublishedAt(string $date): ?Carbon
+    {
+        if ($date === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /** @return array<int, array<string, mixed>> */
