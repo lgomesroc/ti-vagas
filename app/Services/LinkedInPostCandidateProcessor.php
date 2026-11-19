@@ -325,31 +325,60 @@ class LinkedInPostCandidateProcessor
     {
         $normalized = $this->normalize($text);
 
+        // Um sinal de vaga precisa ser explícito. Palavras emocionais isoladas
+        // ("feliz", "orgulho", "parabéns") nunca devem decidir a classificação.
         $explicitVacancy = preg_match(
-            '/\\b(vaga(?:s)?\\s+(?:aberta|abertas|para|de)|estamos\\s+contratando|estamos\\s+a\\s+procura|we\\s+are\\s+hiring|job\\s+opportunity|apply\\s+now|candidate-se|inscreva-se|envie\\s+(?:seu\\s+)?curriculo|send\\s+(?:your\\s+)?resume)\\b/',
+            '/\\b(vaga(?:s)?\\s+(?:aberta|abertas|para|de)|estamos\\s+contratando|estamos\\s+a\\s+procura|oportunidade\\s+(?:para|em)|we\\s+are\\s+hiring|job\\s+opportunity|apply\\s+now|candidate-se|inscreva-se|envie\\s+(?:seu\\s+)?curriculo|send\\s+(?:your\\s+)?resume)\\b/',
             $normalized
         ) === 1;
 
-        $jobChangeAnnouncement = preg_match(
-            '/\\b(feliz\\s+em\\s+(?:anunciar|compartilhar)|happy\\s+to\\s+(?:announce|share)|excited\\s+to\\s+(?:announce|share)|thrilled\\s+to\\s+(?:announce|share)|comecei\\s+(?:hoje\\s+)?(?:em|na|no|um\\s+novo)|iniciando\\s+(?:um\\s+novo\\s+)?desafio|starting\\s+(?:a\\s+)?new\\s+(?:role|position)|started\\s+(?:a\\s+)?new\\s+(?:role|position)|new\\s+position\\s+at|meu\\s+novo\\s+(?:emprego|desafio)|nova\\s+posicao\\s+na|novo\\s+cargo\\s+na|fui\\s+contratado|fui\\s+contratada|joined\\s+the\\s+team|parabens\\s+pela\\s+conquista|congratulations\\s+on\\s+your)\\b/',
+        // Publicações de recolocação: a pessoa fala de si, procura emprego
+        // ou informa disponibilidade. "Open to work" sozinho não basta.
+        $jobSeeking = preg_match(
+            '/\\b( estou\\s+)?(?:open\\s+to\\s+work|open\\s+for\\s+work|looking\\s+for\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|seeking\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|buscando\\s+(?:uma\\s+)?(?:recolocacao|oportunidade|emprego)|em\\s+busca\\s+de\\s+(?:recolocacao|oportunidade|emprego)|procuro\\s+(?:uma\\s+)?(?:vaga|oportunidade|emprego)|disponivel\\s+para\\s+(?:novas\\s+)?oportunidades|disponivel\\s+no\\s+mercado|em\\s+transicao\\s+de\\s+carreira|fui\\s+desligad[oa]|fui\\s+demitid[oa]|estou\\s+desempregad[oa]|desempregad[oa]\\s+em\\s+busca)\\b/',
             $normalized
         ) === 1;
 
-        if ($jobChangeAnnouncement && !$explicitVacancy) {
-            return 'Comunicado de contratação, novo emprego ou mudança profissional; não é anúncio de vaga.';
+        if ($jobSeeking && !$explicitVacancy) {
+            return 'Publicação de pessoa buscando recolocação, emprego ou divulgando disponibilidade profissional; não é anúncio de vaga.';
         }
 
+        // Relatos pessoais de contratação, promoção ou início em novo emprego.
+        // "Orgulho" e "feliz" só contam quando ligados a um evento pessoal.
+        $personalCareerUpdate = preg_match(
+            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|honrad[oa]|grateful|excited|thrilled)\\s+(?:em\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
+            $normalized
+        ) === 1;
+
+        $firstPersonCareerChange = preg_match(
+            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|recebi\\s+uma\\s+promocao|minha\\s+promocao|meu\\s+novo\\s+(?:emprego|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
+            $normalized
+        ) === 1;
+
+        if (($personalCareerUpdate || $firstPersonCareerChange) && !$explicitVacancy) {
+            return 'Relato pessoal de novo emprego, contratação ou promoção; não é anúncio de oportunidade.';
+        }
+
+        // Propaganda de serviços e produtos. Termos comerciais genéricos
+        // precisam aparecer junto de uma oferta explícita, não isoladamente.
         $serviceAdvertisement = preg_match(
-            '/\\b(oferecemos\\s+(?:servicos|solucoes)|prestamos\\s+servicos|empresa\\s+especializada\\s+em|contrate\\s+nossos\\s+servicos|outsourcing\\s+de\\s+(?:ti|tecnologia|profissionais)|alocacao\\s+de\\s+profissionais|terceirizacao\\s+de\\s+(?:ti|equipe|profissionais)|body\\s+shop|fabrica\\s+de\\s+software|solucoes\\s+sob\\s+demanda|nosso\\s+portfolio|nossos\\s+clientes)\\b/',
+            '/\\b(?:oferecemos|prestamos|contrate|conheca|conheca nossos|fale com|solicite|agende)\\b.{0,100}\\b(?:servicos|solucoes|consultoria|outsourcing|terceirizacao|alocacao|equipe|profissionais|software|sistema|plataforma|treinamento|curso|mentoria)\\b|\\b(?:outsourcing de ti|body shop|alocacao de profissionais|terceirizacao de equipes|fabrica de software|consultoria especializada|inscricoes abertas para o curso|matriculas abertas|garanta sua vaga no curso|participe do webinar|inscreva-se no treinamento)\\b/',
             $normalized
         ) === 1;
 
         if ($serviceAdvertisement && !$explicitVacancy) {
-            return 'Publicidade de serviços, consultoria ou fornecimento de profissionais; não é anúncio de contratação.';
+            return 'Publicidade de serviços, consultoria, cursos ou fornecimento de profissionais; não é anúncio de contratação.';
         }
 
-        $congratulations = preg_match('/\\b(parabens|congratulations|felicidades)\\b/', $normalized) === 1;
-        if ($congratulations && !$explicitVacancy) {
+        $congratulationsOnly = preg_match(
+            '/\\b(?:parabens|congratulations|felicidades)\\b/',
+            $normalized
+        ) === 1 && preg_match(
+            '/\\b(?:vaga|oportunidade|contratando|hiring|curriculo|candidate-se|apply)\\b/',
+            $normalized
+        ) !== 1;
+
+        if ($congratulationsOnly) {
             return 'Publicação de parabéns ou interação social sem anúncio de oportunidade.';
         }
 
