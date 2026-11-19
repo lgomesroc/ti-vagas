@@ -42,3 +42,20 @@ services:
 
       - key: CACHE_STORE
         value: database
+
+      # Coleta pública do LinkedIn; a sessão autenticada será ativada após
+      # configurar armazenamento persistente e importar o perfil da conta secundária.
+      - key: LINKEDIN_POSTS_ENABLED
+        value: "true"
+
+      - key: LINKEDIN_POSTS_LOOKBACK_HOURS
+        value: "72"
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_ENABLED
+        value: "false"
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_PROFILE
+        value: /var/data/linkedin-secondary-profile
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT
+        value: "600"
