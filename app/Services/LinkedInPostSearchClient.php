@@ -19,8 +19,12 @@ class LinkedInPostSearchClient
      *
      * @return array<int, array<string, mixed>>
      */
-    public function search(): array
+    public function search(string $mode = 'all'): array
     {
+        if ($mode === 'bot') {
+            return $this->searchSecondaryAccount();
+        }
+
         $keywords = array_values(array_unique(array_filter(
             config('linkedin.keywords', []),
             fn ($keyword): bool => is_string($keyword) && trim($keyword) !== ''
@@ -35,10 +39,14 @@ class LinkedInPostSearchClient
         foreach ($keywords as $keyword) {
             $query = self::LINKEDIN_QUERY . ' "' . $keyword . '"';
 
-            foreach ([
-                fn () => $this->searchBingRss($query, $keyword),
-                fn () => $this->searchDuckDuckGo($query, $keyword),
-            ] as $searchProvider) {
+            $providers = $mode === 'duckduckgo'
+                ? [fn () => $this->searchDuckDuckGo($query, $keyword)]
+                : [
+                    fn () => $this->searchBingRss($query, $keyword),
+                    fn () => $this->searchDuckDuckGo($query, $keyword),
+                ];
+
+            foreach ($providers as $searchProvider) {
                 try {
                     foreach ($searchProvider() as $post) {
                         $url = $post['postUrl'];
@@ -65,6 +73,10 @@ class LinkedInPostSearchClient
             }
 
             usleep(500000);
+        }
+
+        if ($mode === 'duckduckgo') {
+            return array_values($posts);
         }
 
         try {
