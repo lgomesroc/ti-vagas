@@ -13,8 +13,7 @@ class LinkedInPostSearchClient
     private const LINKEDIN_QUERY = '(site:linkedin.com/posts OR site:linkedin.com/feed/update)';
 
     /**
-     * Combina resultados de Bing RSS, DuckDuckGo, Brave Search e Mojeek.
-     * Bing RSS e DuckDuckGo não exigem chave; Brave e Mojeek usam APIs oficiais.
+     * Combina resultados de Bing RSS e DuckDuckGo.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -37,8 +36,6 @@ class LinkedInPostSearchClient
             foreach ([
                 fn () => $this->searchBingRss($query, $keyword),
                 fn () => $this->searchDuckDuckGo($query, $keyword),
-                fn () => $this->searchBrave($query, $keyword),
-                fn () => $this->searchMojeek($query, $keyword),
             ] as $searchProvider) {
                 try {
                     foreach ($searchProvider() as $post) {
@@ -157,82 +154,6 @@ class LinkedInPostSearchClient
         }
 
         return $this->parseDuckDuckGoHtml($response->body(), $keyword);
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function searchBrave(string $query, string $keyword): array
-    {
-        $apiKey = trim((string) config('linkedin.brave_api_key'));
-        if ($apiKey === '') {
-            return [];
-        }
-
-        $response = Http::withOptions($this->tlsOptions())->withHeaders([
-            'X-Subscription-Token' => $apiKey,
-            'Accept' => 'application/json',
-            'Accept-Encoding' => 'gzip',
-        ])->timeout(20)->get('https://api.search.brave.com/res/v1/web/search', [
-            'q' => $query,
-            'country' => 'BR',
-            'search_lang' => 'pt',
-            'ui_lang' => 'pt-BR',
-            'freshness' => 'pw',
-            'count' => 20,
-        ]);
-
-        if (!$response->successful()) {
-            return [];
-        }
-
-        $results = $response->json('web.results', []);
-
-        return $this->normalizeApiResults(
-            is_array($results) ? $results : [],
-            $keyword,
-            'brave-api',
-            'url',
-            'title',
-            'description'
-        );
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function searchMojeek(string $query, string $keyword): array
-    {
-        $apiKey = trim((string) config('linkedin.mojeek_api_key'));
-        if ($apiKey === '') {
-            return [];
-        }
-
-        $response = Http::withOptions($this->tlsOptions())->withHeaders([
-            'Accept' => 'application/json',
-            'User-Agent' => 'TIVagas/1.0',
-        ])->timeout(20)->get('https://api.mojeek.com/search', [
-            'api_key' => $apiKey,
-            'q' => $query,
-            'fmt' => 'json',
-            't' => 20,
-            'rb' => 'BR',
-            'rbb' => 10,
-            'lb' => 'PT',
-            'lbb' => 100,
-            'dlen' => 511,
-        ]);
-
-        if (!$response->successful()) {
-            return [];
-        }
-
-        $results = $response->json('response.results', []);
-
-        return $this->normalizeApiResults(
-            is_array($results) ? $results : [],
-            $keyword,
-            'mojeek-api',
-            'url',
-            'title',
-            'desc'
-        );
     }
 
     /** @return array<int, array<string, mixed>> */
