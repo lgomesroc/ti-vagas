@@ -24,6 +24,6 @@ class TalentbrandSource extends OwnCareerPageSource
 
     public function name(): string
     {
-        return 'talentbrand-' . $this->companyKey;
+        return 'talentbrand-talentbrand-' . $this->companyKey;
     }
 }
