@@ -18,6 +18,9 @@ class DiagnoseLinkedInSearch extends Command
         $this->line('Coleta habilitada: ' . (config('linkedin.enabled') ? 'sim' : 'não'));
         $this->line('Extensão PHP DOM: ' . (class_exists(\DOMDocument::class) ? 'disponível' : 'ausente'));
         $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 72) . ' horas');
+        $profile = base_path((string) config('linkedin.secondary_account.profile'));
+        $this->line('Conta secundária habilitada: ' . (config('linkedin.secondary_account.enabled') ? 'sim' : 'não'));
+        $this->line('Sessão local da conta secundária: ' . (is_dir($profile) ? 'perfil encontrado' : 'ainda não configurada'));
         $bundle = trim((string) config('linkedin.ca_bundle', ''));
         $this->line('CA bundle configurado: ' . ($bundle !== '' && is_file($bundle) && is_readable($bundle) ? 'sim' : 'não (validação padrão)'));
         $this->newLine();
