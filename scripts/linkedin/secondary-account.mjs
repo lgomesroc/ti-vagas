@@ -243,6 +243,19 @@ async function main() {
         articles: await page.locator('main article').count().catch(() => -1),
         listItems: await page.locator('main li').count().catch(() => -1),
       };
+      diagnostic.listItemSamples = await page.locator('main li').evaluateAll(nodes => nodes.slice(0, 10).map(node => ({
+        className: typeof node.className === 'string' ? node.className : '',
+        text: (node.innerText || '').slice(0, 700),
+        links: [...node.querySelectorAll('a[href]')].slice(0, 12).map(a => ({
+          text: (a.innerText || '').trim().slice(0, 100),
+          href: a.href
+        })),
+        time: [...node.querySelectorAll('time')].slice(0, 3).map(t => ({
+          text: (t.innerText || '').trim(),
+          datetime: t.getAttribute('datetime'),
+          ariaLabel: t.getAttribute('aria-label')
+        }))
+      }))).catch(() => []);
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 3; pageNo++) {
