@@ -23,7 +23,6 @@ return [
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
             'ilia' => 'ília',
-            'rdstation' => 'RD Station',
         ],
     ],
 
@@ -218,9 +217,9 @@ return [
                 'technology_only' => true,
             ],
 
-            'lojasrenner' => [
-                'name' => 'Lojas Renner',
-                'url' => 'https://lojasrenner.gupy.io/',
+            'encantech' => [
+                'name' => 'Lojas Renner — Tecnologia e Dados',
+                'url' => 'https://encantech.gupy.io/',
                 'technology_only' => true,
             ],
 
