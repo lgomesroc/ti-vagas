@@ -29,7 +29,7 @@ A atualização é feita por requisições pontuais com `navigator.geolocation.g
 
 ## Dados territoriais
 
-- `database/data/ibge/municipios_dtb_2025.csv`: municípios e regiões imediatas/intermediárias da DTB 2025 do IBGE.
+- `ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods`: planilha oficial da DTB 2025, lida diretamente pelo importador.
 - `database/data/municipios.csv`: origem histórica dos centroides; as coordenadas existentes são preservadas por código IBGE durante a atualização da DTB.
 - `config/geo_regions.php`: ajustes manuais de regiões metropolitanas e RIDEs.
 - `app/Services/Geo`: importação e resolução de dados geográficos.
@@ -44,7 +44,7 @@ php artisan geo:import-ibge
 php artisan vacancies:resolve-municipalities
 ```
 
-A importação usa exclusivamente o CSV normalizado da DTB 2025, sem chamadas à API. No Windows, gere o arquivo a partir de `ibge/DTB_2025.zip` com `scripts/ibge/import-dtb-2025.ps1` e versione `database/data/ibge/municipios_dtb_2025.csv`. O Dockerfile executa `geo:import-ibge --if-empty` no deploy.
+A importação lê diretamente a planilha ODS da DTB 2025 versionada em `ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods`, sem exigir CSV intermediário nem chamadas à API. O Dockerfile executa `geo:import-ibge --if-empty` no deploy.
 
 ## Privacidade e limitações
 
