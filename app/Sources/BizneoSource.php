@@ -24,6 +24,6 @@ class BizneoSource extends OwnCareerPageSource
 
     public function name(): string
     {
-        return 'bizneo-' . $this->companyKey;
+        return 'bizneo-bizneo-' . $this->companyKey;
     }
 }
