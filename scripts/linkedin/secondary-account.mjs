@@ -32,7 +32,7 @@ function parseDate(text, datetime) {
   if (datetime && !Number.isNaN(Date.parse(datetime))) return new Date(datetime);
   const value = (text ?? '').toLowerCase().trim();
   // Unidades longas vêm antes das abreviações para não ler "9 meses" como "9 minutos".
-  const match = value.match(/\b(\d+)\s*(meses?|mos?|months?|minutos?|mins?|m|horas?|hrs?|h|dias?|days?|d|semanas?|sems?|weeks?|wks?|w|anos?|years?|yrs?|y)\b/i);
+  const match = value.match(/\b(\d+)\s*(meses?|mos?|months?|minutos?|mins?|min|horas?|hrs?|h|dias?|days?|d|semanas?|sems?|weeks?|wks?|w|anos?|years?|yrs?|y)\b/i);
   if (match) {
     const amount = Number(match[1]);
     const unit = match[2].toLowerCase();
