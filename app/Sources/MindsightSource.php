@@ -86,7 +86,8 @@ class MindsightSource implements VacancySource
         }
 
         if ($ids === []) {
-            preg_match_all('~href=["\\'](?:https?://[^/"\\']+)?/' . preg_quote($this->tenant, '~') . '/(\\d+)/?["\\']~i', $html, $matches);
+            $pattern = "~href=[\"'](?:https?://[^/\"']+)?/" . preg_quote($this->tenant, '~') . "/(\\d+)/?[\"']~i";
+            preg_match_all($pattern, $html, $matches);
             $ids = $matches[1] ?? [];
         }
 
