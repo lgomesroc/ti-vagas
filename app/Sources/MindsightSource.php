@@ -145,7 +145,7 @@ class MindsightSource implements VacancySource
 
         if (is_string($date) && trim($date) !== '') {
             try {
-                $publishedAt = CarbonImmutable::parse($date)->utc()->toIso8601String();
+                $publishedAt = CarbonImmutable::parse($date, 'UTC')->utc()->toIso8601String();
             } catch (Throwable) {
                 $publishedAt = null;
             }
