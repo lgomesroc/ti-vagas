@@ -167,13 +167,13 @@ class LinkedInPostSearchClient
                 $snippet = trim($xpath->query('./description', $node)?->item(0)?->textContent ?? '');
                 $pubDate = trim($xpath->query('./pubDate', $node)?->item(0)?->textContent ?? '');
 
-                $post = $this->makePost($url, $title, $snippet, $keyword, 'bing-rss');
+                $publishedAt = $this->parsePublishedAt($pubDate)
+                    ?? $this->extractPublishedAt($title . "\n" . $snippet);
+
+                $post = $this->makePost($url, $title, $snippet, $keyword, 'bing-rss', $publishedAt);
                 if ($post === null) {
                     continue;
                 }
-
-                $publishedAt = $this->parsePublishedAt($pubDate)
-                    ?? $this->extractPublishedAt($title . "\n" . $snippet);
 
                 if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
                     continue;
@@ -294,13 +294,14 @@ class LinkedInPostSearchClient
         string $title,
         string $snippet,
         string $keyword,
-        string $provider
+        string $provider,
+        ?Carbon $publishedAt = null
     ): ?array {
         if (!$this->isLinkedInPostUrl($url)) {
             return null;
         }
 
-        $publishedAt = $this->extractPublishedAt($title . "\n" . $snippet);
+        $publishedAt ??= $this->extractPublishedAt($title . "\n" . $snippet);
         if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
             return null;
         }
