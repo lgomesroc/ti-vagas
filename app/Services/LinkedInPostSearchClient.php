@@ -69,7 +69,7 @@ class LinkedInPostSearchClient
     /** @return array<int, array<string, mixed>> */
     private function searchDuckDuckGo(string $query, string $keyword): array
     {
-        $response = Http::withHeaders([
+        $response = Http::withOptions($this->tlsOptions())->withHeaders([
             'User-Agent' => 'Mozilla/5.0 (compatible; TIVagas/1.0)',
             'Accept' => 'text/html,application/xhtml+xml',
             'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
