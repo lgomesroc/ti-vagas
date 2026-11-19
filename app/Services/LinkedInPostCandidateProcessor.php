@@ -88,7 +88,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        $nonVacancyReason = $this->nonVacancyContentReason($text);
+        $nonVacancyReason = $this->nonVacancyContentReason($text, $post);
         if ($nonVacancyReason !== null) {
             $candidate->fill($base + [
                 'status' => 'rejected',
@@ -321,12 +321,29 @@ class LinkedInPostCandidateProcessor
     /**
      * Descarta publicações que mencionam cargos de TI, mas não anunciam vaga.
      */
-    private function nonVacancyContentReason(string $text): ?string
+    private function nonVacancyContentReason(string $text, array $post = []): ?string
     {
         $normalized = $this->normalize($text);
 
         // Um sinal de vaga precisa ser explícito. Palavras emocionais isoladas
         // ("feliz", "orgulho", "parabéns") nunca devem decidir a classificação.
+        $authorContext = $this->normalize(
+            ($post['authorHeadline'] ?? '') . ' ' .
+            ($post['authorDescription'] ?? '') . ' ' .
+            ($post['authorType'] ?? '')
+        );
+        $isRecruiterOrCompany = in_array(
+            $this->normalize((string) ($post['authorType'] ?? '')),
+            ['company', 'organization', 'organisation', 'company page'],
+            true
+        );
+        foreach (config('linkedin.recruiter_terms', []) as $term) {
+            if (str_contains($authorContext, $this->normalize((string) $term))) {
+                $isRecruiterOrCompany = true;
+                break;
+            }
+        }
+
         $explicitVacancy = preg_match(
             '/\\b(vaga(?:s)?\\s+(?:aberta|abertas|para|de)|estamos\\s+contratando|estamos\\s+a\\s+procura|oportunidade\\s+(?:para|em)|we\\s+are\\s+hiring|job\\s+opportunity|apply\\s+now|candidate-se|inscreva-se|envie\\s+(?:seu\\s+)?curriculo|send\\s+(?:your\\s+)?resume)\\b/',
             $normalized
@@ -339,7 +356,7 @@ class LinkedInPostCandidateProcessor
             $normalized
         ) === 1;
 
-        if ($jobSeeking && !$explicitVacancy) {
+        if ($jobSeeking && !($explicitVacancy && $isRecruiterOrCompany)) {
             return 'Publicação de pessoa buscando recolocação, emprego ou divulgando disponibilidade profissional; não é anúncio de vaga.';
         }
 
@@ -355,7 +372,7 @@ class LinkedInPostCandidateProcessor
             $normalized
         ) === 1;
 
-        if (($personalCareerUpdate || $firstPersonCareerChange) && !$explicitVacancy) {
+        if (($personalCareerUpdate || $firstPersonCareerChange) && !($explicitVacancy && $isRecruiterOrCompany)) {
             return 'Relato pessoal de novo emprego, contratação ou promoção; não é anúncio de oportunidade.';
         }
 
