@@ -98,11 +98,17 @@ class LinkedInPostCandidateProcessor
         }
 
         $links = $this->extractUrls($combinedText, $post);
-        $emails = $this->extractEmails($combinedText);
+        $emails = array_values(array_unique(array_merge(
+            $this->extractEmails($combinedText),
+            is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
+        )));
 
         if (
-            ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
-            && !$this->hasCorporateEmail($emails)
+            (
+                ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
+                || ($post['secondaryAccountSource'] ?? false) === true
+                || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
+            ) && !$this->hasCorporateEmail($emails)
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
