@@ -115,6 +115,123 @@ class IbgeGeographyImporter
     }
 
     /**
+     * Lê diretamente a planilha oficial ODS da DTB 2025 e a converte
+     * temporariamente para o formato normalizado aceito pelo importador.
+     */
+    public function importFromDtbOds(?string $odsPath = null): array
+    {
+        $odsPath ??= base_path('ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods');
+
+        if (!class_exists(\\ZipArchive::class)) {
+            throw new InvalidArgumentException('A extensão PHP zip é necessária para ler a planilha ODS da DTB 2025.');
+        }
+
+        if (!is_readable($odsPath)) {
+            throw new InvalidArgumentException("Planilha ODS da DTB 2025 não encontrada: {$odsPath}");
+        }
+
+        $archive = new \\ZipArchive();
+        if ($archive->open($odsPath) !== true) {
+            throw new InvalidArgumentException("Não foi possível abrir a planilha ODS da DTB 2025: {$odsPath}");
+        }
+
+        try {
+            $content = $archive->getFromName('content.xml');
+        } finally {
+            $archive->close();
+        }
+
+        if ($content === false) {
+            throw new InvalidArgumentException('A planilha ODS da DTB 2025 não contém content.xml.');
+        }
+
+        $document = new \\DOMDocument();
+        if (!$document->loadXML($content, LIBXML_NONET | LIBXML_NOBLANKS)) {
+            throw new InvalidArgumentException('Não foi possível interpretar o XML da planilha ODS da DTB 2025.');
+        }
+
+        $xpath = new \\DOMXPath($document);
+        $xpath->registerNamespace('table', 'urn:oasis:names:tc:opendocument:xmlns:table:1.0');
+        $xpath->registerNamespace('text', 'urn:oasis:names:tc:opendocument:xmlns:text:1.0');
+
+        $sheet = $xpath->query("//table:table[@table:name='DTB_Municípios']")->item(0);
+        if (!$sheet instanceof \\DOMElement) {
+            throw new InvalidArgumentException('A aba DTB_Municípios não foi encontrada na planilha ODS.');
+        }
+
+        $temporaryCsv = tempnam(sys_get_temp_dir(), 'dtb2025_');
+        if ($temporaryCsv === false) {
+            throw new InvalidArgumentException('Não foi possível criar o CSV temporário da DTB 2025.');
+        }
+
+        try {
+            $handle = fopen($temporaryCsv, 'w');
+            if ($handle === false) {
+                throw new InvalidArgumentException('Não foi possível gravar o CSV temporário da DTB 2025.');
+            }
+
+            try {
+                fputcsv($handle, [
+                    'codigo_ibge', 'nome', 'codigo_uf',
+                    'intermediate_region_code', 'intermediate_region_name',
+                    'immediate_region_code', 'immediate_region_name',
+                ]);
+
+                $headerFound = false;
+                foreach ($xpath->query('./table:table-row', $sheet) as $row) {
+                    $cells = [];
+
+                    foreach ($xpath->query('./table:table-cell | ./table:covered-table-cell', $row) as $cell) {
+                        $value = trim(implode(' ', array_map(
+                            static fn (\\DOMNode $node): string => trim($node->textContent),
+                            iterator_to_array($xpath->query('.//text:p', $cell))
+                        )));
+                        $repeat = (int) ($cell->attributes?->getNamedItemNS(
+                            'urn:oasis:names:tc:opendocument:xmlns:table:1.0',
+                            'number-columns-repeated'
+                        )?->nodeValue ?? 1);
+
+                        for ($i = 0; $i < max(1, $repeat); $i++) {
+                            $cells[] = $value;
+                        }
+                    }
+
+                    if (!$headerFound) {
+                        $headerFound = count($cells) >= 9
+                            && ($cells[0] ?? '') === 'UF'
+                            && ($cells[7] ?? '') === 'Código Município Completo';
+                        continue;
+                    }
+
+                    if (count($cells) < 9 || trim($cells[7]) === '' || trim($cells[8]) === '') {
+                        continue;
+                    }
+
+                    fputcsv($handle, [
+                        trim($cells[7]),
+                        trim($cells[8]),
+                        trim($cells[0]),
+                        trim($cells[2]),
+                        trim($cells[3]),
+                        trim($cells[4]),
+                        trim($cells[5]),
+                    ]);
+                }
+            } finally {
+                fclose($handle);
+            }
+
+            if (!$headerFound) {
+                throw new InvalidArgumentException('Cabeçalho esperado não encontrado na planilha ODS da DTB 2025.');
+            }
+
+            return $this->importFromDtbCsv($temporaryCsv);
+        } finally {
+            @unlink($temporaryCsv);
+        }
+    }
+
+    /**
      * Importa a base oficial DTB 2025 já normalizada em CSV.
      * As coordenadas existentes são preservadas pelo código IBGE.
      */
