@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
 
-const profile = path.resolve('.local/linkedin-secondary-profile');
+const profile = path.resolve(process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ?? '.local/linkedin-secondary-profile');
 const mode = process.argv[2] ?? 'search';
 const keywords = [
   'vaga suporte técnico',
@@ -18,7 +18,7 @@ const lookbackHours = Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72);
 function parseDate(text, datetime) {
   if (datetime && !Number.isNaN(Date.parse(datetime))) return new Date(datetime);
   const value = (text ?? '').toLowerCase();
-  const match = value.match(/(\\d+)\\s*(m|min|minuto|minutos|h|hr|hora|horas|d|dia|dias|w|semana|semanas)/);
+  const match = value.match(/(\d+)\s*(m|min|minuto|minutos|h|hr|hora|horas|d|dia|dias|w|semana|semanas)/);
   if (match) {
     const amount = Number(match[1]);
     const unit = match[2];
@@ -27,8 +27,8 @@ function parseDate(text, datetime) {
       : (unit.startsWith('w') || unit.startsWith('s') ? amount * 604800000 : amount * 86400000));
     return new Date(Date.now() - ms);
   }
-  if (/\\b(hoje|today)\\b/.test(value)) return new Date(new Date().setHours(0,0,0,0));
-  if (/\\b(ontem|yesterday)\\b/.test(value)) return new Date(Date.now() - 86400000);
+  if (/\b(hoje|today)\b/.test(value)) return new Date(new Date().setHours(0,0,0,0));
+  if (/\b(ontem|yesterday)\b/.test(value)) return new Date(Date.now() - 86400000);
   return null;
 }
 
@@ -58,7 +58,7 @@ async function enrichPost(page, post) {
 
   const bodyText = (await page.locator('main').innerText().catch(() => '')) ||
     (await page.locator('body').innerText().catch(() => ''));
-  if (/\\b(promoted|patrocinado|promovido)\\b/i.test(bodyText.slice(0, 1800))) {
+  if (/\b(promoted|patrocinado|promovido)\b/i.test(bodyText.slice(0, 1800))) {
     post.isPromoted = true;
     return post;
   }
@@ -92,10 +92,10 @@ async function enrichPost(page, post) {
   }
 
   const links = await page.locator('main a[href], article a[href]').evaluateAll(nodes =>
-    nodes.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\\.com/i.test(url))
+    nodes.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url))
   ).catch(() => []);
-  const allText = [bodyText, ...comments.map(comment => comment.text)].join('\\n');
-  const emails = [...new Set([...allText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi)].map(match => match[0].toLowerCase()))];
+  const allText = [bodyText, ...comments.map(comment => comment.text)].join('\n');
+  const emails = [...new Set([...allText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(match => match[0].toLowerCase()))];
 
   post.text = bodyText.slice(0, 12000) || post.text;
   post.topComments = comments;
@@ -107,13 +107,13 @@ async function enrichPost(page, post) {
 
 async function extractCard(card, keyword) {
   const text = (await card.innerText().catch(() => '')).trim();
-  if (!text || /\\b(promoted|patrocinado|promovido)\\b/i.test(text)) return null;
+  if (!text || /\b(promoted|patrocinado|promovido)\b/i.test(text)) return null;
 
   const anchors = await card.locator('a[href]').evaluateAll(nodes => nodes.map(a => ({
     href: a.href,
     text: (a.innerText ?? '').trim()
   })));
-  const postAnchor = anchors.find(a => /linkedin\\.com\\/(?:feed\\/update|posts)\\//i.test(a.href));
+  const postAnchor = anchors.find(a => /linkedin\.com\/(?:feed\/update|posts)\//i.test(a.href));
   if (!postAnchor) return null;
 
   const href = new URL(postAnchor.href);
@@ -134,11 +134,11 @@ async function extractCard(card, keyword) {
     if (commentText) comments.push({ text: commentText });
   }
 
-  const emailMatches = [...text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi)].map(m => m[0].toLowerCase());
-  const links = [...new Set(anchors.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\\.com/i.test(url)))];
-  const authorLink = anchors.find(a => /linkedin\\.com\\/(?:in|company)\\//i.test(a.href));
+  const emailMatches = [...text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(m => m[0].toLowerCase());
+  const links = [...new Set(anchors.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url)))];
+  const authorLink = anchors.find(a => /linkedin\.com\/(?:in|company)\//i.test(a.href));
   const urn = await card.getAttribute('data-urn') || await card.getAttribute('data-id');
-  const titleLine = text.split('\\n').map(s => s.trim()).find(s => /suporte|help desk|service desk|technical support/i.test(s)) || keyword;
+  const titleLine = text.split('\n').map(s => s.trim()).find(s => /suporte|help desk|service desk|technical support/i.test(s)) || keyword;
 
   return {
     postId: urn || Buffer.from(postUrl).toString('base64url'),
@@ -164,7 +164,7 @@ async function main() {
     headless: false,
     viewport: { width: 1440, height: 1000 },
     locale: 'pt-BR',
-    args: ['--disable-blink-features=AutomationControlled'],
+    args: [],
   });
 
   try {
@@ -174,7 +174,7 @@ async function main() {
       const rl = createInterface({ input: stdin, output: stdout });
       await rl.question('Entre manualmente na conta SECUNDÁRIA. Depois de entrar, pressione ENTER aqui para salvar a sessão local. ');
       rl.close();
-      process.stdout.write('Sessão da conta secundária disponível no perfil local.\\n');
+      process.stdout.write('Sessão da conta secundária disponível no perfil local.\n');
       return;
     }
 
@@ -182,7 +182,7 @@ async function main() {
       await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded' });
     }
     await page.waitForTimeout(1800);
-    if (/\\/(login|checkpoint|challenge)/i.test(new URL(page.url()).pathname)) {
+    if (/\/(login|checkpoint|challenge)/i.test(new URL(page.url()).pathname)) {
       throw new Error('A sessão da conta secundária não está autenticada. Execute npm run linkedin:secondary:login.');
     }
 
