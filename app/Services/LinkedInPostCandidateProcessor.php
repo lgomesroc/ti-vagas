@@ -88,6 +88,16 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
+        $nonVacancyReason = $this->nonVacancyContentReason($text);
+        if ($nonVacancyReason !== null) {
+            $candidate->fill($base + [
+                'status' => 'rejected',
+                'decision_reason' => $nonVacancyReason,
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
         if (!$this->isRecruitmentPost($post, $text)) {
             $candidate->fill($base + [
                 'status' => 'rejected',
@@ -306,6 +316,44 @@ class LinkedInPostCandidateProcessor
         }
 
         return false;
+    }
+
+    /**
+     * Descarta publicações que mencionam cargos de TI, mas não anunciam vaga.
+     */
+    private function nonVacancyContentReason(string $text): ?string
+    {
+        $normalized = $this->normalize($text);
+
+        $explicitVacancy = preg_match(
+            '/\\b(vaga(?:s)?\\s+(?:aberta|abertas|para|de)|estamos\\s+contratando|estamos\\s+a\\s+procura|we\\s+are\\s+hiring|job\\s+opportunity|apply\\s+now|candidate-se|inscreva-se|envie\\s+(?:seu\\s+)?curriculo|send\\s+(?:your\\s+)?resume)\\b/',
+            $normalized
+        ) === 1;
+
+        $jobChangeAnnouncement = preg_match(
+            '/\\b(feliz\\s+em\\s+(?:anunciar|compartilhar)|happy\\s+to\\s+(?:announce|share)|excited\\s+to\\s+(?:announce|share)|thrilled\\s+to\\s+(?:announce|share)|comecei\\s+(?:hoje\\s+)?(?:em|na|no|um\\s+novo)|iniciando\\s+(?:um\\s+novo\\s+)?desafio|starting\\s+(?:a\\s+)?new\\s+(?:role|position)|started\\s+(?:a\\s+)?new\\s+(?:role|position)|new\\s+position\\s+at|meu\\s+novo\\s+(?:emprego|desafio)|nova\\s+posicao\\s+na|novo\\s+cargo\\s+na|fui\\s+contratado|fui\\s+contratada|joined\\s+the\\s+team|parabens\\s+pela\\s+conquista|congratulations\\s+on\\s+your)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($jobChangeAnnouncement && !$explicitVacancy) {
+            return 'Comunicado de contratação, novo emprego ou mudança profissional; não é anúncio de vaga.';
+        }
+
+        $serviceAdvertisement = preg_match(
+            '/\\b(oferecemos\\s+(?:servicos|solucoes)|prestamos\\s+servicos|empresa\\s+especializada\\s+em|contrate\\s+nossos\\s+servicos|outsourcing\\s+de\\s+(?:ti|tecnologia|profissionais)|alocacao\\s+de\\s+profissionais|terceirizacao\\s+de\\s+(?:ti|equipe|profissionais)|body\\s+shop|fabrica\\s+de\\s+software|solucoes\\s+sob\\s+demanda|nosso\\s+portfolio|nossos\\s+clientes)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($serviceAdvertisement && !$explicitVacancy) {
+            return 'Publicidade de serviços, consultoria ou fornecimento de profissionais; não é anúncio de contratação.';
+        }
+
+        $congratulations = preg_match('/\\b(parabens|congratulations|felicidades)\\b/', $normalized) === 1;
+        if ($congratulations && !$explicitVacancy) {
+            return 'Publicação de parabéns ou interação social sem anúncio de oportunidade.';
+        }
+
+        return null;
     }
 
     private function isRecruitmentPost(array $post, string $text): bool
