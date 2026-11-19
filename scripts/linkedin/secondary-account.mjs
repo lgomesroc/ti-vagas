@@ -100,22 +100,30 @@ async function enrichPost(page, post) {
     if (!clicked) break;
   }
 
-  const commentNodes = await page.locator(
+  const postContainer = page.locator(
+    'main [componentkey^="update-card-focus"], main article, main [data-testid="expandable-text-box"]'
+  ).first();
+  const postTextNode = page.locator('main [data-testid="expandable-text-box"]').first();
+  const focusedPostText = (await postTextNode.innerText().catch(() => '')).trim()
+    || (await postContainer.innerText().catch(() => '')).trim()
+    || post.text;
+
+  const commentNodes = await postContainer.locator(
     '.comments-comment-item, .comments-comment-entity, [class*="comments-comment-item"], [data-test-id*="comment"]'
-  ).all();
+  ).all().catch(() => []);
   const comments = [];
   for (const node of commentNodes.slice(0, 60)) {
     const value = (await node.innerText().catch(() => '')).trim();
     if (value && !comments.some(comment => comment.text === value)) comments.push({ text: value });
   }
 
-  const links = await page.locator('main a[href], article a[href]').evaluateAll(nodes =>
+  const links = await postContainer.locator('a[href]').evaluateAll(nodes =>
     nodes.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url))
   ).catch(() => []);
   const allText = [bodyText, ...comments.map(comment => comment.text)].join('\n');
   const emails = [...new Set([...allText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(match => match[0].toLowerCase()))];
 
-  post.text = bodyText.slice(0, 12000) || post.text;
+  post.text = focusedPostText.slice(0, 12000) || post.text;
   post.topComments = comments;
   post.links = [...new Set([...(post.links ?? []), ...links])];
   post.emails = emails;
@@ -241,9 +249,10 @@ async function extractCard(page, card, keyword) {
 
   const emailMatches = [...postText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)]
     .map(match => match[0].toLowerCase());
-  const titleLine = lines.find(line =>
+  const postLines = postText.split('\n').map(line => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const titleLine = postLines.find(line =>
     /vaga|oportunidade|suporte|help.?desk|service.?desk|technical support|desenvolvedor|developer|programador|analista|estágio|junior|júnior|n1\b/i.test(line)
-  ) || keyword;
+  ) || postLines[0] || keyword;
 
   return {
     postId: componentKey || Buffer.from(postUrl).toString('base64url'),
