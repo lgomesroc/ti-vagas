@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -59,7 +60,56 @@ class LinkedInPostSearchClient
             usleep(500000);
         }
 
+        foreach ($this->searchSecondaryAccount() as $post) {
+            $url = $post['postUrl'];
+            if (!isset($posts[$url])) {
+                $posts[$url] = $post;
+            } else {
+                $providers = $posts[$url]['searchProviders'] ?? [$posts[$url]['searchProvider']];
+                $providers[] = $post['searchProvider'];
+                $posts[$url]['searchProviders'] = array_values(array_unique($providers));
+            }
+        }
+
         return array_values($posts);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function searchSecondaryAccount(): array
+    {
+        if (!config('linkedin.secondary_account.enabled')) {
+            return [];
+        }
+
+        $profile = base_path((string) config('linkedin.secondary_account.profile'));
+        if (!is_dir($profile)) {
+            return [];
+        }
+
+        $result = Process::path(base_path())
+            ->timeout((int) config('linkedin.secondary_account.timeout', 240))
+            ->run([
+                'node',
+                'scripts/linkedin/secondary-account.mjs',
+                'search',
+            ]);
+
+        if (!$result->successful()) {
+            throw new RuntimeException(
+                'Falha na busca pela conta secundária do LinkedIn: ' . trim($result->errorOutput())
+            );
+        }
+
+        $posts = json_decode($result->output(), true);
+        if (!is_array($posts)) {
+            throw new RuntimeException('A conta secundária retornou uma resposta JSON inválida.');
+        }
+
+        return array_values(array_filter($posts, fn ($post): bool =>
+            is_array($post)
+            && isset($post['postUrl'])
+            && ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
+        ));
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -221,51 +271,6 @@ class LinkedInPostSearchClient
         }
 
         return $url;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $results
-     * @return array<int, array<string, mixed>>
-     */
-    private function normalizeApiResults(
-        array $results,
-        string $keyword,
-        string $provider,
-        string $urlKey,
-        string $titleKey,
-        string $snippetKey,
-        bool $usePublishedTimestamp = false
-    ): array {
-        $posts = [];
-
-        foreach ($results as $result) {
-            if (!is_array($result)) {
-                continue;
-            }
-
-            $url = trim((string) ($result[$urlKey] ?? ''));
-            $title = trim((string) ($result[$titleKey] ?? ''));
-            $snippet = trim((string) ($result[$snippetKey] ?? ''));
-
-            $post = $this->makePost($url, $title, $snippet, $keyword, $provider);
-
-            if ($post !== null && $usePublishedTimestamp && !empty($result['pdate'])) {
-                try {
-                    $publishedAt = Carbon::createFromTimestamp((int) $result['pdate']);
-                    if ($this->isWithinLookback($publishedAt)) {
-                        $post['datePosted'] = $publishedAt->toIso8601String();
-                    }
-                } catch (Throwable) {
-                    // Sem data de publicação válida, permanece a data relativa do snippet.
-                }
-            }
-
-            if ($post !== null) {
-                $posts[] = $post;
-            }
-        }
-
-        return $posts;
     }
 
     private function makePost(
