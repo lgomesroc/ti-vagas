@@ -119,7 +119,7 @@ class LinkedInPostSearchClient
                 'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
                 'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
             ])
-            ->timeout((int) config('linkedin.secondary_account.timeout', 240))
+            ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
             ->run([
                 'node',
                 'scripts/linkedin/secondary-account.mjs',
