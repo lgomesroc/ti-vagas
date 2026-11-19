@@ -49,6 +49,12 @@ class LinkedInPostSearchClient
                             ];
                             $providers[] = $post['searchProvider'];
                             $posts[$url]['searchProviders'] = array_values(array_unique($providers));
+
+                            if (($post['searchProvider'] ?? null) === 'linkedin-secondary-account') {
+                                $posts[$url] = array_replace($posts[$url], $post);
+                                $posts[$url]['searchProviders'] = array_values(array_unique($providers));
+                                $posts[$url]['secondaryAccountSource'] = true;
+                            }
                         }
                     }
                 } catch (Throwable) {
