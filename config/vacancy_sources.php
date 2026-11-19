@@ -24,6 +24,7 @@ return [
             'ifoodcarreiras' => 'iFood',
             'rdstation' => 'RD Station',
             'ilia' => 'ília',
+            'zupinnovation' => 'Zup Innovation',
         ],
     ],
 
@@ -191,6 +192,9 @@ return [
             ],
             'trinca' => [
                 'name' => 'TRINCA',
+            ],
+            'brq' => [
+                'name' => 'BRQ Digital Solutions',
             ],
         ],
     ],
@@ -553,6 +557,24 @@ return [
                 'name' => 'NEXDOM Healthtech',
                 'url' => 'https://vempranexdom.gupy.io/',
             ],
+            'leega' => [
+                'name' => 'Leega Consultoria',
+                'url' => 'https://leega.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'softexpert' => [
+                'name' => 'SoftExpert',
+                'url' => 'https://softexpert.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'dock' => [
+                'name' => 'Dock',
+                'url' => 'https://dock.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'anbima' => [
                 'name' => 'ANBIMA',
                 'url' => 'https://anbima.gupy.io/',
