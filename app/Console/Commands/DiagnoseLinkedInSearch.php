@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\Http;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class DiagnoseLinkedInSearch extends Command
@@ -16,7 +16,7 @@ class DiagnoseLinkedInSearch extends Command
     {
         $this->info('Diagnóstico de busca do LinkedIn (não grava candidatos nem publica vagas).');
         $this->line('Coleta habilitada: ' . (config('linkedin.enabled') ? 'sim' : 'não'));
-        $this->line('Extensão PHP DOM: ' . (class_exists(\\DOMDocument::class) ? 'disponível' : 'ausente'));
+        $this->line('Extensão PHP DOM: ' . (class_exists(\DOMDocument::class) ? 'disponível' : 'ausente'));
         $this->line('Chave Brave configurada: ' . (filled(config('linkedin.brave_api_key')) ? 'sim' : 'não'));
         $this->line('Chave Mojeek configurada: ' . (filled(config('linkedin.mojeek_api_key')) ? 'sim' : 'não'));
         $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 72) . ' horas');
@@ -44,7 +44,7 @@ class DiagnoseLinkedInSearch extends Command
             ]);
 
             $html = $response->body();
-            $domAvailable = class_exists(\\DOMDocument::class);
+            $domAvailable = class_exists(\DOMDocument::class);
             $anchors = 0;
             $linkedinUrls = 0;
             $relativeDates = 0;
@@ -54,9 +54,9 @@ class DiagnoseLinkedInSearch extends Command
                 $previous = libxml_use_internal_errors(true);
 
                 try {
-                    $document = new \\DOMDocument();
+                    $document = new \DOMDocument();
                     if ($document->loadHTML($html)) {
-                        $xpath = new \\DOMXPath($document);
+                        $xpath = new \DOMXPath($document);
                         $nodes = $xpath->query('//a[contains(concat(" ", normalize-space(@class), " "), " result__a ")]');
                         $anchors = $nodes ? $nodes->length : 0;
 
@@ -71,15 +71,15 @@ class DiagnoseLinkedInSearch extends Command
                             }
 
                             $parent = $node->parentNode?->parentNode;
-                            $snippetNode = $parent instanceof \\DOMNode
+                            $snippetNode = $parent instanceof \DOMNode
                                 ? $xpath->query('.//*[contains(concat(" ", normalize-space(@class), " "), " result__snippet ")]', $parent)?->item(0)
                                 : null;
                             $snippet = mb_strtolower(trim($node->textContent . ' ' . ($snippetNode?->textContent ?? '')));
 
-                            if (preg_match('/\\b(ha\\s+)?\\d{1,2}\\s*(min|minuto|minutos|h|hr|hrs|hora|horas|d|day|days|dia|dias|sem|semana|semanas)\\b|\\b(today|hoje|yesterday|ontem)\\b/', $snippet)) {
+                            if (preg_match('/\b(ha\s+)?\d{1,2}\s*(min|minuto|minutos|h|hr|hrs|hora|horas|d|day|days|dia|dias|sem|semana|semanas)\b|\b(today|hoje|yesterday|ontem)\b/', $snippet)) {
                                 $relativeDates++;
                             }
-                            if (preg_match('/\\b(20\\d{2}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\\b/i', $snippet)) {
+                            if (preg_match('/\b(20\d{2}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/i', $snippet)) {
                                 $absoluteDates++;
                             }
                         }
@@ -99,7 +99,7 @@ class DiagnoseLinkedInSearch extends Command
                     ['URLs LinkedIn reconhecidas', $linkedinUrls],
                     ['Resultados com data relativa', $relativeDates],
                     ['Resultados com indicação de data absoluta/ano', $absoluteDates],
-                    ['Página parece bloqueio/captcha', preg_match('/captcha|unusual traffic|verify you are human|anomaly\\.js/i', $html) ? 'sim' : 'não'],
+                    ['Página parece bloqueio/captcha', preg_match('/captcha|unusual traffic|verify you are human|anomaly\.js/i', $html) ? 'sim' : 'não'],
                 ]
             );
 
