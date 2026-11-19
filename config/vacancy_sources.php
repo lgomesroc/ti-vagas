@@ -213,6 +213,7 @@ return [
             'talentoslight' => [
                 'name' => 'Light',
                 'url' => 'https://talentoslight.gupy.io/',
+                'technology_only' => true,
             ],
 
             'vemprabip' => [
@@ -827,7 +828,7 @@ return [
             ],
             'cpfl' => [
                 'name' => 'CPFL Energia',
-                'url' => 'https://career19.sapsf.com/career?company=cpflenergi',
+                'url' => 'https://vagas.cpfl.com.br/viewalljobs/',
             ],
             'taesa' => [
                 'name' => 'TAESA',
