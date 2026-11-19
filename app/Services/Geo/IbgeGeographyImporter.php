@@ -250,6 +250,42 @@ class IbgeGeographyImporter
     }
 
     /**
+     * Aplica regiões a partir de uma estrutura normalizada, útil para fixtures.
+     *
+     * @param iterable<array<string, mixed>> $payload
+     */
+    public function applyMunicipalityRegions(iterable $payload): int
+    {
+        $updated = 0;
+
+        DB::transaction(function () use ($payload, &$updated): void {
+            foreach ($payload as $item) {
+                $immediate = $item['regiao-imediata'] ?? null;
+                $intermediate = is_array($immediate)
+                    ? ($immediate['regiao-intermediaria'] ?? [])
+                    : [];
+
+                if (!isset($item['id'], $immediate['id'], $immediate['nome'], $intermediate['id'], $intermediate['nome'])) {
+                    continue;
+                }
+
+                $updated += Municipality::query()
+                    ->where('ibge_code', str_pad((string) $item['id'], 7, '0', STR_PAD_LEFT))
+                    ->update([
+                        'immediate_region_code' => (string) $immediate['id'],
+                        'immediate_region_name' => (string) $immediate['nome'],
+                        'intermediate_region_code' => (string) $intermediate['id'],
+                        'intermediate_region_name' => (string) $intermediate['nome'],
+                    ]);
+            }
+        });
+
+        $this->directory->flush();
+
+        return $updated;
+    }
+
+    /**
      * Aplica os ajustes manuais de config/geo_regions.php.
      *
      * Retorna os membros que não foram encontrados na base de municípios.
