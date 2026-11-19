@@ -234,6 +234,15 @@ async function main() {
       const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
       diagnostic.searchUrl = page.url();
       diagnostic.pageTitle = await page.title().catch(() => '');
+      diagnostic.bodyText = (await page.locator('body').innerText().catch(() => '')).slice(0, 1800);
+      diagnostic.mainText = (await page.locator('main').innerText().catch(() => '')).slice(0, 1200);
+      diagnostic.selectorCounts = {
+        urnDivs: await page.locator('div[data-urn]').count().catch(() => -1),
+        feedUpdates: await page.locator('div.feed-shared-update-v2').count().catch(() => -1),
+        reusableResults: await page.locator('li.reusable-search__result-container').count().catch(() => -1),
+        articles: await page.locator('main article').count().catch(() => -1),
+        listItems: await page.locator('main li').count().catch(() => -1),
+      };
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 3; pageNo++) {
