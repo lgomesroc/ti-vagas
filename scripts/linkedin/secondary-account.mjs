@@ -312,7 +312,7 @@ async function extractCard(page, card, keyword) {
 async function main() {
   const context = await chromium.launchPersistentContext(profile, {
     ...(browserExecutable ? { executablePath: browserExecutable } : {}),
-    headless: false,
+    headless: process.env.LINKEDIN_HEADLESS === 'true',
     viewport: { width: 1440, height: 1000 },
     locale: 'pt-BR',
     args: [],
