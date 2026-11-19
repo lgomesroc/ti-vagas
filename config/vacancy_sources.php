@@ -608,6 +608,9 @@ return [
             'openai' => [
                 'name' => 'OpenAI',
             ],
+            'hostinger' => [
+                'name' => 'Hostinger',
+            ],
         ],
     ],
 
