@@ -441,6 +441,13 @@ class LinkedInPostCandidateProcessor
             return 'Descrição exige três anos ou mais de experiência.';
         }
 
+        if (preg_match(
+            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
+            $descriptionText
+        )) {
+            return 'A descrição identifica explicitamente a oportunidade como nível pleno, sênior ou equivalente.';
+        }
+
         $excluded = [
             'crm', 'erp', 'sap', 'abap', 'business intelligence',
             'analista de dados', 'data analyst', 'data engineer',
