@@ -442,7 +442,7 @@ class CwiSource implements VacancySource
         }
 
         try {
-            return CarbonImmutable::parse($value, 'UTC')->toIso8601String();
+            return CarbonImmutable::parse($value, 'UTC')->utc()->toIso8601String();
         } catch (\Throwable) {
             return null;
         }
