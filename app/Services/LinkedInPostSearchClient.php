@@ -93,7 +93,7 @@ class LinkedInPostSearchClient
             return [];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::withOptions($this->tlsOptions())->withHeaders([
             'X-Subscription-Token' => $apiKey,
             'Accept' => 'application/json',
             'Accept-Encoding' => 'gzip',
@@ -130,7 +130,7 @@ class LinkedInPostSearchClient
             return [];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::withOptions($this->tlsOptions())->withHeaders([
             'Accept' => 'application/json',
             'User-Agent' => 'TIVagas/1.0',
         ])->timeout(20)->get('https://www.mojeek.com/search', [
