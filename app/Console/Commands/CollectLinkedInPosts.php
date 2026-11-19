@@ -12,7 +12,7 @@ use Throwable;
 
 class CollectLinkedInPosts extends Command
 {
-    protected $signature = 'linkedin:collect-posts';
+    protected $signature = 'linkedin:collect-posts {--mode=all : all, duckduckgo ou bot}';
 
     protected $description = 'Busca, analisa, aprova e cadastra automaticamente oportunidades de publicações públicas do LinkedIn';
 
@@ -22,6 +22,12 @@ class CollectLinkedInPosts extends Command
         LinkedInPostCandidateProcessor $processor,
         LinkedInPostAutoPublisher $publisher
     ): int {
+        $mode = (string) $this->option('mode');
+        if (!in_array($mode, ['all', 'duckduckgo', 'bot'], true)) {
+            $this->error('Modo inválido. Use all, duckduckgo ou bot.');
+            return self::INVALID;
+        }
+
         if (!config('linkedin.enabled')) {
             $this->warn('Coleta do LinkedIn desabilitada. Configure LINKEDIN_POSTS_ENABLED=true.');
 
@@ -29,7 +35,7 @@ class CollectLinkedInPosts extends Command
         }
 
         try {
-            $posts = $client->search();
+            $posts = $client->search($mode);
         } catch (Throwable $exception) {
             Log::error('Falha na pesquisa de publicações do LinkedIn.', [
                 'error' => $exception->getMessage(),
