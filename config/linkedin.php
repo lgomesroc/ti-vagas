@@ -17,10 +17,6 @@ return [
         FILTER_VALIDATE_BOOL
     ),
 
-    // Chaves opcionais das APIs oficiais. Sem chave, o respectivo provedor é ignorado.
-    'brave_api_key' => env('BRAVE_SEARCH_API_KEY'),
-    'mojeek_api_key' => env('MOJEEK_SEARCH_API_KEY'),
-
     'keywords' => [
         'estamos contratando',
         'vaga aberta',
