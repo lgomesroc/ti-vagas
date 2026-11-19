@@ -32,7 +32,7 @@ function parseDate(text, datetime) {
   return null;
 }
 
-async function expandComments(card) {
+async function expandComments(page, card) {
   const labels = /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
   for (let i = 0; i < 4; i++) {
     const buttons = card.getByRole('button');
@@ -40,10 +40,10 @@ async function expandComments(card) {
     let clicked = false;
     for (let j = 0; j < count; j++) {
       const button = buttons.nth(j);
-      const label = ((await button.getAttribute('aria-label')) ?? '') + ' ' + ((await button.innerText().catch(() => '')) ?? '');
+      const label = ((await button.getAttribute('aria-label')) ?? '') + ' ' + ((await button.innerText({ timeout: 1000 }).catch(() => '')) ?? '');
       if (labels.test(label)) {
         await button.click({ timeout: 1500 }).catch(() => {});
-        await card.page().waitForTimeout(500);
+        await page.waitForTimeout(500);
         clicked = true;
         break;
       }
@@ -120,7 +120,7 @@ async function extractCard(card, keyword) {
   href.search = '';
   href.hash = '';
   const postUrl = href.toString();
-  const time = await card.locator('time').first().getAttribute('datetime').catch(() => null);
+  const time = await card.locator('time').first().getAttribute('datetime', { timeout: 1000 }).catch(() => null);
   const timeText = await card.locator('time').first().innerText().catch(() => '');
   const date = parseDate(timeText || text, time);
   if (!date || date < new Date(Date.now() - lookbackHours * 3600000) || date > new Date(Date.now() + 7200000)) return null;
@@ -197,7 +197,7 @@ async function main() {
         const count = Math.min(await cards.count(), 30);
         for (let i = 0; i < count; i++) {
           const card = cards.nth(i);
-          await expandComments(card);
+          await expandComments(page, card);
           const post = await extractCard(card, keyword);
           if (post) posts.set(post.postUrl, post);
         }
