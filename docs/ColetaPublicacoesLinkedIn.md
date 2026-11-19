@@ -12,7 +12,9 @@ A descoberta por buscadores não equivale a uma API oficial do LinkedIn e não g
 
 A conta secundária destinada exclusivamente à pesquisa de suporte técnico será a única conta considerada na integração autenticada. A conta pessoal não será utilizada. Publicações promovidas/patrocinadas devem ser descartadas; a busca deve se limitar a posts com indícios de oportunidades de TI.
 
-O acesso autenticado deve ocorrer por sessão iniciada pelo próprio titular da conta secundária. A integração não deve armazenar senha, automatizar desafios/CAPTCHA, contornar bloqueios ou reutilizar a sessão da conta pessoal.
+O acesso autenticado ocorre em um perfil persistente e separado do navegador, iniciado pelo próprio titular da conta secundária. A senha não é armazenada pelo projeto; a sessão fica em `.local/linkedin-secondary-profile/`, diretório ignorado pelo Git. O coletor consulta resultados e comentários visíveis, sem automatizar desafios/CAPTCHA, contornar bloqueios ou reutilizar a sessão da conta pessoal.
+
+A conta secundária pesquisa exclusivamente vagas de suporte técnico, help desk e service desk. O comando `npm run linkedin:secondary:login` abre o navegador para o primeiro login manual. O comando `npm run linkedin:secondary:search` executa a pesquisa usando a sessão local.
 
 ## Regras de seleção e processamento
 
