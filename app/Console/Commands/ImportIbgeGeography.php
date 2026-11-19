@@ -30,6 +30,9 @@ class ImportIbgeGeography extends Command
         }
 
         try {
+            // O CSV legado fornece os centroides; a DTB 2025 atualiza os
+            // municípios e suas regiões oficiais pelo código IBGE.
+            $coordinates = $importer->importMunicipalities();
             $result = $importer->importFromDtbCsv($this->option('csv') ?: null);
         } catch (Throwable $exception) {
             $this->error('Falha ao importar a DTB 2025: ' . $exception->getMessage());
@@ -37,6 +40,7 @@ class ImportIbgeGeography extends Command
             return self::FAILURE;
         }
 
+        $this->info("Centroides municipais carregados: {$coordinates}");
         $this->info("Municípios da DTB 2025 importados: {$result['municipalities']}");
         $this->info("Regiões Geográficas Imediatas: {$result['immediate_regions']}");
         $this->info("Regiões Geográficas Intermediárias: {$result['intermediate_regions']}");
