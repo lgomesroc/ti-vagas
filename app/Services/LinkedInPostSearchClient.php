@@ -109,8 +109,16 @@ class LinkedInPostSearchClient
             return [];
         }
 
-        $profile = base_path((string) config('linkedin.secondary_account.profile'));
+        $configuredProfile = (string) config('linkedin.secondary_account.profile');
+        $profile = str_starts_with($configuredProfile, DIRECTORY_SEPARATOR)
+            ? $configuredProfile
+            : base_path($configuredProfile);
+
         if (!is_dir($profile)) {
+            Log::warning('Perfil persistente da conta secundária do LinkedIn não encontrado.', [
+                'profile' => $profile,
+            ]);
+
             return [];
         }
 
