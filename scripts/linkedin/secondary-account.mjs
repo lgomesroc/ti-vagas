@@ -123,77 +123,143 @@ async function enrichPost(page, post) {
   return post;
 }
 
-async function extractCard(card, keyword) {
+async function copyPostLink(page, card) {
+  const menuButton = card.getByRole('button', {
+    name: /^(Abrir menu de controle da publicação de|Open control menu for post by)/i,
+  }).first();
+  const copyItem = page.getByRole('menuitem', {
+    name: /^(Copiar link da publicação|Copy link to post)$/i,
+  }).first();
+
+  try {
+    await page.context().grantPermissions(
+      ['clipboard-read', 'clipboard-write'],
+      { origin: 'https://www.linkedin.com' }
+    );
+    await page.evaluate(() => navigator.clipboard.writeText(''));
+    await menuButton.click({ timeout: 3500 });
+    await copyItem.waitFor({ state: 'visible', timeout: 3000 });
+    await copyItem.click({ timeout: 3000 });
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await page.waitForTimeout(250);
+      const copied = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+      if (copied) {
+        const resolved = new URL(copied, 'https://www.linkedin.com');
+        resolved.search = '';
+        resolved.hash = '';
+        if (/linkedin\.com\/(?:feed\/update|posts)\//i.test(resolved.href)) {
+          return resolved.href;
+        }
+      }
+    }
+  } catch {
+    await page.keyboard.press('Escape').catch(() => {});
+  }
+
+  return null;
+}
+
+async function extractCard(page, card, keyword) {
   const text = (await card.innerText().catch(() => '')).trim();
   if (!text || /\b(promoted|patrocinado|promovido)\b/i.test(text)) return null;
 
+  const componentKey = await card.getAttribute('componentkey').catch(() => null);
   const anchors = await card.locator('a[href]').evaluateAll(nodes => nodes.map(a => ({
     href: a.href,
-    text: (a.innerText ?? '').trim()
+    text: (a.innerText ?? '').trim(),
+    aria: a.getAttribute('aria-label') ?? '',
   })));
-  const postAnchor = anchors.find(a => /linkedin\.com\/(?:feed\/update|posts)\//i.test(a.href));
-  if (!postAnchor) return null;
 
-  const href = new URL(postAnchor.href);
-  href.search = '';
-  href.hash = '';
-  const postUrl = href.toString();
-  const timeLocator = card.locator('time').first();
-  const time = await timeLocator.getAttribute('datetime', { timeout: 1000 }).catch(() => null);
-  const timeText = (await timeLocator.innerText().catch(() => '')).trim();
-  const timeLabel = (await timeLocator.getAttribute('aria-label').catch(() => '')).trim();
-  const actorTimestamp = card.locator(
-    '.feed-shared-actor__sub-description, .update-components-actor__sub-description, [data-test-id*="feed-update-timestamp"]'
-  ).first();
-  const actorTimestampText = (await actorTimestamp.innerText().catch(() => '')).trim();
-  const actorTimestampLabel = (await actorTimestamp.getAttribute('aria-label').catch(() => '')).trim();
-  const date = parseDate(timeText || timeLabel || actorTimestampText || actorTimestampLabel, time);
+  // O layout atual não expõe necessariamente o permalink como <a>.
+  // Nesse caso usamos a ação oficial "Copiar link da publicação".
+  const postAnchor = anchors.find(a => /linkedin\.com\/(?:feed\/update|posts)\//i.test(a.href));
+  let postUrl = null;
+  if (postAnchor) {
+    const href = new URL(postAnchor.href);
+    href.search = '';
+    href.hash = '';
+    postUrl = href.toString();
+  } else if (componentKey) {
+    postUrl = await copyPostLink(page, card);
+  }
+  if (!postUrl) return null;
+
+  const lines = text.split('\n').map(line => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const menuLabel = await card.locator('[aria-label]').evaluateAll(nodes =>
+    nodes.map(node => node.getAttribute('aria-label') || '')
+      .find(label => /^(Abrir menu de controle da publicação de|Open control menu for post by)\s+/i.test(label)) || ''
+  ).catch(() => '');
+  const authorMatch = menuLabel.match(/^(?:Abrir menu de controle da publicação de|Open control menu for post by)\s+(.+)$/i);
+  const authorName = authorMatch?.[1]?.trim() || null;
+
+  const timeCandidates = await card.locator('time').evaluateAll(nodes => nodes.flatMap(node => [
+    node.getAttribute('datetime'),
+    node.innerText,
+    node.getAttribute('aria-label'),
+  ]).filter(Boolean));
+  const timestampText = lines.find(line =>
+    /^(?:há\s*)?\d+\s*(?:min|minuto|minutos|h|hr|hrs|hora|horas|d|dia|dias|sem|semana|semanas|mo|mês|meses|a|ano|anos)\b/i.test(line)
+  ) || '';
+  const date = parseDate(timestampText, timeCandidates.find(value =>
+    value && !Number.isNaN(Date.parse(value)) && /^\d{4}-\d\d-\d\d/.test(value)
+  ));
   const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
   diagnostic.cards++;
-  if (diagnostic.samples.length < 4) {
+  if (diagnostic.samples.length < 5) {
     diagnostic.samples.push({
-      text: text.slice(0, 180).replace(/\\s+/g, ' '),
-      datetime: time,
-      timeText,
-      timeLabel,
-      actorTimestampText,
-      actorTimestampLabel,
+      componentKey,
+      authorName,
+      timestampText,
+      timeCandidates,
       parsedDate: date?.toISOString() ?? null,
+      postUrl,
+      text: text.slice(0, 240),
     });
   }
   keywordDiagnostics.set(keyword, diagnostic);
-  if (!date || date < new Date(Date.now() - lookbackHours * 3600000) || date > new Date(Date.now() + 7200000)) return null;
 
+  if (!date || date < new Date(Date.now() - lookbackHours * 3600000) ||
+      date > new Date(Date.now() + 7200000)) return null;
+
+  const expandable = card.locator('[data-testid="expandable-text-box"]').first();
+  const postText = (await expandable.innerText().catch(() => '')).trim() || text;
+  const authorLink = anchors.find(a => /linkedin\.com\/(?:in|company)\//i.test(a.href) &&
+    (!authorName || a.text.includes(authorName) || a.aria.includes(authorName)));
+  const links = [...new Set(anchors.map(a => a.href)
+    .filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url)))];
   const comments = [];
   const commentNodes = await card.locator(
     '[data-test-id*="comment"], .comments-comment-item, .comments-comment-entity, [class*="comments-comment-item"]'
   ).all();
   for (const node of commentNodes.slice(0, 40)) {
     const commentText = (await node.innerText().catch(() => '')).trim();
-    if (commentText) comments.push({ text: commentText });
+    if (commentText && !comments.some(comment => comment.text === commentText)) {
+      comments.push({ text: commentText });
+    }
   }
 
-  const emailMatches = [...text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(m => m[0].toLowerCase());
-  const links = [...new Set(anchors.map(a => a.href).filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url)))];
-  const authorLink = anchors.find(a => /linkedin\.com\/(?:in|company)\//i.test(a.href));
-  const urn = await card.getAttribute('data-urn') || await card.getAttribute('data-id');
-  const titleLine = text.split('\n').map(s => s.trim()).find(s => /suporte|help desk|service desk|technical support/i.test(s)) || keyword;
+  const emailMatches = [...postText.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)]
+    .map(match => match[0].toLowerCase());
+  const titleLine = lines.find(line =>
+    /vaga|oportunidade|suporte|help.?desk|service.?desk|technical support|desenvolvedor|developer|programador|analista|estágio|junior|júnior|n1\b/i.test(line)
+  ) || keyword;
 
   return {
-    postId: urn || Buffer.from(postUrl).toString('base64url'),
+    postId: componentKey || Buffer.from(postUrl).toString('base64url'),
     postUrl,
     title: titleLine.slice(0, 255),
-    text,
+    text: postText,
     datePosted: date.toISOString(),
     matchedKeyword: keyword,
-    authorName: authorLink?.text || null,
+    authorName,
     authorUrl: authorLink?.href || null,
     authorHeadline: null,
     authorType: null,
     topComments: comments,
     links,
     searchProvider: 'linkedin-secondary-account',
-    searchSnippet: text.slice(0, 1000),
+    searchSnippet: postText.slice(0, 1000),
     emails: [...new Set(emailMatches)],
   };
 }
@@ -287,15 +353,16 @@ async function main() {
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 3; pageNo++) {
-        const cards = page.locator('div[data-urn], div.feed-shared-update-v2, li.reusable-search__result-container');
+        const cards = page.locator('[componentkey^="update-card-focus"], [data-urn^="urn:li:activity"], [data-id^="urn:li:activity"], [data-urn^="urn:li:aggregate"]');
         const count = Math.min(await cards.count(), 30);
         const diagnostic = keywordDiagnostics.get(keyword) ?? { cards: 0, samples: [] };
         diagnostic.cardElements = (diagnostic.cardElements ?? 0) + count;
+        diagnostic.postContainers = '[componentkey^="update-card-focus"], activity/aggregate data-urn/data-id';
         keywordDiagnostics.set(keyword, diagnostic);
         for (let i = 0; i < count; i++) {
           const card = cards.nth(i);
           await expandComments(page, card);
-          const post = await extractCard(card, keyword);
+          const post = await extractCard(page, card, keyword);
           if (post) posts.set(post.postUrl, post);
         }
         await page.mouse.wheel(0, 1800);
