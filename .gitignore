@@ -27,3 +27,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 diagnostico_ssl.php
+
+# LinkedIn secondary-account browser session (never commit authentication data)
+/.local/linkedin-secondary-profile/
