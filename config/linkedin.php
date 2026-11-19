@@ -8,6 +8,20 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
+    'secondary_account' => [
+        'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
+        'timeout' => (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 240),
+        'keywords' => [
+            'vaga suporte técnico',
+            'analista de suporte júnior',
+            'suporte técnico júnior',
+            'help desk júnior',
+            'service desk júnior',
+            'technical support junior',
+        ],
+    ],
+
     // Certificado raiz da rede, quando há inspeção TLS corporativa.
     'ca_bundle' => env('LINKEDIN_CA_BUNDLE', env('CURL_CA_BUNDLE')),
 
