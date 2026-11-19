@@ -2,8 +2,12 @@ import { chromium } from 'playwright';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 
 const profile = path.resolve(process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ?? '.local/linkedin-secondary-profile');
+const defaultChromePath = path.join(process.env.PROGRAMFILES ?? 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe');
+const chromeExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
+  (existsSync(defaultChromePath) ? defaultChromePath : undefined);
 const mode = process.argv[2] ?? 'search';
 const keywords = [
   'vaga suporte técnico',
@@ -161,6 +165,7 @@ async function extractCard(card, keyword) {
 
 async function main() {
   const context = await chromium.launchPersistentContext(profile, {
+    ...(chromeExecutable ? { executablePath: chromeExecutable } : {}),
     headless: false,
     viewport: { width: 1440, height: 1000 },
     locale: 'pt-BR',
