@@ -10,15 +10,13 @@ class DiagnoseLinkedInSearch extends Command
 {
     protected $signature = 'linkedin:diagnose-search';
 
-    protected $description = 'Diagnostica os provedores de busca do LinkedIn sem cadastrar ou alterar vagas';
+    protected $description = 'Diagnostica a busca pública do LinkedIn sem cadastrar ou alterar vagas';
 
     public function handle(): int
     {
         $this->info('Diagnóstico de busca do LinkedIn (não grava candidatos nem publica vagas).');
         $this->line('Coleta habilitada: ' . (config('linkedin.enabled') ? 'sim' : 'não'));
         $this->line('Extensão PHP DOM: ' . (class_exists(\DOMDocument::class) ? 'disponível' : 'ausente'));
-        $this->line('Chave Brave configurada: ' . (filled(config('linkedin.brave_api_key')) ? 'sim' : 'não'));
-        $this->line('Chave Mojeek configurada: ' . (filled(config('linkedin.mojeek_api_key')) ? 'sim' : 'não'));
         $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 72) . ' horas');
         $bundle = trim((string) config('linkedin.ca_bundle', ''));
         $this->line('CA bundle configurado: ' . ($bundle !== '' && is_file($bundle) && is_readable($bundle) ? 'sim' : 'não (validação padrão)'));
