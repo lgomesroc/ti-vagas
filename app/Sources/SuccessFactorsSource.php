@@ -14,7 +14,7 @@ class SuccessFactorsSource extends OwnCareerPageSource
         ?VacancyLocationFilter $locationFilter = null,
     ) {
         parent::__construct(
-            companyKey: 'successfactors-' . $companyKey,
+            companyKey: $companyKey,
             companyName: $companyName,
             url: $url,
             caBundle: $caBundle,
