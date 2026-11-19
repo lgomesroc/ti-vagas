@@ -33,7 +33,7 @@ class ImportIbgeGeography extends Command
             // O CSV legado fornece os centroides; a DTB 2025 atualiza os
             // municípios e suas regiões oficiais pelo código IBGE.
             $coordinates = $importer->importMunicipalities();
-            $result = $importer->importFromDtbCsv($this->option('csv') ?: null);
+            $result = $importer->importFromDtbOds();
         } catch (Throwable $exception) {
             $this->error('Falha ao importar a DTB 2025: ' . $exception->getMessage());
 
