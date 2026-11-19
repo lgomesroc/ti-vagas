@@ -363,12 +363,12 @@ class LinkedInPostCandidateProcessor
         // Relatos pessoais de contratação, promoção ou início em novo emprego.
         // "Orgulho" e "feliz" só contam quando ligados a um evento pessoal.
         $personalCareerUpdate = preg_match(
-            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|orgulho|honrad[oa]|grateful|excited|thrilled)\\s+(?:em\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
+            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|orgulho|honrad[oa]|grateful|excited|thrilled)\\s+(?:(?:em|de|por)\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
             $normalized
         ) === 1;
 
         $firstPersonCareerChange = preg_match(
-            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovid[oa]\\s+a\\s+(?:um\\s+)?(?:cargo|posicao|gerente|coordenador)|promoted\\s+to|recebi\\s+uma\\s+promocao|minha\\s+promocao|meu\\s+novo\\s+(?:emprego|trabalho|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
+            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovid[oa]\\s+a\\s+(?:um\\s+)?(?:cargo|posicao|gerente|coordenador)|promoted\\s+to|recebi\\s+uma\\s+promocao|minha\\s+promocao|consegui\\s+(?:um\\s+)?novo\\s+(?:emprego|trabalho|cargo)|aceitei\\s+(?:uma\\s+)?(?:proposta|oferta)\\s+de\\s+emprego|acabei\\s+de\\s+ser\\s+contratad[oa]|me\\s+juntei\\s+(?:a|ao|aos)\\s+(?:equipe|time|team)|meu\\s+novo\\s+(?:emprego|trabalho|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
             $normalized
         ) === 1;
 
