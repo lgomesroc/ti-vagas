@@ -34,7 +34,7 @@ class OwnCareerPageSourceTest extends TestCase
             (new BizneoSource('example', 'Empresa Exemplo', 'https://careers.example.com'))->name()
         );
         $this->assertSame(
-            'successfactors-successfactors-example',
+            'successfactors-example',
             (new SuccessFactorsSource('example', 'Empresa Exemplo', 'https://careers.example.com'))->name()
         );
         $this->assertSame(
