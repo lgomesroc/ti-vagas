@@ -22,6 +22,7 @@ return [
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
+            'rdstation' => 'RD Station',
             'ilia' => 'ília',
         ],
     ],
