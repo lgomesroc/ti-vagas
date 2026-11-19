@@ -326,6 +326,20 @@ class LinkedInPostSearchClient
             );
     }
 
+    /**
+     * Usa o CA bundle configurado sem desativar a validação TLS.
+     *
+     * @return array<string, string|bool>
+     */
+    private function tlsOptions(): array
+    {
+        $bundle = trim((string) config('linkedin.ca_bundle', ''));
+
+        return $bundle !== '' && is_file($bundle) && is_readable($bundle)
+            ? ['verify' => $bundle]
+            : ['verify' => true];
+    }
+
     private function extractPublishedAt(string $text): ?Carbon
     {
         $normalized = Str::ascii(mb_strtolower($text));
