@@ -210,6 +210,12 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'talentoslight' => [
+                'name' => 'Light',
+                'url' => 'https://talentoslight.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'vemprabip' => [
                 'name' => 'BIP Brasil',
                 'url' => 'https://vemprabip.gupy.io/',
@@ -819,6 +825,14 @@ return [
             'b3' => [
                 'name' => 'B3',
                 'url' => 'https://vagas.b3.com.br/viewalljobs/',
+            ],
+            'cpfl' => [
+                'name' => 'CPFL Energia',
+                'url' => 'https://vagas.cpfl.com.br/viewalljobs/',
+            ],
+            'taesa' => [
+                'name' => 'TAESA',
+                'url' => 'https://vagas.taesa.com.br/search/',
             ],
         ],
     ],

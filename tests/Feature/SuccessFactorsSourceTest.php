@@ -15,6 +15,15 @@ class SuccessFactorsSourceTest extends TestCase
             url: 'https://careers.example.com',
         );
 
-        $this->assertSame('successfactors-successfactors-example', $source->name());
+        $this->assertSame('successfactors-example', $source->name());
+    }
+    public function test_cpfl_and_taesa_are_registered(): void
+    {
+        $companies = config('vacancy_sources.successfactors.companies');
+
+        $this->assertSame('CPFL Energia', $companies['cpfl']['name']);
+        $this->assertSame('https://vagas.cpfl.com.br/viewalljobs/', $companies['cpfl']['url']);
+        $this->assertSame('TAESA', $companies['taesa']['name']);
+        $this->assertSame('https://vagas.taesa.com.br/search/', $companies['taesa']['url']);
     }
 }

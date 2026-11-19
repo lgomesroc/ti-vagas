@@ -139,4 +139,13 @@ class GupySourceTest extends TestCase
         $this->assertSame('Globo', $globo['name']);
         $this->assertSame('https://globo.gupy.io/', $globo['url']);
     }
+
+    public function test_light_is_registered_as_a_technology_only_gupy_source(): void
+    {
+        $light = config('vacancy_sources.gupy.companies.talentoslight');
+
+        $this->assertSame('Light', $light['name']);
+        $this->assertSame('https://talentoslight.gupy.io/', $light['url']);
+        $this->assertTrue($light['technology_only']);
+    }
 }
