@@ -13,6 +13,7 @@ const browserExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
   edgeCandidates.find(candidate => existsSync(candidate));
 const mode = process.argv[2] ?? 'search';
 const keywords = [
+  // Suporte e infraestrutura
   'vaga suporte técnico',
   'vaga suporte TI',
   'analista de suporte júnior',
@@ -25,9 +26,44 @@ const keywords = [
   'field service suporte',
   'infraestrutura suporte júnior',
   'technical support junior',
+  // Desenvolvimento backend, frontend e full stack
+  'vaga desenvolvedor júnior',
+  'desenvolvedor backend júnior',
+  'desenvolvedor frontend júnior',
+  'desenvolvedor full stack júnior',
+  'programador júnior vaga',
+  'junior software engineer',
+  'junior web developer',
+  'backend developer junior',
+  'frontend developer junior',
+  'full stack developer junior',
+  // Linguagens e ecossistemas
+  'vaga desenvolvedor PHP Laravel',
+  'vaga desenvolvedor C# .NET',
+  'vaga desenvolvedor Java júnior',
+  'vaga desenvolvedor Python júnior',
+  'vaga desenvolvedor JavaScript TypeScript',
+  'vaga desenvolvedor Node.js júnior',
+  'vaga React Angular júnior',
+  'estágio desenvolvimento software',
 ];
 const lookbackHours = Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72);
 const keywordDiagnostics = new Map();
+
+function canonicalPostUrl(value) {
+  try {
+    const url = new URL(value);
+    const activity = url.pathname.match(/urn:li:(?:activity|share):(\\d+)/i);
+    if (activity) return `linkedin:post:${activity[1]}`;
+    const slug = url.pathname.match(/\\/posts\\/([^/?]+)/i);
+    if (slug) return `linkedin:post:${slug[1].replace(/-[a-f0-9]{8,}$/i, '')}`.toLowerCase();
+    url.search = '';
+    url.hash = '';
+    return url.href.replace(/\\/$/, '').toLowerCase();
+  } catch {
+    return String(value).split(/[?#]/, 1)[0].replace(/\\/$/, '').toLowerCase();
+  }
+}
 
 function parseDate(text, datetime) {
   if (datetime && !Number.isNaN(Date.parse(datetime))) return new Date(datetime);
@@ -372,7 +408,21 @@ async function main() {
           const card = cards.nth(i);
           await expandComments(page, card);
           const post = await extractCard(page, card, keyword);
-          if (post) posts.set(post.postUrl, post);
+          if (post) {
+            const key = canonicalPostUrl(post.postUrl);
+            const existing = posts.get(key);
+            if (!existing) {
+              posts.set(key, { ...post, matchedKeywords: [keyword] });
+            } else {
+              existing.matchedKeywords = [...new Set([...(existing.matchedKeywords ?? [existing.matchedKeyword]), keyword])];
+              existing.links = [...new Set([...(existing.links ?? []), ...(post.links ?? [])])];
+              existing.emails = [...new Set([...(existing.emails ?? []), ...(post.emails ?? [])])];
+              if ((!existing.authorName || !existing.authorUrl) && (post.authorName || post.authorUrl)) {
+                existing.authorName = existing.authorName || post.authorName;
+                existing.authorUrl = existing.authorUrl || post.authorUrl;
+              }
+            }
+          }
         }
         await page.mouse.wheel(0, 1800);
         await page.waitForTimeout(900);
