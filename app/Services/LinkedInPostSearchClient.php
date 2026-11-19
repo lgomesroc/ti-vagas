@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -66,21 +67,24 @@ class LinkedInPostSearchClient
             usleep(500000);
         }
 
-        foreach ($this->searchSecondaryAccount() as $post) {
-            $url = $post['postUrl'];
-            if (!isset($posts[$url])) {
-                $posts[$url] = $post;
-            } else {
-                $providers = $posts[$url]['searchProviders'] ?? [$posts[$url]['searchProvider']];
-                $providers[] = $post['searchProvider'];
-                $posts[$url]['searchProviders'] = array_values(array_unique($providers));
-
-                if (($post['searchProvider'] ?? null) === 'linkedin-secondary-account') {
+        try {
+            foreach ($this->searchSecondaryAccount() as $post) {
+                $url = $post['postUrl'];
+                if (!isset($posts[$url])) {
+                    $posts[$url] = $post;
+                } else {
+                    $providers = $posts[$url]['searchProviders'] ?? [$posts[$url]['searchProvider']];
+                    $providers[] = $post['searchProvider'];
+                    $posts[$url]['searchProviders'] = array_values(array_unique($providers));
                     $posts[$url] = array_replace($posts[$url], $post);
                     $posts[$url]['searchProviders'] = array_values(array_unique($providers));
                     $posts[$url]['secondaryAccountSource'] = true;
                 }
             }
+        } catch (Throwable $exception) {
+            Log::warning('Falha na pesquisa pela conta secundária do LinkedIn; os buscadores públicos continuarão.', [
+                'error' => $exception->getMessage(),
+            ]);
         }
 
         return array_values($posts);
