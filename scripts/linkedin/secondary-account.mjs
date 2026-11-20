@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
+import { collectLinkedInJobs } from './jobs.mjs';
 
 const profile = path.resolve(process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ?? '.local/linkedin-secondary-profile');
 const edgeCandidates = [
@@ -355,6 +356,16 @@ async function main() {
     await page.waitForTimeout(1800);
     if (/\/(login|checkpoint|challenge)/i.test(new URL(page.url()).pathname)) {
       throw new Error('A sessão da conta secundária não está autenticada. Execute npm run linkedin:secondary:login.');
+    }
+
+    if (mode === 'jobs') {
+      const vacancies = await collectLinkedInJobs(page);
+      process.stdout.write(JSON.stringify(vacancies));
+      return;
+    }
+
+    if (mode !== 'search') {
+      throw new Error(`Modo inválido: ${mode}. Use login, search ou jobs.`);
     }
 
     const posts = new Map();
