@@ -190,6 +190,9 @@ return [
             'trinca' => [
                 'name' => 'TRINCA',
             ],
+            'brq' => [
+                'name' => 'BRQ Digital Solutions',
+            ],
         ],
     ],
 
