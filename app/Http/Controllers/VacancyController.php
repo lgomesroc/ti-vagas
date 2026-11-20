@@ -292,10 +292,16 @@ class VacancyController extends Controller
         $strongExperiencePattern = '(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)';
         $radarExceptionTitlePattern = '(^|[^a-z0-9])desenvolvedor full stack web([^a-z0-9]|$)';
         $query->whereRaw(
-            "NOT (source = 'radartec' AND external_id = '13421' AND {$title} ~ ? AND {$description} ~ ?)",
-            [$radarExceptionTitlePattern, $strongExperiencePattern]
+            "NOT (
+                {$description} ~ ?
+                AND NOT (
+                    source = 'radartec'
+                    AND external_id = '13421'
+                    AND {$title} ~ ?
+                )
+            )",
+            [$strongExperiencePattern, $radarExceptionTitlePattern]
         );
-        $query->whereRaw("{$description} !~ ?", [$strongExperiencePattern]);
 
         $query->whereRaw("{$title} !~ ?", [$this->sqlTermPattern(self::IRRELEVANT_TERMS)]);
         $query->whereRaw(
