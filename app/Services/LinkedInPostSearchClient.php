@@ -114,9 +114,16 @@ class LinkedInPostSearchClient
             ? $configuredProfile
             : base_path($configuredProfile);
 
-        if (!is_dir($profile)) {
-            Log::warning('Perfil persistente da conta secundária do LinkedIn não encontrado.', [
+        $configuredStorageState = (string) config('linkedin.secondary_account.storage_state');
+        $storageState = str_starts_with($configuredStorageState, DIRECTORY_SEPARATOR)
+            ? $configuredStorageState
+            : base_path($configuredStorageState);
+        $hasStorageState = is_file($storageState);
+
+        if (!is_dir($profile) && !$hasStorageState) {
+            Log::warning('Perfil ou estado de sessão da conta secundária do LinkedIn não encontrado.', [
                 'profile' => $profile,
+                'storage_state' => $storageState,
             ]);
 
             return [];
@@ -125,6 +132,7 @@ class LinkedInPostSearchClient
         $result = Process::path(base_path())
             ->env([
                 'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
+                'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
                 'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
             ])
             ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
