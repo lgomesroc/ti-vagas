@@ -582,7 +582,7 @@ class VacancyController extends Controller
         $vacancyWords = '(job|position|role|vacancy|opening|requisition|posting|vaga|oportunidade|posicao|candidatura|inscricoes)';
         $query->whereRaw(
             "{$title} !~ ?",
-            ['/((^|[\[\(\-:|])[[:space:]]*' . trim($statusRegex, '/') . '[[:space:]]*([\]\)\-:|]|$))/']
+            ['((^|[\\[\\(\\-:|])[[:space:]]*' . $statusRegex . '[[:space:]]*([\\]\\)\\-:|]|$))']
         )->whereRaw(
             "{$title} !~ ?",
             ['((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$)).{0,35}(' . $statusRegex . ')([^a-z0-9]|$)']
