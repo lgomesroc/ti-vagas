@@ -275,12 +275,12 @@ class VacancyController extends Controller
      * listagem. O cursor mantém o consumo de memória estável mesmo quando
      * existem muitas vagas no período.
      *
-     * @return \\Generator<int, Vacancy>
+     * @return \Generator<int, Vacancy>
      */
     private function eligibleVacancies(
         ?RegionScope $visitorScope = null,
         string $search = ''
-    ): \\Generator {
+    ): \Generator {
         $query = Vacancy::query()
             ->select([
                 'id',
