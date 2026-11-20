@@ -54,7 +54,7 @@ RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
     /etc/apache2/sites-available/000-default.conf
 
 # Permitir que o Laravel use o public/.htaccess (incluindo a rota de health check /up).
-RUN printf '%s\\n' \
+RUN printf '%s\n' \
     '<Directory /var/www/html/public>' \
     '    Options FollowSymLinks' \
     '    AllowOverride All' \
