@@ -443,7 +443,7 @@ class VacancyController extends Controller
 
             // Deduplica somente depois da regra regional: uma vaga duplicada
             // fora da região não pode ocultar outra cópia elegível.
-            if (preg_match('/\\((\\d{4,})\\)/', $title, $matches)) {
+            if (preg_match('/\\((\\d{4,})\\)/', $vacancy->title, $matches)) {
                 $duplicateKey = implode('|', [
                     $this->normalize($vacancy->company),
                     $matches[1],
