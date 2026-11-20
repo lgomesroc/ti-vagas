@@ -124,7 +124,7 @@ class LinkedInPostCandidateProcessor
                 'embedded_links' => [],
                 'emails' => $emails,
                 'status' => 'rejected',
-                'decision_reason' => 'Conta secundária: publicação sem e-mail corporativo.',
+                'decision_reason' => 'Conta secundária: publicação sem link público de candidatura.',
             ])->save();
 
             return $this->emptyResult('rejected');
