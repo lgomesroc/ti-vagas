@@ -40,8 +40,10 @@ services:
       - key: DB_QUEUE_RETRY_AFTER
         value: "150"
 
+      # O cache não precisa ficar no PostgreSQL; evita que o rate limiter
+      # dependa de transações do banco em cada requisição HTTP.
       - key: CACHE_STORE
-        value: database
+        value: file
 
       # Coleta pública do LinkedIn; a sessão autenticada será ativada após
       # configurar armazenamento persistente e importar o perfil da conta secundária.
