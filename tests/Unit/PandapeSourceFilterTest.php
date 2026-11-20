@@ -11,7 +11,7 @@ use ReflectionMethod;
 class PandapeSourceFilterTest extends TestCase
 {
     #[DataProvider('eligibleJuniorVacancies')]
-    public function test_accepts_junior_and_internship_technology_vacancies(
+    public function test_accepts_junior_technology_vacancies(
         string $title,
         string $description
     ): void {
@@ -38,17 +38,9 @@ class PandapeSourceFilterTest extends TestCase
                 'Analista de Suporte Jr.',
                 'Atendimento técnico e suporte aos usuários.',
             ],
-            'internship in title' => [
-                'Estágio em Infraestrutura de TI',
-                'Apoio à equipe de redes e infraestrutura.',
-            ],
             'junior in description' => [
                 'Desenvolvedor PHP',
                 'Oportunidade para profissional em início de carreira (nível júnior).',
-            ],
-            'intern in description' => [
-                'Analista de QA',
-                'Vaga de intern para atuar com testes de software.',
             ],
         ];
     }
@@ -85,7 +77,15 @@ class PandapeSourceFilterTest extends TestCase
                 'Trainee de Tecnologia',
                 'Programa de formação profissional.',
             ],
-            'no junior or internship indication' => [
+            'internship in title' => [
+                'Estágio em Infraestrutura de TI',
+                'Apoio à equipe de redes e infraestrutura.',
+            ],
+            'intern in description without junior level' => [
+                'Analista de QA',
+                'Vaga de intern para atuar com testes de software.',
+            ],
+            'no junior indication' => [
                 'Analista de Suporte Técnico',
                 'Experiência com atendimento e suporte.',
             ],
