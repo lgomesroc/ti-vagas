@@ -113,12 +113,14 @@ class LinkedInPostCandidateProcessor
             is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
         )));
 
+        $hasCorporateEmail = $this->hasCorporateEmail($emails);
+
         if (
             (
                 ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
                 || ($post['secondaryAccountSource'] ?? false) === true
                 || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
-            ) && $links === []
+            ) && $links === [] && !$hasCorporateEmail
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
@@ -130,12 +132,14 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($links === []) {
+        if ($links === [] && !$hasCorporateEmail) {
             $candidate->fill($base + [
                 'embedded_links' => [],
                 'emails' => $emails,
                 'status' => 'rejected',
-                'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
+                'decision_reason' => $emails === []
+                    ? 'Publicação sem link de candidatura ou e-mail corporativo.'
+                    : 'E-mail de provedor público/gratuito não é aceito como canal de candidatura.',
             ])->save();
 
             return $this->emptyResult('rejected');
@@ -205,6 +209,18 @@ class LinkedInPostCandidateProcessor
             ) {
                 $applicationUrl = $link['final_url'];
                 break;
+            }
+        }
+
+        // Publicações de recrutamento no LinkedIn também podem receber currículos
+        // diretamente por e-mail corporativo. Representamos esse canal como mailto:
+        // para que a oportunidade permaneça publicável sem inventar uma URL web.
+        if ($applicationUrl === null && $hasCorporateEmail) {
+            $corporateEmail = collect($emails)->first(
+                fn (string $email): bool => $this->isCorporateEmail($email)
+            );
+            if ($corporateEmail !== null) {
+                $applicationUrl = 'mailto:' . $corporateEmail;
             }
         }
 
@@ -878,21 +894,35 @@ class LinkedInPostCandidateProcessor
         ];
 
         foreach ($emails as $email) {
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                continue;
-            }
-
-            $domain = strtolower(substr(strrchr($email, '@'), 1));
-            if (
-                $domain !== ''
-                && !in_array($domain, $personalDomains, true)
-                && !str_contains($domain, 'linkedin.')
-            ) {
+            if ($this->isCorporateEmail($email)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function isCorporateEmail(string $email): bool
+    {
+        $personalDomains = [
+            'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.com.br',
+            'outlook.com', 'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
+            'yahoo.com', 'yahoo.com.br', 'yahoo.co.uk', 'icloud.com', 'me.com',
+            'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'tutanota.com',
+            'tuta.io', 'gmx.com', 'gmx.net', 'mail.com', 'yandex.com', 'yandex.ru',
+            'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br',
+            'r7.com', 'zipmail.com.br', 'fastmail.com', 'hey.com',
+        ];
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $domain = strtolower(substr(strrchr($email, '@'), 1));
+
+        return $domain !== ''
+            && !in_array($domain, $personalDomains, true)
+            && !str_contains($domain, 'linkedin.');
     }
 
     private function extractEmails(string $text): array
