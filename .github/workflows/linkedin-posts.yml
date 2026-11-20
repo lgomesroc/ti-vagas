@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: "0 6,10,14,18 * * *"
       timezone: "America/Sao_Paulo"
-
   workflow_dispatch:
 
 permissions:
@@ -17,8 +16,7 @@ concurrency:
 jobs:
   collect-linkedin-posts:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 45
     env:
       APP_ENV: production
       APP_DEBUG: "false"
@@ -30,8 +28,7 @@ jobs:
       QUEUE_CONNECTION: database
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
-      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
-      MOJEEK_SEARCH_API_KEY: ${{ secrets.MOJEEK_SEARCH_API_KEY }}
+      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 != '' }}
 
     steps:
       - name: Checkout
@@ -46,11 +43,32 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
           coverage: none
 
-      - name: Instalar dependências
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Aplicar migrações pendentes
-        run: php artisan migrate
+      - name: Instalar dependências Node
+        run: npm ci --ignore-scripts
 
-      - name: Coletar publicações públicas do LinkedIn
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Restaurar sessão da conta secundária
+        if: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 != '' }}
+        env:
+          LINKEDIN_PROFILE_ARCHIVE: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 }}
+        run: |
+          mkdir -p .local/linkedin-secondary-profile
+          printf '%s' "$LINKEDIN_PROFILE_ARCHIVE" | base64 --decode | tar -xz -C .local/linkedin-secondary-profile
+          chmod -R go-rwx .local/linkedin-secondary-profile
+
+      - name: Aplicar migrações pendentes
+        run: php artisan migrate --force
+
+      - name: Coletar, validar e cadastrar publicações
         run: php artisan linkedin:collect-posts
