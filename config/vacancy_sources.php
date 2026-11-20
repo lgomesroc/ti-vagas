@@ -728,6 +728,10 @@ return [
                 'name' => '3AM IT Services',
                 'url' => 'https://3amitservices.pandape.infojobs.com.br/',
             ],
+            'aec' => [
+                'name' => 'AeC',
+                'url' => 'https://aec.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
