@@ -51,6 +51,11 @@ class LinkedInJobsSource implements VacancySource
             throw new RuntimeException('LinkedIn Jobs retornou JSON inválido.');
         }
 
+        return $this->filterFetched($vacancies);
+    }
+
+    public function filterFetched(array $vacancies): array
+    {
         return array_values(array_filter($vacancies, function (array $vacancy): bool {
             $title = trim((string) ($vacancy['title'] ?? ''));
             $description = trim((string) ($vacancy['description'] ?? ''));
