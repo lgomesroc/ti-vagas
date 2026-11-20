@@ -32,13 +32,13 @@ const keywords = [
   // Desenvolvimento backend, frontend e full stack
   'vaga desenvolvedor júnior',
   'desenvolvedor backend júnior',
-  'desenvolvedor frontend júnior',
+  'desenvolvedor fullstack júnior',
   'desenvolvedor full stack júnior',
   'programador júnior vaga',
   'junior software engineer',
   'junior web developer',
   'backend developer junior',
-  'frontend developer junior',
+  'fullstack developer junior',
   'full stack developer junior',
   // Linguagens e ecossistemas
   'vaga desenvolvedor PHP Laravel',
@@ -47,7 +47,7 @@ const keywords = [
   'vaga desenvolvedor Python júnior',
   'vaga desenvolvedor JavaScript TypeScript',
   'vaga desenvolvedor Node.js júnior',
-  'vaga React Angular júnior',
+  'vaga desenvolvedor fullstack PHP .NET',
   'estágio desenvolvimento software',
 ];
 const lookbackHours = Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72);
@@ -56,15 +56,15 @@ const keywordDiagnostics = new Map();
 function canonicalPostUrl(value) {
   try {
     const url = new URL(value);
-    const activity = url.pathname.match(/urn:li:(?:activity|share):(\\d+)/i);
+    const activity = url.pathname.match(/urn:li:(?:activity|share):(\d+)/i);
     if (activity) return `linkedin:post:${activity[1]}`;
-    const slug = url.pathname.match(/\\/posts\\/([^/?]+)/i);
+    const slug = url.pathname.match(/\/posts\/([^/?]+)/i);
     if (slug) return `linkedin:post:${slug[1].replace(/-[a-f0-9]{8,}$/i, '')}`.toLowerCase();
     url.search = '';
     url.hash = '';
-    return url.href.replace(/\\/$/, '').toLowerCase();
+    return url.href.replace(/\/$/, '').toLowerCase();
   } catch {
-    return String(value).split(/[?#]/, 1)[0].replace(/\\/$/, '').toLowerCase();
+    return String(value).split(/[?#]/, 1)[0].replace(/\/$/, '').toLowerCase();
   }
 }
 
@@ -345,7 +345,7 @@ async function main() {
       rl.close();
       const stateFile = path.join(profile, 'storage-state.json');
       await context.storageState({ path: stateFile });
-      process.stdout.write(`Sessão local salva. Arquivo de estado: ${stateFile}\\n`);
+      process.stdout.write(`Sessão local salva. Arquivo de estado: ${stateFile}\n`);
       return;
     }
 
@@ -391,11 +391,11 @@ async function main() {
         const candidates = [...main.querySelectorAll('*')].filter(node => {
           const text = (node.innerText || '').trim();
           return text.length >= 250 && text.length <= 10000 &&
-            /\\b\\d+\\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\\b/i.test(text) &&
+            /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(text) &&
             ![...node.children].some(child => {
               const childText = (child.innerText || '').trim();
               return childText.length >= 250 && childText.length <= 10000 &&
-                /\\b\\d+\\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\\b/i.test(childText);
+                /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(childText);
             });
         }).slice(0, 5);
         return candidates.map(node => {
@@ -460,7 +460,7 @@ async function main() {
       await page.waitForTimeout(350);
     }
 
-    process.stderr.write('[LinkedIn secondary diagnostics]\\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\\n');
+    process.stderr.write('[LinkedIn secondary diagnostics]\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\n');
     process.stdout.write(JSON.stringify(enriched));
   } finally {
     await context.close();
