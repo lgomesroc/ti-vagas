@@ -11,6 +11,7 @@ return [
     'secondary_account' => [
         'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
         'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
+        'storage_state' => env('LINKEDIN_STORAGE_STATE_PATH', '.local/linkedin-storage-state.json'),
         'timeout' => max(600, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 600)),
         'keywords' => [
             'vaga suporte técnico',
