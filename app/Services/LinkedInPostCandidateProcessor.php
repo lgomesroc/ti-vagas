@@ -118,7 +118,7 @@ class LinkedInPostCandidateProcessor
                 ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
                 || ($post['secondaryAccountSource'] ?? false) === true
                 || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
-            ) && !$this->hasCorporateEmail($emails) && $links === []
+            ) && $links === []
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
@@ -130,12 +130,12 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if (!$this->hasCorporateEmail($emails) && $links === []) {
+        if ($links === []) {
             $candidate->fill($base + [
                 'embedded_links' => [],
                 'emails' => $emails,
                 'status' => 'rejected',
-                'decision_reason' => 'Publicação sem link de candidatura ou e-mail corporativo.',
+                'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
             ])->save();
 
             return $this->emptyResult('rejected');
@@ -279,12 +279,8 @@ class LinkedInPostCandidateProcessor
             'location' => $location,
             'work_model' => $workModel,
             'application_url' => $applicationUrl,
-            'status' => $reason === null ? 'pending_review' : 'rejected',
-            'decision_reason' => $reason ?? (
-                $applicationUrl === null && $emails === []
-                    ? 'Sem link ou e-mail; encaminhado para revisão manual com base na publicação pública.'
-                    : 'Passou pelos filtros automáticos; aguarda revisão manual.'
-            ),
+            'status' => $reason === null ? 'pending_publication' : 'rejected',
+            'decision_reason' => $reason ?? 'Passou pelos filtros automáticos e aguarda publicação automática.',
         ])->save();
 
         return [
@@ -572,7 +568,7 @@ class LinkedInPostCandidateProcessor
             return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
         }
 
-        if ($applicationUrl === null && !$this->hasCorporateEmail($emails)) {
+        if ($applicationUrl === null) {
             return 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.';
         }
 
@@ -583,10 +579,6 @@ class LinkedInPostCandidateProcessor
             $workModel
         )) {
             return 'Localidade ou modalidade incompatível com as regras de coleta do TI Vagas.';
-        }
-
-        if ($applicationUrl === null && $emails === []) {
-            // Public posts without direct contact remain reviewable, never auto-published.
         }
 
         return null;
@@ -704,7 +696,7 @@ class LinkedInPostCandidateProcessor
     ): ?LinkedInPostCandidate {
         $query = LinkedInPostCandidate::query()
             ->where('post_id', '!=', $currentPostId)
-            ->whereIn('status', ['pending_review', 'approved', 'duplicate']);
+            ->whereIn('status', ['pending_publication', 'pending_review', 'approved', 'duplicate']);
 
         if ($applicationUrl !== null) {
             $normalizedUrl = $this->normalizeUrl($applicationUrl);
