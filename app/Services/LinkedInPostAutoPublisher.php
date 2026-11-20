@@ -73,8 +73,7 @@ class LinkedInPostAutoPublisher
 
         if (
             blank($applicationUrl)
-            || !filter_var($applicationUrl, FILTER_VALIDATE_URL)
-            || !in_array(strtolower((string) parse_url($applicationUrl, PHP_URL_SCHEME)), ['http', 'https'], true)
+            || !$this->isValidApplicationUrl($applicationUrl)
         ) {
             $missing[] = 'application_url';
         }
@@ -135,5 +134,19 @@ class LinkedInPostAutoPublisher
         });
 
         return 'approved';
+    }
+
+    private function isValidApplicationUrl(string $url): bool
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return in_array(
+                strtolower((string) parse_url($url, PHP_URL_SCHEME)),
+                ['http', 'https'],
+                true
+            );
+        }
+
+        return str_starts_with(strtolower($url), 'mailto:')
+            && filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false;
     }
 }
