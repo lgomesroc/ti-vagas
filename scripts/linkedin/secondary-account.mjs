@@ -471,8 +471,13 @@ async function main() {
       await page.waitForTimeout(350);
     }
 
-    process.stderr.write('[LinkedIn secondary diagnostics]\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\n');
-    process.stdout.write(JSON.stringify(enriched));
+    process.stderr.write('[LinkedIn secondary diagnostics]\\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\\n');
+    if (mode === 'all') {
+      const vacancies = await collectLinkedInJobs(page);
+      process.stdout.write(JSON.stringify({ posts: enriched, vacancies }));
+    } else {
+      process.stdout.write(JSON.stringify(enriched));
+    }
   } finally {
     await context.close();
     if (browser) await browser.close();
