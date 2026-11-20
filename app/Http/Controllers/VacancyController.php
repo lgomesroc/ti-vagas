@@ -268,130 +268,154 @@ class VacancyController extends Controller
      * A região é recebida explicitamente para que o serviço de localização
      * não dependa do container de sessão do Laravel.
      */
+    /**
+     * Percorre as vagas elegíveis sem hidratar toda a tabela em memória.
+     *
+     * A consulta seleciona somente os campos usados pelos filtros e pela
+     * listagem. O cursor mantém o consumo de memória estável mesmo quando
+     * existem muitas vagas no período.
+     *
+     * @return \\Generator<int, Vacancy>
+     */
     private function eligibleVacancies(
-        ?RegionScope $visitorScope = null
-    ): Collection {
-        $vacancies = Vacancy::query()
+        ?RegionScope $visitorScope = null,
+        string $search = ''
+    ): \\Generator {
+        $query = Vacancy::query()
+            ->select([
+                'id',
+                'title',
+                'company',
+                'description',
+                'location',
+                'source',
+                'external_id',
+                'original_published_at',
+                'collected_at',
+                'ibge_municipality_code',
+                'city',
+                'state_code',
+            ])
             ->where('availability_status', 'active')
             ->whereNotNull('original_published_at')
             ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
-            ->get()
-            ->filter(function (Vacancy $vacancy) use ($visitorScope) {
-                if ($this->availabilityDetector->isUnavailable(
+            ->orderByDesc('collected_at')
+            ->orderByRaw("CASE WHEN lower(title) LIKE '%exclusivo pcd%' THEN 1 ELSE 0 END ASC")
+            ->orderByDesc('id');
+
+        $normalizedSearch = $this->normalize($search);
+        $seenDuplicateKeys = [];
+
+        foreach ($query->cursor() as $vacancy) {
+            if ($normalizedSearch !== '') {
+                $searchableText = $this->normalize(implode(' ', [
                     $vacancy->title,
-                    $vacancy->description
-                )) {
-                    return false;
-                }
-
-                $title = $this->normalize($vacancy->title);
-
-                // Exclui níveis acima de júnior, estágio e trainee.
-                if ($this->containsAny(
-                    $title,
-                    self::EXCLUDED_SENIORITY_TERMS
-                )) {
-                    return false;
-                }
-
-                if (
-                    preg_match('/\bpl\s*$/i', $title) ||
-                    preg_match(
-                        '/\bsoftware engineer\s+(?:iii|iv|v)\b/i',
-                        $title
-                    )
-                ) {
-                    return false;
-                }
-
-                $description = $this->normalize(
-                    $vacancy->description
-                );
-
-                /*
-                 * Exclui vagas que exigem 3 ou mais anos de experiência.
-                 *
-                 * Exemplos:
-                 * 3 years
-                 * 5+ years
-                 * 8 years
-                 * 10 years
-                 * 5 plus years
-                 * 5-7 years
-                 * 5–7 years
-                 * 5 years of experience
-                 * 5+ years in DevOps
-                 * 5 anos de experiência
-                 */
-                if (preg_match(
-                    '/\b(?:3|[4-9]|\d{2,})\s*(?:(?:\+|plus)\s*)?(?:[-–]\s*(?:3|[4-9]|\d{2,})\s*)?(?:years?|anos)\b/i',
-                    $description
-                )) {
-                    return false;
-                }
-
-                if (preg_match(
-                    '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\b(?:pleno|senior|sr|staff|principal|lead)\b|\b(?:pleno|senior|sr|staff|principal|lead)\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
-                    $description
-                )) {
-                    return false;
-                }
-
-                $isRadarTecFullStackException =
-                    $vacancy->source === 'radartec'
-                    && (string) $vacancy->external_id === '13421'
-                    && str_contains(
-                        $title,
-                        'desenvolvedor full stack web'
-                    );
-
-                if (
-                    !$isRadarTecFullStackException &&
-                    preg_match(
-                        '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
-                        $description
-                    )
-                ) {
-                    return false;
-                }
-
-                // Exclui especialidades fora do escopo pelo título.
-                if ($this->containsAny(
-                    $title,
-                    self::IRRELEVANT_TERMS
-                )) {
-                    return false;
-                }
-
-                // Mantém apenas desenvolvimento, QA, suporte e infraestrutura.
-                if (!$this->isTechnologyRole($title)) {
-                    return false;
-                }
-
-                $workModel = $this->locationFilter->classifyWorkModel(
-                    $vacancy->title,
-                    $vacancy->location,
-                    $vacancy->description
-                );
-
-                $vacancy->display_work_model = $workModel
-                    ?? 'Não informado';
-
-                return $this->locationFilter->isEligibleForVisitor(
-                    $vacancy->location,
-                    $vacancy->title,
+                    $vacancy->company,
+                    $vacancy->location ?? '',
                     $vacancy->description,
-                    $workModel,
-                    $visitorScope,
-                    $this->vacancyLocationResolver->resolveForVacancy(
-                        $vacancy
-                    )
-                );
-            })
-            ->values();
+                ]));
 
-        return $this->removeDuplicateVacancies($vacancies);
+                if (!Str::contains($searchableText, $normalizedSearch)) {
+                    continue;
+                }
+            }
+
+            if ($this->availabilityDetector->isUnavailable(
+                $vacancy->title,
+                $vacancy->description
+            )) {
+                continue;
+            }
+
+            $title = $this->normalize($vacancy->title);
+
+            if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
+                continue;
+            }
+
+            if (
+                preg_match('/\\bpl\\s*$/i', $title) ||
+                preg_match('/\\bsoftware engineer\\s+(?:iii|iv|v)\\b/i', $title)
+            ) {
+                continue;
+            }
+
+            $description = $this->normalize($vacancy->description);
+
+            if (preg_match(
+                '/\\b(?:3|[4-9]|\\d{2,})\\s*(?:(?:\\+|plus)\\s*)?(?:[-–]\\s*(?:3|[4-9]|\\d{2,})\\s*)?(?:years?|anos)\\b/i',
+                $description
+            )) {
+                continue;
+            }
+
+            if (preg_match(
+                '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\\b(?:pleno|senior|sr|staff|principal|lead)\\b|\\b(?:pleno|senior|sr|staff|principal|lead)\\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
+                $description
+            )) {
+                continue;
+            }
+
+            $isRadarTecFullStackException =
+                $vacancy->source === 'radartec'
+                && (string) $vacancy->external_id === '13421'
+                && str_contains($title, 'desenvolvedor full stack web');
+
+            if (
+                !$isRadarTecFullStackException &&
+                preg_match(
+                    '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
+                    $description
+                )
+            ) {
+                continue;
+            }
+
+            if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
+                continue;
+            }
+
+            if (!$this->isTechnologyRole($title)) {
+                continue;
+            }
+
+            // Mantém apenas o primeiro registro de cada vaga duplicada,
+            // pois a consulta já está ordenada pelo mesmo critério de prioridade.
+            if (preg_match('/\\((\\d{4,})\\)/', $title, $matches)) {
+                $duplicateKey = implode('|', [
+                    $this->normalize($vacancy->company),
+                    $matches[1],
+                ]);
+
+                if (isset($seenDuplicateKeys[$duplicateKey])) {
+                    continue;
+                }
+
+                $seenDuplicateKeys[$duplicateKey] = true;
+            }
+
+            $workModel = $this->locationFilter->classifyWorkModel(
+                $vacancy->title,
+                $vacancy->location,
+                $vacancy->description
+            );
+
+            $vacancy->display_work_model = $workModel ?? 'Não informado';
+
+            if (!$this->locationFilter->isEligibleForVisitor(
+                $vacancy->location,
+                $vacancy->title,
+                $vacancy->description,
+                $workModel,
+                $visitorScope,
+                $this->vacancyLocationResolver->resolveForVacancy($vacancy)
+            )) {
+                continue;
+            }
+
+            yield $vacancy;
+        }
     }
 
     private function removeDuplicateVacancies(
@@ -500,43 +524,26 @@ class VacancyController extends Controller
     {
         $search = trim($request->query('q', ''));
 
-        $eligibleVacancies = $this->eligibleVacancies(
-            $this->visitorLocationResolver->scopeFromSession(
-                $request->session()
-            )
-        );
-
-        if ($search !== '') {
-            $normalizedSearch = $this->normalize($search);
-
-            $eligibleVacancies = $eligibleVacancies
-                ->filter(function (Vacancy $vacancy) use (
-                    $normalizedSearch
-                ) {
-                    $searchableText = $this->normalize(
-                        implode(' ', [
-                            $vacancy->title,
-                            $vacancy->company,
-                            $vacancy->location ?? '',
-                            $vacancy->description,
-                        ])
-                    );
-
-                    return Str::contains(
-                        $searchableText,
-                        $normalizedSearch
-                    );
-                })
-                ->values();
-        }
-
         $perPage = 12;
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $total = $eligibleVacancies->count();
+        $firstItem = ($currentPage - 1) * $perPage;
+        $total = 0;
+        $items = [];
 
-        $items = $eligibleVacancies
-            ->forPage($currentPage, $perPage)
-            ->values();
+        foreach ($this->eligibleVacancies(
+            $this->visitorLocationResolver->scopeFromSession(
+                $request->session()
+            ),
+            $search
+        ) as $vacancy) {
+            if ($total >= $firstItem && count($items) < $perPage) {
+                $items[] = $vacancy;
+            }
+
+            $total++;
+        }
+
+        $items = collect($items);
 
         $vacancies = new LengthAwarePaginator(
             $items,
@@ -561,11 +568,18 @@ class VacancyController extends Controller
         Request $request,
         Vacancy $vacancy
     ): View {
-        $eligibleVacancy = $this->eligibleVacancies(
+        $eligibleVacancy = null;
+
+        foreach ($this->eligibleVacancies(
             $this->visitorLocationResolver->scopeFromSession(
                 $request->session()
             )
-        )->firstWhere('id', $vacancy->getKey());
+        ) as $candidate) {
+            if ($candidate->is($vacancy)) {
+                $eligibleVacancy = $candidate;
+                break;
+            }
+        }
 
         abort_unless($eligibleVacancy, 404);
 
