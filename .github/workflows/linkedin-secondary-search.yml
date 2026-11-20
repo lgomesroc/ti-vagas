@@ -2,7 +2,7 @@ name: TI Vagas - LinkedIn Conta Secundária
 
 on:
   schedule:
-    - cron: "0 8,13,18 * * *"
+    - cron: "0 6,18 * * *"
       timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
