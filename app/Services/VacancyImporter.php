@@ -15,7 +15,8 @@ class VacancyImporter
     public function __construct(
         private readonly VacancyAvailabilityDetector $availabilityDetector,
         private readonly GeoLocationNormalizer $geoLocationNormalizer,
-        private readonly VacancyLocationResolver $locationResolver
+        private readonly VacancyLocationResolver $locationResolver,
+        private readonly VacancyEditorialFilter $editorialFilter
     ) {
     }
 
@@ -145,6 +146,13 @@ class VacancyImporter
                     $data['original_published_at']
                 );
             } catch (Throwable) {
+                $result['skipped']++;
+                continue;
+            }
+
+            // Aplica os critérios editoriais antes de qualquer consulta ou gravação
+            // da vaga no banco. O banco recebe somente oportunidades elegíveis.
+            if (!$this->editorialFilter->isEligible($data, $sourceName)) {
                 $result['skipped']++;
                 continue;
             }
