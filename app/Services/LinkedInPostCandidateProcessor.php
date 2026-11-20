@@ -696,7 +696,7 @@ class LinkedInPostCandidateProcessor
     ): ?LinkedInPostCandidate {
         $query = LinkedInPostCandidate::query()
             ->where('post_id', '!=', $currentPostId)
-            ->whereIn('status', ['pending_publication', 'pending_review', 'approved', 'duplicate']);
+            ->whereIn('status', ['pending_publication', 'pending_review', 'published', 'approved', 'duplicate']);
 
         if ($applicationUrl !== null) {
             $normalizedUrl = $this->normalizeUrl($applicationUrl);
