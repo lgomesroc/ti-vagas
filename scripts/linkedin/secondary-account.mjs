@@ -364,8 +364,8 @@ async function main() {
       return;
     }
 
-    if (mode !== 'search') {
-      throw new Error(`Modo inválido: ${mode}. Use login, search ou jobs.`);
+    if (!['search', 'all'].includes(mode)) {
+      throw new Error(`Modo inválido: ${mode}. Use login, search, jobs ou all.`);
     }
 
     const posts = new Map();
