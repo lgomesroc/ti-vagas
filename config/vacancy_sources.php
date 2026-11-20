@@ -193,6 +193,9 @@ return [
             'brq' => [
                 'name' => 'BRQ Digital Solutions',
             ],
+            'mottu' => [
+                'name' => 'Mottu',
+            ],
         ],
     ],
 
@@ -563,6 +566,30 @@ return [
             'voeazul' => [
                 'name' => 'Azul Linhas Aéreas',
                 'url' => 'https://voeazul.gupy.io/',
+            ],
+
+            'asaas' => [
+                'name' => 'Asaas',
+                'url' => 'https://asaas.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'clicksign' => [
+                'name' => 'Clicksign',
+                'url' => 'https://clicksign.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'gruposysmap' => [
+                'name' => 'Grupo SysMap',
+                'url' => 'https://gruposysmap.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'alterdata' => [
+                'name' => 'Alterdata Software',
+                'url' => 'https://alterdata.gupy.io/',
+                'technology_only' => true,
             ],
 
         ],
