@@ -25,8 +25,13 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
-            'decision_reason' => 'E-mail de provedor público/gratuito não é aceito como canal de candidatura.',
         ]);
+
+        $candidate = LinkedInPostCandidate::query()
+            ->where('post_id', 'urn:li:activity:1001')
+            ->firstOrFail();
+
+        $this->assertContains('contato@gmail.com', $candidate->emails);
     }
 
     public function test_engagement_bait_asking_people_to_comment_for_a_private_message_is_rejected(): void
@@ -116,7 +121,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
-            'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
+            'decision_reason' => 'Publicação sem link de candidatura ou e-mail corporativo.',
         ]);
     }
 
