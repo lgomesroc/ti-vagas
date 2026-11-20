@@ -12,7 +12,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_post_without_corporate_email_or_verified_application_link_is_rejected(): void
+    public function test_public_email_provider_without_application_link_is_rejected(): void
     {
         $post = $this->makePost([
             'isPromoted' => false,
@@ -25,7 +25,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
-            'decision_reason' => 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.',
+            'decision_reason' => 'E-mail de provedor público/gratuito não é aceito como canal de candidatura.',
         ]);
     }
 
@@ -121,19 +121,19 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     }
 
 
-    public function test_post_with_only_an_email_is_rejected_instead_of_being_queued_for_manual_review(): void
+    public function test_post_with_corporate_email_only_is_queued_for_automatic_publication(): void
     {
         $post = $this->makePost([
-            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Envie seu currículo para talentos@acme.com.',
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para talentos@acme.com.',
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $this->assertSame(1, $result['rejected']);
+        $this->assertSame(0, $result['rejected']);
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
-            'status' => 'rejected',
-            'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
+            'status' => 'pending_publication',
+            'application_url' => 'mailto:talentos@acme.com',
         ]);
     }
 
