@@ -6,7 +6,9 @@
         "build": "vite build",
         "dev": "vite",
         "linkedin:secondary:login": "node scripts/linkedin/secondary-account.mjs login",
-        "linkedin:secondary:search": "node scripts/linkedin/secondary-account.mjs search"
+        "linkedin:secondary:search": "node scripts/linkedin/secondary-account.mjs search",
+        "linkedin:secondary:jobs": "node scripts/linkedin/secondary-account.mjs jobs",
+        "linkedin:secondary:all": "node scripts/linkedin/secondary-account.mjs all"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
