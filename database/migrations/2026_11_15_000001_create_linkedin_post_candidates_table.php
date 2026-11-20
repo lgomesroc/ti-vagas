@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('salary')->nullable();
             $table->text('application_url')->nullable();
 
-            $table->string('status', 32)->default('pending_review')->index();
+            $table->string('status', 32)->default('pending_publication')->index();
             $table->text('decision_reason')->nullable();
 
             $table->foreignId('duplicate_of_vacancy_id')
