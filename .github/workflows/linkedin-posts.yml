@@ -29,7 +29,8 @@ jobs:
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
       LINKEDIN_HEADLESS: "true"
-      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 != '' }}
+      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 != '' }}
+      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
 
     steps:
       - name: Checkout
@@ -62,11 +63,11 @@ jobs:
       - name: Restaurar sessão da conta secundária
         if: ${{ env.LINKEDIN_SECONDARY_ACCOUNT_ENABLED == 'true' }}
         env:
-          LINKEDIN_PROFILE_ARCHIVE: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 }}
+          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
         run: |
-          mkdir -p .local/linkedin-secondary-profile
-          printf '%s' "$LINKEDIN_PROFILE_ARCHIVE" | base64 --decode | tar -xz -C .local/linkedin-secondary-profile
-          chmod -R go-rwx .local/linkedin-secondary-profile
+          mkdir -p .local
+          printf '%s' "$LINKEDIN_STORAGE_STATE_B64" | base64 --decode > "$LINKEDIN_STORAGE_STATE_PATH"
+          chmod 600 "$LINKEDIN_STORAGE_STATE_PATH"
 
       - name: Aplicar migrações pendentes
         run: php artisan migrate --force
