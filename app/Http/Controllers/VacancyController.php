@@ -544,20 +544,20 @@ class VacancyController extends Controller
     }
 }
 ])
-            ->whereRaw("{$title} !~ ?", ['/software engineer[[:space:]]+(iii|iv|v)([^a-z0-9]|$)'])
+            ->whereRaw("{$title} !~ ?", ['software engineer[[:space:]]+(iii|iv|v)([^a-z0-9]|$)'])
             ->whereRaw("{$title} !~ ?", [$irrelevant])
             ->whereRaw("{$title} ~ ?", [$technology])
             ->whereRaw(
                 "{$description} !~ ?",
-                ['/([^a-z0-9]|^)(3|[4-9]|[0-9]{2,})[[:space:]]*((\\+|plus)[[:space:]]*)?(-[[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
+                ['([^a-z0-9]|^)(3|[4-9]|[0-9]{2,})[[:space:]]*((\\+|plus)[[:space:]]*)?(-[[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
             )
             ->whereRaw(
                 "{$description} !~ ?",
-                ['/((desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$)|(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead).{0,80}(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer))/']
+                ['((desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$)|(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead).{0,80}(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer))']
             );
 
         // Exceção histórica mantida para a vaga específica da RadarTec.
-        $strongExperience = '/(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)/';
+        $strongExperience = '(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)';
         $query->where(function (Builder $nested) use ($description, $strongExperience) {
             $nested->whereRaw("{$description} !~ ?", [$strongExperience])
                 ->orWhere(function (Builder $exception) {
@@ -565,7 +565,7 @@ class VacancyController extends Controller
                         ->where('external_id', '13421')
                         ->whereRaw(
                             $this->normalizedSqlExpression('title') . " ~ ?",
-                            ['/desenvolvedor full stack web/']
+                            ['desenvolvedor full stack web']
                         );
                 });
         });
@@ -585,13 +585,13 @@ class VacancyController extends Controller
             ['/((^|[\[\(\-:|])[[:space:]]*' . trim($statusRegex, '/') . '[[:space:]]*([\]\)\-:|]|$))/']
         )->whereRaw(
             "{$title} !~ ?",
-            ['/((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$)).{0,35}(' . trim($statusRegex, '/') . ')([^a-z0-9]|$)/']
+            ['((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$)).{0,35}(' . $statusRegex . ')([^a-z0-9]|$)']
         )->whereRaw(
             "{$title} !~ ?",
-            ['/(' . trim($statusRegex, '/') . ')([^a-z0-9]|$).{0,35}((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$))/']
+            ['(' . $statusRegex . ')([^a-z0-9]|$).{0,35}((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$))']
         );
 
-        $unavailableDescription = '/((esta|a|essa|desta)?[[:space:]]*vaga[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida)|'
+        $unavailableDescription = '((esta|a|essa|desta)?[[:space:]]*vaga[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida)|'
             . '((esta|a|essa|desta)?[[:space:]]*oportunidade[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida))|'
             . '((esta|a|essa)?[[:space:]]*posicao[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida))|'
             . '(inscricoes[[:space:]]+(foram[[:space:]]+)?encerradas)|'
@@ -609,8 +609,8 @@ class VacancyController extends Controller
             . '(this position is no longer available)|'
             . '(the hiring process for this (job|position|role|vacancy).{0,30}(closed|completed|finished|cancelled|canceled)))';
 
-        $historicalClosure = '/(experiencia|experience|participacao|participated|worked on|historico).{0,70}(processo seletivo|processo de selecao|hiring process|recruitment process).{0,50}(encerrad|finalizad|closed|completed|finished)/';
-        $otherTeams = '/(outras areas|outras equipes|outros departamentos|other departments|other teams|other roles|other positions)/';
+        $historicalClosure = '(experiencia|experience|participacao|participated|worked on|historico).{0,70}(processo seletivo|processo de selecao|hiring process|recruitment process).{0,50}(encerrad|finalizad|closed|completed|finished)';
+        $otherTeams = '(outras areas|outras equipes|outros departamentos|other departments|other teams|other roles|other positions)';
 
         $query->whereRaw(
             "NOT ({$description} ~ ? AND {$description} !~ ? AND {$description} !~ ?)",
