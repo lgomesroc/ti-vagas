@@ -46,23 +46,23 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Configurar Apache para servir a pasta public
-RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
-    /etc/apache2/sites-available/000-default.conf \
-    && sed -ri 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf \
-    && sed -ri 's/<VirtualHost *:80>/<VirtualHost *:10000>/' \
-    /etc/apache2/sites-available/000-default.conf
-
-# Permitir que o Laravel use o public/.htaccess (incluindo a rota de health check /up).
+# Configurar explicitamente o Apache para servir a aplicação Laravel pela pasta public
 RUN printf '%s\n' \
-    '<Directory /var/www/html/public>' \
-    '    Options FollowSymLinks' \
-    '    AllowOverride All' \
-    '    Require all granted' \
-    '    DirectoryIndex index.php' \
-    '</Directory>' \
-    > /etc/apache2/conf-available/laravel-public.conf \
-    && a2enconf laravel-public
+    '<VirtualHost *:10000>' \
+    '    ServerName localhost' \
+    '    DocumentRoot /var/www/html/public' \
+    '    <Directory /var/www/html/public>' \
+    '        Options FollowSymLinks' \
+    '        AllowOverride All' \
+    '        Require all granted' \
+    '        DirectoryIndex index.php' \
+    '    </Directory>' \
+    '    ErrorLog ${APACHE_LOG_DIR}/error.log' \
+    '    CustomLog ${APACHE_LOG_DIR}/access.log combined' \
+    '</VirtualHost>' \
+    > /etc/apache2/sites-available/000-default.conf \
+    && sed -ri 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf \
+    && a2enmod rewrite headers
 
 COPY . .
 
