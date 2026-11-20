@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\VacancyLocationFilter;
-use App\\Sources\\PandapeSource;
-use PHPUnit\\Framework\\Attributes\\DataProvider;
-use PHPUnit\\Framework\\TestCase;
+use App\Services\VacancyLocationFilter;
+use App\Sources\PandapeSource;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 class PandapeSourceFilterTest extends TestCase
