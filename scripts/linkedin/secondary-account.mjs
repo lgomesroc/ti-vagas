@@ -11,6 +11,9 @@ const edgeCandidates = [
 ];
 const browserExecutable = process.env.LINKEDIN_SECONDARY_ACCOUNT_EXECUTABLE ??
   edgeCandidates.find(candidate => existsSync(candidate));
+const storageStatePath = process.env.LINKEDIN_STORAGE_STATE_PATH
+  ? path.resolve(process.env.LINKEDIN_STORAGE_STATE_PATH)
+  : null;
 const mode = process.argv[2] ?? 'search';
 const keywords = [
   // Suporte e infraestrutura
@@ -310,13 +313,28 @@ async function extractCard(page, card, keyword) {
 }
 
 async function main() {
-  const context = await chromium.launchPersistentContext(profile, {
-    ...(browserExecutable ? { executablePath: browserExecutable } : {}),
-    headless: process.env.LINKEDIN_HEADLESS === 'true',
-    viewport: { width: 1440, height: 1000 },
-    locale: 'pt-BR',
-    args: [],
-  });
+  let browser = null;
+  let context;
+
+  if (storageStatePath && existsSync(storageStatePath)) {
+    browser = await chromium.launch({
+      ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+      headless: true,
+    });
+    context = await browser.newContext({
+      storageState: storageStatePath,
+      viewport: { width: 1440, height: 1000 },
+      locale: 'pt-BR',
+    });
+  } else {
+    context = await chromium.launchPersistentContext(profile, {
+      ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+      headless: process.env.LINKEDIN_HEADLESS === 'true',
+      viewport: { width: 1440, height: 1000 },
+      locale: 'pt-BR',
+      args: [],
+    });
+  }
 
   try {
     const page = context.pages()[0] ?? await context.newPage();
@@ -444,6 +462,7 @@ async function main() {
     process.stdout.write(JSON.stringify(enriched));
   } finally {
     await context.close();
+    if (browser) await browser.close();
   }
 }
 
