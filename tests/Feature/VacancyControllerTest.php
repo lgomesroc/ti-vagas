@@ -88,6 +88,8 @@ class VacancyControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee($vacancy->title);
         $response->assertSee($vacancy->company);
+        $response->assertSee('CLT');
+        $response->assertSee('A combinar');
     }
 
     public function test_available_vacancy_can_be_accessed_directly(): void
@@ -100,6 +102,8 @@ class VacancyControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee($vacancy->title);
         $response->assertSee($vacancy->company);
+        $response->assertSee('https://example.com/candidatar');
+        $response->assertSee('A combinar');
     }
 
     public function test_vacancy_older_than_60_days_does_not_appear_in_listing(): void
@@ -375,4 +379,31 @@ class VacancyControllerTest extends TestCase
         $response->assertSee($vacancy->title);
         $response->assertSee($vacancy->company);
     }
+    public function test_listing_paginates_twelve_eligible_vacancies_and_preserves_page_navigation(): void
+    {
+        collect(range(1, 13))->each(function (int $number) {
+            $this->createVacancy([
+                'title' => sprintf('Desenvolvedor PHP Junior %02d', $number),
+                'company' => sprintf('Empresa %02d', $number),
+                'external_id' => 'pagination-' . $number,
+            ]);
+        });
+
+        $firstPage = $this->getAcceptedTerms()
+            ->get(route('vacancies.index'));
+
+        $firstPage->assertOk();
+        $firstPage->assertSee('Desenvolvedor PHP Junior 13');
+        $firstPage->assertDontSee('Desenvolvedor PHP Junior 01');
+        $firstPage->assertSee('page=2');
+
+        $secondPage = $this->getAcceptedTerms()
+            ->get(route('vacancies.index', ['page' => 2]));
+
+        $secondPage->assertOk();
+        $secondPage->assertSee('Desenvolvedor PHP Junior 01');
+        $secondPage->assertDontSee('Desenvolvedor PHP Junior 13');
+        $secondPage->assertSee('page=1');
+    }
+
 }
