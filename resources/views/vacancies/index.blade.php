@@ -62,8 +62,7 @@
                 <h2>Resultados da pesquisa</h2>
 
                 <p>
-                    Encontramos {{ $vacancies->total() }}
-                    oportunidade(s) para "{{ $search }}".
+                    Oportunidades correspondentes à pesquisa "{{ $search }}".
                 </p>
             @else
                 <h2>Oportunidades recentes</h2>
