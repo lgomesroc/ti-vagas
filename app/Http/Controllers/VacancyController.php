@@ -9,6 +9,7 @@ use App\Services\Geo\VisitorLocationResolver;
 use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
