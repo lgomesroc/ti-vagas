@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
+import { collectLinkedInJobs } from './jobs.mjs';
 
 const profile = path.resolve(process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ?? '.local/linkedin-secondary-profile');
 const edgeCandidates = [
@@ -357,6 +358,16 @@ async function main() {
       throw new Error('A sessão da conta secundária não está autenticada. Execute npm run linkedin:secondary:login.');
     }
 
+    if (mode === 'jobs') {
+      const vacancies = await collectLinkedInJobs(page);
+      process.stdout.write(JSON.stringify(vacancies));
+      return;
+    }
+
+    if (!['search', 'all'].includes(mode)) {
+      throw new Error(`Modo inválido: ${mode}. Use login, search, jobs ou all.`);
+    }
+
     const posts = new Map();
     for (const keyword of keywords) {
       const searchUrl = 'https://www.linkedin.com/search/results/content/?keywords=' + encodeURIComponent(keyword) + '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-week%22&sortBy=%22date_posted%22';
@@ -460,8 +471,13 @@ async function main() {
       await page.waitForTimeout(350);
     }
 
-    process.stderr.write('[LinkedIn secondary diagnostics]\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\n');
-    process.stdout.write(JSON.stringify(enriched));
+    process.stderr.write('[LinkedIn secondary diagnostics]\\n' + JSON.stringify(Object.fromEntries(keywordDiagnostics), null, 2) + '\\n');
+    if (mode === 'all') {
+      const vacancies = await collectLinkedInJobs(page);
+      process.stdout.write(JSON.stringify({ posts: enriched, vacancies }));
+    } else {
+      process.stdout.write(JSON.stringify(enriched));
+    }
   } finally {
     await context.close();
     if (browser) await browser.close();

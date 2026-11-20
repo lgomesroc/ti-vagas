@@ -15,7 +15,9 @@ class VacancyImporter
     public function __construct(
         private readonly VacancyAvailabilityDetector $availabilityDetector,
         private readonly GeoLocationNormalizer $geoLocationNormalizer,
-        private readonly VacancyLocationResolver $locationResolver
+        private readonly VacancyLocationResolver $locationResolver,
+        private readonly VacancyEditorialFilter $editorialFilter,
+        private readonly VacancyDuplicateDetector $duplicateDetector
     ) {
     }
 
@@ -149,12 +151,34 @@ class VacancyImporter
                 continue;
             }
 
+            // Aplica os critérios editoriais antes de qualquer consulta ou gravação
+            // da vaga no banco. O banco recebe somente oportunidades elegíveis.
+            if (!$this->editorialFilter->isEligible($data, $sourceName)) {
+                $result['skipped']++;
+                continue;
+            }
+
             $vacancy = Vacancy::firstOrNew([
                 'source' => $sourceName,
                 'external_id' => $externalId,
             ]);
 
             $isNew = !$vacancy->exists;
+
+            // Mantém a identidade da fonte original e evita cadastrar a mesma
+            // candidatura novamente quando ela aparece em outra plataforma.
+            if ($isNew) {
+                $duplicate = $this->duplicateDetector->findDuplicate(
+                    $data,
+                    $sourceName,
+                    $externalId
+                );
+
+                if ($duplicate !== null) {
+                    $result['skipped']++;
+                    continue;
+                }
+            }
 
             $geo = $this->geoLocationNormalizer->normalize($data);
 

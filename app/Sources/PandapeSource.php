@@ -46,6 +46,13 @@ class PandapeSource implements VacancySource
         'application developer',
         'analista de desenvolvimento',
         'analista de sistemas de informacao',
+        'analista de ti',
+        'analista de tecnologia',
+        'tecnico de ti',
+        'tecnico em informatica',
+        'assistente de ti',
+        'auxiliar de ti',
+        'tecnologia da informacao',
         'ios developer',
         'android developer',
 
@@ -369,6 +376,48 @@ class PandapeSource implements VacancySource
         );
     }
 
+    /**
+     * O TI Vagas publica somente oportunidades júnior.
+     * A sinalização pode estar no título ou na descrição, pois alguns
+     * portais não incluem o nível no título do anúncio.
+     */
+    private function isEligibleSeniority(string $title, string $description): bool
+    {
+        $normalizedTitle = $this->normalize($title);
+        $normalizedContent = $this->normalize($title . ' ' . $description);
+
+        if ($this->containsAny($normalizedTitle, [
+            'pleno',
+            'senior',
+            'staff',
+            'principal',
+            'lead',
+            'manager',
+            'gerente',
+            'director',
+            'diretor',
+            'head',
+            'architect',
+            'arquiteto',
+            'especialista',
+            'coordenador',
+            'coordenadora',
+            'lider',
+            'supervisor',
+            'supervisora',
+            'trainee',
+        ])) {
+            return false;
+        }
+
+        return $this->containsAny($normalizedContent, [
+            'junior',
+            'jr',
+            'entry level',
+            'entry-level',
+        ]);
+    }
+
     private function containsAny(string $text, array $terms): bool
     {
         foreach ($terms as $term) {
@@ -501,6 +550,7 @@ class PandapeSource implements VacancySource
             $title === ''
             || $description === ''
             || !$this->isPotentialTechnologyRole($title)
+            || !$this->isEligibleSeniority($title, $description)
         ) {
             return null;
         }
