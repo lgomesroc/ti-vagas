@@ -10,7 +10,7 @@ use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -288,6 +288,10 @@ class VacancyController extends Controller
                 'company',
                 'description',
                 'location',
+                'work_model',
+                'employment_type',
+                'salary',
+                'application_url',
                 'source',
                 'external_id',
                 'original_published_at',
@@ -525,10 +529,11 @@ class VacancyController extends Controller
         $search = trim($request->query('q', ''));
 
         $perPage = 12;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentPage = Paginator::resolveCurrentPage();
         $firstItem = ($currentPage - 1) * $perPage;
-        $total = 0;
+        $eligibleCount = 0;
         $items = [];
+        $hasMorePages = false;
 
         foreach ($this->eligibleVacancies(
             $this->visitorLocationResolver->scopeFromSession(
@@ -536,18 +541,22 @@ class VacancyController extends Controller
             ),
             $search
         ) as $vacancy) {
-            if ($total >= $firstItem && count($items) < $perPage) {
-                $items[] = $vacancy;
+            if ($eligibleCount < $firstItem) {
+                $eligibleCount++;
+                continue;
             }
 
-            $total++;
+            if (count($items) === $perPage) {
+                $hasMorePages = true;
+                break;
+            }
+
+            $items[] = $vacancy;
+            $eligibleCount++;
         }
 
-        $items = collect($items);
-
-        $vacancies = new LengthAwarePaginator(
-            $items,
-            $total,
+        $vacancies = new Paginator(
+            collect($items),
             $perPage,
             $currentPage,
             [
@@ -555,6 +564,8 @@ class VacancyController extends Controller
                 'query' => $request->query(),
             ]
         );
+
+        $vacancies->hasMorePagesWhen($hasMorePages);
 
         return view('vacancies.index', [
             'vacancies' => $vacancies,
