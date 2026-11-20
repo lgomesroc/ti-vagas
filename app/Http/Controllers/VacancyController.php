@@ -380,21 +380,6 @@ class VacancyController extends Controller
                 continue;
             }
 
-            // Mantém apenas o primeiro registro de cada vaga duplicada,
-            // pois a consulta já está ordenada pelo mesmo critério de prioridade.
-            if (preg_match('/\\((\\d{4,})\\)/', $title, $matches)) {
-                $duplicateKey = implode('|', [
-                    $this->normalize($vacancy->company),
-                    $matches[1],
-                ]);
-
-                if (isset($seenDuplicateKeys[$duplicateKey])) {
-                    continue;
-                }
-
-                $seenDuplicateKeys[$duplicateKey] = true;
-            }
-
             $workModel = $this->locationFilter->classifyWorkModel(
                 $vacancy->title,
                 $vacancy->location,
@@ -412,6 +397,21 @@ class VacancyController extends Controller
                 $this->vacancyLocationResolver->resolveForVacancy($vacancy)
             )) {
                 continue;
+            }
+
+            // Deduplica somente depois da regra regional: uma vaga duplicada
+            // fora da região não pode ocultar outra cópia elegível.
+            if (preg_match('/\\((\\d{4,})\\)/', $title, $matches)) {
+                $duplicateKey = implode('|', [
+                    $this->normalize($vacancy->company),
+                    $matches[1],
+                ]);
+
+                if (isset($seenDuplicateKeys[$duplicateKey])) {
+                    continue;
+                }
+
+                $seenDuplicateKeys[$duplicateKey] = true;
             }
 
             yield $vacancy;
