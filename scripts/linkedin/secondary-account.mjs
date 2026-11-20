@@ -343,7 +343,9 @@ async function main() {
       const rl = createInterface({ input: stdin, output: stdout });
       await rl.question('Entre manualmente na conta SECUNDÁRIA. Depois de entrar, pressione ENTER aqui para salvar a sessão local. ');
       rl.close();
-      process.stdout.write('Sessão da conta secundária disponível no perfil local.\n');
+      const stateFile = path.join(profile, 'storage-state.json');
+      await context.storageState({ path: stateFile });
+      process.stdout.write(`Sessão local salva. Arquivo de estado: ${stateFile}\\n`);
       return;
     }
 
