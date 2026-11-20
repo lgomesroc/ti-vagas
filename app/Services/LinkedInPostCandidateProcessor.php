@@ -56,6 +56,18 @@ class LinkedInPostCandidateProcessor
             'metadata' => $post,
         ];
 
+        // Rejeita quando a fonte informa explicitamente que o post é promovido.
+        // Os buscadores atuais não fornecem esse metadado; nesse caso não inventamos
+        // um valor e mantemos a limitação documentada.
+        if (($post['isPromoted'] ?? false) === true) {
+            $candidate->fill($base + [
+                'status' => 'rejected',
+                'decision_reason' => 'Publicação promovida/patrocinada descartada.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
         if ($publishedAt === null || $publishedAt->lt(now()->subHours(
             (int) config('linkedin.lookback_hours', 72)
         ))) {
@@ -76,6 +88,16 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
+        $nonVacancyReason = $this->nonVacancyContentReason($text, $post);
+        if ($nonVacancyReason !== null) {
+            $candidate->fill($base + [
+                'status' => 'rejected',
+                'decision_reason' => $nonVacancyReason,
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
         if (!$this->isRecruitmentPost($post, $text)) {
             $candidate->fill($base + [
                 'status' => 'rejected',
@@ -86,7 +108,70 @@ class LinkedInPostCandidateProcessor
         }
 
         $links = $this->extractUrls($combinedText, $post);
-        $emails = $this->extractEmails($combinedText);
+        $emails = array_values(array_unique(array_merge(
+            $this->extractEmails($combinedText),
+            is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
+        )));
+
+        $hasCorporateEmail = $this->hasCorporateEmail($emails);
+
+        if (
+            (
+                ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
+                || ($post['secondaryAccountSource'] ?? false) === true
+                || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
+            ) && $links === [] && !$hasCorporateEmail
+        ) {
+            $candidate->fill($base + [
+                'embedded_links' => [],
+                'emails' => $emails,
+                'status' => 'rejected',
+                'decision_reason' => 'Conta secundária: publicação sem link público de candidatura.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
+        if ($links === [] && !$hasCorporateEmail) {
+            $candidate->fill($base + [
+                'embedded_links' => [],
+                'emails' => $emails,
+                'status' => 'rejected',
+                'decision_reason' => $emails === []
+                    ? 'Publicação sem link de candidatura ou e-mail corporativo.'
+                    : 'E-mail de provedor público/gratuito não é aceito como canal de candidatura.',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
+
+        foreach ($links as $link) {
+            $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
+            $duplicateCandidate = $this->findDuplicateCandidate(
+                null,
+                null,
+                null,
+                null,
+                $link,
+                '',
+                $postId
+            );
+
+            if ($duplicateVacancy !== null || $duplicateCandidate !== null) {
+                $candidate->fill($base + [
+                    'embedded_links' => [['url' => $link]],
+                    'emails' => $emails,
+                    'status' => 'duplicate',
+                    'decision_reason' => $duplicateVacancy !== null
+                        ? 'Link de candidatura já cadastrado na vaga #' . $duplicateVacancy->id . '.'
+                        : 'Link de candidatura já encontrado no candidato #' . $duplicateCandidate->id . '.',
+                    'duplicate_of_vacancy_id' => $duplicateVacancy?->id,
+                    'duplicate_of_candidate_id' => $duplicateCandidate?->id,
+                ])->save();
+
+                return $this->emptyResult('duplicates');
+            }
+        }
 
         $verifiedLinks = [];
         foreach ($links as $link) {
@@ -124,6 +209,18 @@ class LinkedInPostCandidateProcessor
             ) {
                 $applicationUrl = $link['final_url'];
                 break;
+            }
+        }
+
+        // Publicações de recrutamento no LinkedIn também podem receber currículos
+        // diretamente por e-mail corporativo. Representamos esse canal como mailto:
+        // para que a oportunidade permaneça publicável sem inventar uma URL web.
+        if ($applicationUrl === null && $hasCorporateEmail) {
+            $corporateEmail = collect($emails)->first(
+                fn (string $email): bool => $this->isCorporateEmail($email)
+            );
+            if ($corporateEmail !== null) {
+                $applicationUrl = 'mailto:' . $corporateEmail;
             }
         }
 
@@ -198,12 +295,8 @@ class LinkedInPostCandidateProcessor
             'location' => $location,
             'work_model' => $workModel,
             'application_url' => $applicationUrl,
-            'status' => $reason === null ? 'pending_review' : 'rejected',
-            'decision_reason' => $reason ?? (
-                $applicationUrl === null && $emails === []
-                    ? 'Sem link ou e-mail; encaminhado para revisão manual com base na publicação pública.'
-                    : 'Passou pelos filtros automáticos; aguarda revisão manual.'
-            ),
+            'status' => $reason === null ? 'pending_publication' : 'rejected',
+            'decision_reason' => $reason ?? 'Passou pelos filtros automáticos e aguarda publicação automática.',
         ])->save();
 
         return [
@@ -223,7 +316,8 @@ class LinkedInPostCandidateProcessor
             '/\b(comente|digite|escreva)\b.{0,100}\b(que|para)\b.{0,80}\b(dm|direct|privado|mensagem|inbox)\b/',
             '/\b(comente|digite|escreva)\b.{0,100}\b(para receber|para ter acesso|para obter)\b.{0,60}\b(link|email|e-mail|detalhes|informacoes)\b/',
             '/\b(link|email|e-mail|detalhes|informacoes)\b.{0,100}\b(dm|direct|privado|inbox)\b/',
-            '/\b(chama|me chama|mande|envio|enviar)\b.{0,80}\b(dm|direct|privado|inbox)\b/',
+            '/\b(chama|chame|me chama|me chame|mande|envio|enviar|fale comigo|entre em contato)\b.{0,100}\b(dm|direct|privado|inbox|mensagem privada)\b/',
+            '/\b(direct|dm|inbox|privado)\b.{0,100}\b(saber mais|mais informacoes|detalhes|curriculo|perfil)\b/',
             '/\b(so|apenas)\b.{0,50}\b(comentando|comentar|digitar|mandar mensagem)\b/',
         ];
 
@@ -234,6 +328,132 @@ class LinkedInPostCandidateProcessor
         }
 
         return false;
+    }
+
+    /**
+     * Descarta publicações que mencionam cargos de TI, mas não anunciam vaga.
+     */
+    private function nonVacancyContentReason(string $text, array $post = []): ?string
+    {
+        $normalized = $this->normalize($text);
+
+        // Um sinal de vaga precisa ser explícito. Palavras emocionais isoladas
+        // ("feliz", "orgulho", "parabéns") nunca devem decidir a classificação.
+        $authorContext = $this->normalize(
+            ($post['authorHeadline'] ?? '') . ' ' .
+            ($post['authorDescription'] ?? '') . ' ' .
+            ($post['authorType'] ?? '')
+        );
+        $isRecruiterOrCompany = in_array(
+            $this->normalize((string) ($post['authorType'] ?? '')),
+            ['company', 'organization', 'organisation', 'company page'],
+            true
+        );
+        foreach (config('linkedin.recruiter_terms', []) as $term) {
+            if (str_contains($authorContext, $this->normalize((string) $term))) {
+                $isRecruiterOrCompany = true;
+                break;
+            }
+        }
+
+        $explicitVacancy = preg_match(
+            '/\\b(vaga(?:s)?\\s+(?:aberta|abertas|para|de)|estamos\\s+contratando|estamos\\s+a\\s+procura|oportunidade\\s+(?:para|em)|we\\s+are\\s+hiring|job\\s+opportunity|apply\\s+now|candidate-se|inscreva-se|envie\\s+(?:seu\\s+)?curriculo|send\\s+(?:your\\s+)?resume)\\b/',
+            $normalized
+        ) === 1;
+
+        // Publicações de recolocação: a pessoa fala de si, procura emprego
+        // ou informa disponibilidade. "Open to work" sozinho não basta.
+        $jobSeeking = preg_match(
+            '/\\b(?:estou\\s+)?(?:open\\s+to\\s+work|open\\s+for\\s+work|looking\\s+for\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|seeking\\s+(?:a\\s+)?new\\s+(?:job|role|opportunity)|buscando\\s+(?:uma\\s+)?(?:recolocacao|oportunidade|emprego)|em\\s+busca\\s+de\\s+(?:recolocacao|oportunidade|emprego)|procuro\\s+(?:uma\\s+)?(?:vaga|oportunidade|emprego)|disponivel\\s+para\\s+(?:novas\\s+)?oportunidades|disponivel\\s+no\\s+mercado|em\\s+transicao\\s+de\\s+carreira|fui\\s+desligad[oa]|fui\\s+demitid[oa]|perdi\\s+(?:meu\\s+)?emprego|fiquei\\s+desempregad[oa]|estou\\s+desempregad[oa]|desempregad[oa]\\s+em\\s+busca|desemprego|unemployed|laid\\s+off|between\\s+jobs|looking\\s+for\\s+work|actively\\s+seeking)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($jobSeeking && !($explicitVacancy && $isRecruiterOrCompany)) {
+            return 'Publicação de pessoa buscando recolocação, emprego ou divulgando disponibilidade profissional; não é anúncio de vaga.';
+        }
+
+        // Notícias e relatos sobre cortes de pessoal. "Layoff(s)" isolado não
+        // deve derrubar uma vaga real que apenas mencione cortes no mercado.
+        $layoffContext = preg_match(
+            '/\\b(?:layoffs?|laid\\s+off|mass\\s+layoffs?|workforce\\s+(?:reduction|cuts)|job\\s+cuts|cortes?\\s+(?:de\\s+)?pessoal|demissoes?\\s+em\\s+massa|redu[cç][aã]o\\s+de\\s+quadro|funcionarios\\s+(?:demitidos|desligados)|colaboradores\\s+(?:demitidos|desligados)|fui\\s+afetad[oa]\\s+pel[oa]s?\\s+layoffs?)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($layoffContext && !$explicitVacancy) {
+            return 'Publicação sobre layoff, layoffs, cortes de pessoal ou demissões; não anuncia uma vaga.';
+        }
+
+        // Relatos sobre candidatura sem retorno, demora ou eliminação em
+        // processo seletivo. Exigimos contexto de recrutamento para não
+        // confundir "demora" ou "eliminado" com outros assuntos.
+        $recruitmentProcessContext = preg_match(
+            '/\\b(?:processo\\s+seletivo|processos\\s+seletivos|processo\\s+de\\s+selecao|candidatura|candidaturas|candidato|candidata|entrevista|entrevistas|recrutador|recrutadora|recrutamento|selecao|rh|vaga|vagas|application|hiring\\s+process|recruitment\\s+process|interview|job\\s+application)\\b/',
+            $normalized
+        ) === 1;
+
+        $applicationRejection = preg_match(
+            '/\\b(?:eliminad[oa]s?|reprovad[oa]s?|nao\\s+aprovad[oa]s?|rejeitad[oa]s?|rejected|not\\s+selected|unsuccessful)\\b/',
+            $normalized
+        ) === 1;
+
+        $noRecruiterResponse = preg_match(
+            '/\\b(?:sem\\s+(?:nenhum\\s+)?retorno|nao\\s+(?:tive|recebi|obtive)\\s+(?:nenhum\\s+)?retorno|nunca\\s+recebi\\s+retorno|no\\s+response|no\\s+feedback|ghosting)\\b/',
+            $normalized
+        ) === 1;
+
+        $slowRecruitmentProcess = preg_match(
+            '/\\b(?:demora|demorado|demorada|demorando|muito\\s+tempo|tempo\\s+de\\s+espera|processo\\s+lento|demorado\\s+demais|taking\\s+too\\s+long|long\\s+waiting\\s+time)\\b/',
+            $normalized
+        ) === 1;
+
+        if (
+            $recruitmentProcessContext
+            && ($applicationRejection || $noRecruiterResponse || $slowRecruitmentProcess)
+            && !$explicitVacancy
+        ) {
+            return 'Relato ou reclamação sobre candidatura, eliminação, falta de retorno ou demora em processo seletivo; não é anúncio de vaga.';
+        }
+
+        // Relatos pessoais de contratação, promoção ou início em novo emprego.
+        // "Orgulho" e "feliz" só contam quando ligados a um evento pessoal.
+        $personalCareerUpdate = preg_match(
+            '/\\b(?:estou\\s+)?(?:muito\\s+)?(?:feliz|orgulhos[oa]|orgulho|honrad[oa]|grateful|excited|thrilled)\\s+(?:(?:em|de|por)\\s+)?(?:anunciar|compartilhar|contar|dizer|celebrar)\\b.{0,180}\\b(?:novo\\s+(?:emprego|cargo|desafio|papel)|nova\\s+(?:posicao|funcao|oportunidade)|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovida|promovido|comecei\\s+(?:a\\s+trabalhar|na|no|em)|joined|new\\s+(?:job|role|position)|promoted\\s+to|starting\\s+my)\\b/',
+            $normalized
+        ) === 1;
+
+        $firstPersonCareerChange = preg_match(
+            '/\\b(?:comecei\\s+(?:a\\s+trabalhar|na|no|em)|assumi\\s+(?:o\\s+)?novo\\s+cargo|fui\\s+contratad[oa]|fui\\s+promovid[oa]|promovid[oa]\\s+a\\s+(?:um\\s+)?(?:cargo|posicao|gerente|coordenador)|promoted\\s+to|recebi\\s+uma\\s+promocao|minha\\s+promocao|consegui\\s+(?:um\\s+)?novo\\s+(?:emprego|trabalho|cargo)|aceitei\\s+(?:uma\\s+)?(?:proposta|oferta)\\s+de\\s+emprego|acabei\\s+de\\s+ser\\s+contratad[oa]|me\\s+juntei\\s+(?:a|ao|aos)\\s+(?:equipe|time|team)|meu\\s+novo\\s+(?:emprego|trabalho|cargo|desafio)|minha\\s+nova\\s+(?:posicao|funcao)|new\\s+role\\s+at|started\\s+(?:a\\s+)?new\\s+(?:job|role|position)|joined\\s+(?:the\\s+)?(?:team|company)|promoted\\s+to|celebrating\\s+my\\s+promotion)\\b/',
+            $normalized
+        ) === 1;
+
+        if (($personalCareerUpdate || $firstPersonCareerChange) && !($explicitVacancy && $isRecruiterOrCompany)) {
+            return 'Relato pessoal de novo emprego, contratação ou promoção; não é anúncio de oportunidade.';
+        }
+
+        // Propaganda de serviços e produtos. Termos comerciais genéricos
+        // precisam aparecer junto de uma oferta explícita, não isoladamente.
+        $serviceAdvertisement = preg_match(
+            '/\\b(?:oferecemos|prestamos|contrate|conheca|conheca nossos|fale com|solicite|agende)\\b.{0,100}\\b(?:servicos|solucoes|consultoria|outsourcing|terceirizacao|alocacao|equipe|profissionais|software|sistema|plataforma|treinamento|curso|mentoria)\\b|\\b(?:outsourcing de ti|body shop|alocacao de profissionais|terceirizacao de equipes|fabrica de software|consultoria especializada|inscricoes abertas para o curso|matriculas abertas|garanta sua vaga no curso|participe do webinar|inscreva-se no treinamento)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($serviceAdvertisement && !$explicitVacancy) {
+            return 'Publicidade de serviços, consultoria, cursos ou fornecimento de profissionais; não é anúncio de contratação.';
+        }
+
+        $congratulationsOnly = preg_match(
+            '/\\b(?:parabens|congratulations|felicidades)\\b/',
+            $normalized
+        ) === 1 && preg_match(
+            '/\\b(?:vaga|oportunidade|contratando|hiring|curriculo|candidate-se|apply)\\b/',
+            $normalized
+        ) !== 1;
+
+        if ($congratulationsOnly) {
+            return 'Publicação de parabéns ou interação social sem anúncio de oportunidade.';
+        }
+
+        return null;
     }
 
     private function isRecruitmentPost(array $post, string $text): bool
@@ -274,7 +494,11 @@ class LinkedInPostCandidateProcessor
                 && (
                     $hasRecruitmentSignal
                     || $isCompanyAuthor
-                    || ($post['searchProvider'] ?? null) === 'duckduckgo-html'
+                    || in_array(
+                        $post['searchProvider'] ?? null,
+                        ['duckduckgo-html', 'bing-rss', 'linkedin-secondary-account'],
+                        true
+                    )
                 )
             ) {
                 return true;
@@ -304,9 +528,9 @@ class LinkedInPostCandidateProcessor
 
         foreach ([
             'estagio', 'estagiario', 'trainee', 'internship', 'intern',
-            'pleno', 'senior', 'staff', 'principal', 'lead', 'manager',
-            'gerente', 'diretor', 'head', 'especialista', 'coordenador',
-            'supervisor',
+            'pleno', 'senior', 'sr', 'mid-level', 'mid level',
+            'staff', 'principal', 'lead', 'manager', 'gerente', 'diretor',
+            'head', 'especialista', 'coordenador', 'supervisor',
         ] as $term) {
             if (preg_match('/(^|[^a-z0-9])' . preg_quote($term, '/') . '([^a-z0-9]|$)/', $titleText)) {
                 return 'Nível fora do escopo: somente vagas efetivas júnior.';
@@ -315,6 +539,13 @@ class LinkedInPostCandidateProcessor
 
         if (preg_match('/\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus)?\s*(?:[-–]\s*\d+\s*)?(?:anos?|years?)\b/', $descriptionText)) {
             return 'Descrição exige três anos ou mais de experiência.';
+        }
+
+        if (preg_match(
+            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|mid[- ]level|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|sr|mid[- ]level|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b|\\b(?:experienced|experiente)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
+            $descriptionText
+        )) {
+            return 'A descrição identifica explicitamente a oportunidade como nível pleno, sênior ou equivalente.';
         }
 
         $excluded = [
@@ -353,6 +584,10 @@ class LinkedInPostCandidateProcessor
             return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
         }
 
+        if ($applicationUrl === null) {
+            return 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.';
+        }
+
         if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
@@ -360,10 +595,6 @@ class LinkedInPostCandidateProcessor
             $workModel
         )) {
             return 'Localidade ou modalidade incompatível com as regras de coleta do TI Vagas.';
-        }
-
-        if ($applicationUrl === null && $emails === []) {
-            // Public posts without direct contact remain reviewable, never auto-published.
         }
 
         return null;
@@ -481,7 +712,7 @@ class LinkedInPostCandidateProcessor
     ): ?LinkedInPostCandidate {
         $query = LinkedInPostCandidate::query()
             ->where('post_id', '!=', $currentPostId)
-            ->whereIn('status', ['pending_review', 'approved', 'duplicate']);
+            ->whereIn('status', ['pending_publication', 'pending_review', 'published', 'approved', 'duplicate']);
 
         if ($applicationUrl !== null) {
             $normalizedUrl = $this->normalizeUrl($applicationUrl);
@@ -645,6 +876,53 @@ class LinkedInPostCandidateProcessor
             fn ($url) => rtrim($url, ".,);]}>"),
             array_filter($urls, fn ($url) => filter_var($url, FILTER_VALIDATE_URL))
         )));
+    }
+
+    /**
+     * Exige endereço em domínio corporativo conhecido; provedores públicos
+     * de e-mail e domínios descartáveis não são aceitos como contato da empresa.
+     */
+    private function hasCorporateEmail(array $emails): bool
+    {
+        $personalDomains = [
+            'gmail.com', 'googlemail.com', 'hotmail.com', 'outlook.com',
+            'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
+            'yahoo.com', 'yahoo.com.br', 'icloud.com', 'me.com',
+            'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
+            'gmx.com', 'mail.com', 'uol.com.br', 'bol.com.br',
+            'terra.com.br', 'ig.com.br', 'yandex.com', 'yandex.ru',
+        ];
+
+        foreach ($emails as $email) {
+            if ($this->isCorporateEmail($email)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isCorporateEmail(string $email): bool
+    {
+        $personalDomains = [
+            'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.com.br',
+            'outlook.com', 'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
+            'yahoo.com', 'yahoo.com.br', 'yahoo.co.uk', 'icloud.com', 'me.com',
+            'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'tutanota.com',
+            'tuta.io', 'gmx.com', 'gmx.net', 'mail.com', 'yandex.com', 'yandex.ru',
+            'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br',
+            'r7.com', 'zipmail.com.br', 'fastmail.com', 'hey.com',
+        ];
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $domain = strtolower(substr(strrchr($email, '@'), 1));
+
+        return $domain !== ''
+            && !in_array($domain, $personalDomains, true)
+            && !str_contains($domain, 'linkedin.');
     }
 
     private function extractEmails(string $text): array

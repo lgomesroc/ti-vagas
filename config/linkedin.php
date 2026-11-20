@@ -8,6 +8,54 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
+    'secondary_account' => [
+        'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
+        'storage_state' => env('LINKEDIN_STORAGE_STATE_PATH', '.local/linkedin-storage-state.json'),
+        'timeout' => max(600, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 600)),
+        'keywords' => [
+            'vaga suporte técnico',
+            'vaga suporte TI',
+            'analista de suporte júnior',
+            'suporte técnico júnior',
+            'técnico de suporte',
+            'help desk vaga',
+            'service desk vaga',
+            'suporte N1 vaga',
+            'suporte ao usuário vaga',
+            'field service suporte',
+            'infraestrutura suporte júnior',
+            'technical support junior',
+            'vaga desenvolvedor júnior',
+            'desenvolvedor backend júnior',
+            'desenvolvedor frontend júnior',
+            'desenvolvedor full stack júnior',
+            'programador júnior vaga',
+            'junior software engineer',
+            'junior web developer',
+            'backend developer junior',
+            'frontend developer junior',
+            'full stack developer junior',
+            'vaga desenvolvedor PHP Laravel',
+            'vaga desenvolvedor C# .NET',
+            'vaga desenvolvedor Java júnior',
+            'vaga desenvolvedor Python júnior',
+            'vaga desenvolvedor JavaScript TypeScript',
+            'vaga desenvolvedor Node.js júnior',
+            'vaga React Angular júnior',
+            'estágio desenvolvimento software',
+        ],
+    ],
+
+    // Certificado raiz da rede, quando há inspeção TLS corporativa.
+    'ca_bundle' => env('LINKEDIN_CA_BUNDLE', env('CURL_CA_BUNDLE')),
+
+    // Exige uma fonte contratada/autorizada com sinalização confiável de promoção.
+    'authorized_source_enabled' => filter_var(
+        env('LINKEDIN_AUTHORIZED_SOURCE_ENABLED', false),
+        FILTER_VALIDATE_BOOL
+    ),
+
     'keywords' => [
         'estamos contratando',
         'vaga aberta',

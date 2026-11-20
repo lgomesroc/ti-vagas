@@ -16,6 +16,7 @@ class GupySource implements VacancySource
         private readonly ?string $caBundle = null,
         private readonly int $maxJobs = 200,
         private readonly ?string $baseUrl = null,
+        private readonly bool $technologyOnly = false,
     ) {
     }
 
@@ -201,6 +202,13 @@ class GupySource implements VacancySource
                 return null;
             }
 
+            if (
+                $this->technologyOnly
+                && !$this->isTechnologyVacancy($title, $description)
+            ) {
+                return null;
+            }
+
             // Localização no formato atual da Gupy.
             $city = $data['addressCity'] ?? null;
             $state = $data['addressState'] ?? null;
@@ -291,6 +299,47 @@ class GupySource implements VacancySource
         $data = json_decode($node->textContent, true);
 
         return is_array($data) ? $data : [];
+    }
+
+    private function isTechnologyVacancy(
+        string $title,
+        string $description
+    ): bool {
+        $normalizedTitle = mb_strtolower(
+            html_entity_decode($title, ENT_QUOTES | ENT_HTML5, 'UTF-8')
+        );
+        $normalizedTitle = \Illuminate\Support\Str::ascii($normalizedTitle);
+        $normalizedDescription = \Illuminate\Support\Str::ascii(
+            mb_strtolower(strip_tags($description))
+        );
+
+        // Exclusions are evaluated against the title to avoid rejecting
+        // technical jobs merely because their description mentions these topics.
+        if (preg_match(
+            '/\\b(dados|data|bi|business intelligence|analytics|analise de dados|ciencia de dados|machine learning|aprendizado de maquina|engenharia de dados|data science|crm|erp|sap|abap|salesforce|oracle functional|consultor funcional)\\b/i',
+            $normalizedTitle
+        ) === 1) {
+            return false;
+        }
+
+        $technicalTitle = preg_match(
+            '/\\b(desenvolvedor|desenvolvedora|developer|programador|programadora|software engineer|engenheiro de software|backend|back-end|frontend|front-end|full.?stack|qa|quality assurance|tester|testes de software|analista de sistemas|administrador de sistemas|analista de suporte|suporte tecnico|service desk|help.?desk|infraestrutura|infra|redes|network|cloud|devops|sre|seguranca da informacao|ciberseguranca|cybersecurity|soc|telecomunicacoes|telecom|arquitet(o|a) de sistemas|especialista de tecnologia|analista de tecnologia|engenheiro de tecnologia)\\b/i',
+            $normalizedTitle
+        ) === 1;
+
+        if ($technicalTitle) {
+            return true;
+        }
+
+        $genericTechnologyTitle = preg_match(
+            '/\\b(analista|especialista|tecnico|tecnica|engenheiro|engenheira|coordenador|coordenadora)\\b/i',
+            $normalizedTitle
+        ) === 1;
+
+        return $genericTechnologyTitle && preg_match(
+            '/\\b(desenvolvimento de software|desenvolvimento de sistemas|infraestrutura de ti|redes de computadores|administracao de servidores|suporte de ti|suporte tecnico|devops|cloud|ciberseguranca|seguranca da informacao|qa|quality assurance|telecomunicacoes|telecom)\\b/i',
+            $normalizedDescription
+        ) === 1;
     }
 
     private function isTalentPool(

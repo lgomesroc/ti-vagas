@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Sources\InhireSource;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -75,6 +76,36 @@ class InhireSourceTest extends TestCase
         $this->assertCount(1, $vacancies);
         $this->assertSame('Brasil', $vacancies[0]['location']);
         $this->assertSame('Remoto', $vacancies[0]['work_model']);
+    }
+
+
+    public function test_it_excludes_data_and_bi_roles(): void
+    {
+        $this->mockInhire([
+            'displayName' => 'Analista de Dados Júnior',
+            'description' => 'Atuação com BI, relatórios e indicadores.',
+        ]);
+
+        $vacancies = iterator_to_array($this->makeSource()->fetch());
+
+        $this->assertSame([], $vacancies);
+    }
+
+    public function test_it_sends_the_configured_tenant_header_to_both_public_endpoints(): void
+    {
+        $this->mockInhire();
+
+        iterator_to_array($this->makeSource()->fetch());
+
+        Http::assertSent(fn (Request $request) =>
+            $request->url() === 'https://api.inhire.app/job-posts/public/pages'
+            && $request->hasHeader('X-Tenant', 'empresa-teste')
+        );
+
+        Http::assertSent(fn (Request $request) =>
+            $request->url() === 'https://api.inhire.app/job-posts/public/pages/12345'
+            && $request->hasHeader('X-Tenant', 'empresa-teste')
+        );
     }
 
     private function makeSource(): InhireSource

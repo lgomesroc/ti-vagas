@@ -2,62 +2,49 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Support\Facades\DB;
 use App\Services\Geo\IbgeGeographyImporter;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class ImportIbgeGeography extends Command
 {
     protected $signature = 'geo:import-ibge
-        {--offline : Não consulta a API do IBGE (só municípios e ajustes locais)}
-        {--csv= : Caminho de um CSV de municípios alternativo}
-        {--if-empty : Só executa se as regiões do IBGE ainda não foram importadas}';
+        {--if-empty : Só executa se a DTB 2025 ainda não foi importada}';
 
-    protected $description = 'Importa municípios, regiões intermediárias, RMs e RIDEs do IBGE';
+    protected $description = 'Importa municípios e regiões geográficas da DTB 2025 do IBGE';
 
     public function handle(IbgeGeographyImporter $importer): int
     {
         if (
             $this->option('if-empty')
             && DB::table('geography_import_status')
-                ->where('source', 'ibge-localities')
+                ->where('source', 'ibge-dtb-2025')
                 ->whereNotNull('imported_at')
                 ->exists()
         ) {
-            $this->info('Base territorial já importada. Nada a fazer.');
+            $this->info('DTB 2025 já importada. Nada a fazer.');
 
             return self::SUCCESS;
         }
 
-        $total = $importer->importMunicipalities(
-            $this->option('csv') ?: null
-        );
+        try {
+            // O CSV legado fornece os centroides; a DTB 2025 atualiza os
+            // municípios e suas regiões oficiais pelo código IBGE.
+            $coordinates = $importer->importMunicipalities();
+            $result = $importer->importFromDtbOds();
+        } catch (Throwable $exception) {
+            $this->error('Falha ao importar a DTB 2025: ' . $exception->getMessage());
 
-        $this->info("Municípios importados: {$total}");
-
-        if (!$this->option('offline')) {
-            try {
-                $result = $importer->importFromIbgeApi();
-
-                $this->info(
-                    "Regiões do IBGE aplicadas: {$result['municipalities']} municípios, "
-                    . "{$result['metropolitan']} em RMs"
-                );
-            } catch (Throwable $exception) {
-                $this->error(
-                    'Não foi possível consultar a API do IBGE: '
-                    . $exception->getMessage()
-                );
-                $this->warn(
-                    'Sem as regiões intermediárias, só RMs e RIDEs dos ajustes '
-                    . 'locais ficam disponíveis. Execute o comando novamente.'
-                );
-            }
+            return self::FAILURE;
         }
 
-        $missing = $importer->applyCuratedUnits();
+        $this->info("Centroides municipais carregados: {$coordinates}");
+        $this->info("Municípios da DTB 2025 importados: {$result['municipalities']}");
+        $this->info("Regiões Geográficas Imediatas: {$result['immediate_regions']}");
+        $this->info("Regiões Geográficas Intermediárias: {$result['intermediate_regions']}");
 
+        $missing = $importer->applyCuratedUnits();
         $this->info('Ajustes de RMs e RIDEs aplicados (config/geo_regions.php).');
 
         foreach ($missing as $member) {

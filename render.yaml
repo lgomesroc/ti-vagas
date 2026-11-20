@@ -40,5 +40,24 @@ services:
       - key: DB_QUEUE_RETRY_AFTER
         value: "150"
 
+      # O cache não precisa ficar no PostgreSQL; evita que o rate limiter
+      # dependa de transações do banco em cada requisição HTTP.
       - key: CACHE_STORE
-        value: database
+        value: file
+
+      # Coleta pública do LinkedIn; a sessão autenticada será ativada após
+      # configurar armazenamento persistente e importar o perfil da conta secundária.
+      - key: LINKEDIN_POSTS_ENABLED
+        value: "true"
+
+      - key: LINKEDIN_POSTS_LOOKBACK_HOURS
+        value: "72"
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_ENABLED
+        value: "false"
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_PROFILE
+        value: /var/data/linkedin-secondary-profile
+
+      - key: LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT
+        value: "600"

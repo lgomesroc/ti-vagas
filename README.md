@@ -15,9 +15,19 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Resumo das mudanças recentes, descoberta e validação de publicações do LinkedIn, limites técnicos e organização documental. |
+| [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) | Empresas Gupy adicionadas recentemente e particularidades de seus cadastros. |
 
-O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) já existia no repositório e foi mantido sem alteração; ele complementa o tópico de segurança.
+O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) complementa o tópico de segurança.
 
+## Resumo das atualizações recentes
+
+- **LinkedIn:** descoberta de publicações públicas por DuckDuckGo, Brave Search e Mojeek, com deduplicação, validações editoriais e encaminhamento de candidatos para revisão manual. A descoberta por buscadores não garante acesso ao conteúdo integral, comentários ou identificação de publicações patrocinadas.
+- **Validação de recrutamento:** regras ampliadas para rejeitar chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM; exigência de e-mail corporativo e verificação de duplicidade de links.
+- **Fontes Gupy:** inclusão de Drogaria Globo, Skill Consultoria, Smart NX, C&A e Viceri, preservando as configurações específicas de cada fonte.
+- **Documentação:** criação de documentos de atualizações recentes e fontes Gupy, além da atualização da árvore completa do projeto com ordenação alfabética de pastas e arquivos.
+
+Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o contexto e as limitações de implementação, e [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) para os detalhes dos novos cadastros.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
@@ -117,7 +127,7 @@ O portal prioriza oportunidades destinadas a profissionais residentes no Brasil 
 O município do visitante e o da vaga são identificados pelo código do IBGE. A região é definida em camadas:
 
 1. **Região Metropolitana (RM) ou RIDE:** se o município pertence a uma delas, o visitante vê apenas vagas dos municípios da mesma RM ou RIDE. Um visitante de Rio Bonito, por exemplo, vê vagas de Niterói e Nova Iguaçu, mas não de Teresópolis, de São Paulo ou de Campinas.
-2. **Região Geográfica Intermediária do IBGE (2017):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
+2. **Região Geográfica Intermediária do IBGE (DTB 2025):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
 
 As vagas só são exibidas se o município puder ser identificado. Quando o texto informa uma cidade que não existe na UF indicada (por exemplo, "Santos, Rio de Janeiro"), a vaga não é associada a nenhum município.
 
@@ -158,7 +168,7 @@ php artisan geo:import-ibge
 php artisan vacancies:resolve-municipalities
 ```
 
-O primeiro comando precisa acessar `servicodados.ibge.gov.br`. A opção `--offline` carrega apenas municípios e os ajustes de `config/geo_regions.php`. O segundo identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
+A importação usa `database/data/ibge/municipios_dtb_2025.csv`, gerado a partir do arquivo oficial `ibge/DTB_2025.zip` pelo script PowerShell `scripts/ibge/import-dtb-2025.ps1`. O CSV normalizado deve ser versionado no repositório para estar disponível no Docker e em produção. A rotina não consulta a API do IBGE. O segundo comando identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
 
 ## Coleta e integração de vagas
 
@@ -170,26 +180,39 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 
 | Plataforma / integração | Empresas configuradas |
 |---|---|
-| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip e Banco Inter |
+| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip, Banco Inter e iFood |
+| Portal próprio de carreiras | BTG Pactual (API pública do board, com identidade de importação preservada para evitar duplicidade com o cadastro Greenhouse anterior) |
 | Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
-| Workday | PwC |
+| Workday | PwC e ABC Fitness |
 | Workable | RecargaPay |
+| Teamtailor | ABGi Consulting e Amanco Wavin |
 | InHire | Orizon e Brivia |
-| Gupy | Montreal, Claro, AZZAS 2154, CEPEL e E-Deploy / 3S Checkout |
+| Gupy | Itaú, Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Alpargatas (somente TI), Quality Digital e NEXDOM Healthtech |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
-| Recrut.ai | Grupo Bamaq |
-| Pandapé | FIESC, SONDA IT e Adecco |
+| Recrut.ai | Grupo Bamaq e TPF Engenharia |
+| Pandapé | FIESC, SONDA IT, Adecco e Minsait Brasil |
 | Zoho Recruit | Spassu |
 | TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
 | JobConvo | Adecco |
+| Portal próprio / API SYDLE ONE | LEVTY |\n| SmartRecruiters | Empresas configuradas em `config/vacancy_sources.php` |
+| Bradesco CSOD | Bradesco e Bradesco Seguros |
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
+| Mindsight | Guidance |
 
-A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+
+### Publicações públicas do LinkedIn
+
+O projeto possui uma rotina experimental de descoberta de publicações públicas por mecanismos de busca. Ela não realiza login no LinkedIn nem garante acesso ao conteúdo integral ou aos comentários. Quando os dados disponíveis são suficientes e passam pelas validações, o sistema cadastra a oportunidade automaticamente; registros incompletos ou inválidos são rejeitados, sem fila de revisão manual.
+
+Detalhes, limitações e configuração: [docs/ColetaPublicacoesLinkedIn.md](docs/ColetaPublicacoesLinkedIn.md).
 
 ### Agregadores de vagas
 
-Até esta implementação, DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta** do TI Vagas. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
+O RJ Empregos está integrado como agregador via feed RSS público. O coletor percorre as publicações recentes, preserva a data original do feed e só importa anúncios cuja página apresente um link externo direto de candidatura. Links internos do próprio RJ Empregos, redirecionamentos sem destino verificável e anúncios sem data original são descartados. Como o portal divulga vagas de diferentes áreas e níveis, os critérios gerais do TI Vagas continuam responsáveis por selecionar o que será exibido ao público.
+
+DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta**. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
 
 A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
 
@@ -507,3 +530,11 @@ Sugestões, identificação de anúncios incorretos e contribuições para melho
 ---
 
 **TI Vagas — Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
+
+
+## Integrações IBM e Microsoft
+
+- **IBM:** consulta a API de busca de carreiras, restringe a coleta aos níveis Entry Level e Internship e filtra oportunidades de tecnologia. Registros sem data original de publicação são descartados.
+- **Microsoft:** consulta o portal Eightfold para vagas no Brasil, recupera a descrição individual e mantém oportunidades de tecnologia com indicação de júnior, início de carreira ou estágio.
+
+As integrações possuem testes automatizados com respostas simuladas. A disponibilidade real depende das APIs externas e deve ser monitorada após a publicação.

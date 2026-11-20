@@ -420,13 +420,34 @@ class InhireSource implements VacancySource
         string $title,
         string $description
     ): bool {
-        $text = Str::ascii(
-            mb_strtolower($title . ' ' . $description)
+        $normalizedTitle = Str::ascii(mb_strtolower($title));
+        $normalizedDescription = Str::ascii(
+            mb_strtolower(strip_tags($description))
         );
 
-        return preg_match(
-            '/desenvolvedor|developer|programador|programmer|software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte ti|suporte tecnico|suporte n[1-3]|help.?desk|service desk|infraestrutura|infra|redes|cloud|devops|banco de dados|database|analista de dados|data analyst|engenheiro de dados|data engineer|business intelligence|quality assurance|testes de software|qa|seguranca da informacao|cyber security|sistemas|salesforce|consultor sap|administrador de sistemas|administrador salesforce|automacao de sistemas/',
-            $text
+        // Do not collect data, BI, ML, ERP, CRM or functional-system roles.
+        if (preg_match(
+            '/\\b(dados|data|bi|business intelligence|analytics|analise de dados|ciencia de dados|machine learning|aprendizado de maquina|engenharia de dados|data science|crm|erp|sap|abap|salesforce|consultor funcional|sistemas corporativos)\\b/i',
+            $normalizedTitle
+        ) === 1) {
+            return false;
+        }
+
+        if (preg_match(
+            '/\\b(desenvolvedor|desenvolvedora|developer|programador|programadora|programmer|software engineer|engenheiro de software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|administrador de sistemas|analista de suporte|suporte ti|suporte tecnico|suporte n[1-3]|help.?desk|service desk|infraestrutura|infra|redes|network|cloud|devops|sre|quality assurance|testes de software|qa|seguranca da informacao|cyber security|cybersecurity|ciberseguranca|soc|telecomunicacoes|telecom|analista de ti|tecnico de ti|especialista de ti|analista de tecnologia|especialista de tecnologia)\\b/i',
+            $normalizedTitle
+        ) === 1) {
+            return true;
+        }
+
+        $genericTitle = preg_match(
+            '/\\b(analista|especialista|tecnico|tecnica|engenheiro|engenheira|coordenador|coordenadora)\\b/i',
+            $normalizedTitle
+        ) === 1;
+
+        return $genericTitle && preg_match(
+            '/\\b(desenvolvimento de software|desenvolvimento de sistemas|infraestrutura de ti|redes de computadores|administracao de servidores|suporte de ti|suporte tecnico|devops|cloud|ciberseguranca|seguranca da informacao|quality assurance|telecomunicacoes|telecom)\\b/i',
+            $normalizedDescription
         ) === 1;
     }
 

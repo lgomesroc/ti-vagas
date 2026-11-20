@@ -1,0 +1,99 @@
+# Atualizações Recentes do Projeto
+
+Este documento registra as principais alterações recentes incorporadas à branch `developer`, com foco nas integrações de oportunidades, no fluxo de descoberta de publicações do LinkedIn e na organização da documentação.
+
+## 1. Descoberta de oportunidades no LinkedIn
+
+Foi implementado um fluxo para descobrir publicações públicas relacionadas a recrutamento e oportunidades em tecnologia.
+
+### Descoberta
+
+O serviço `LinkedInPostSearchClient` consulta:
+
+- DuckDuckGo, pela página pública de resultados;
+- Brave Search, quando a chave da API está configurada;
+- Mojeek, quando a chave da API está configurada.
+
+As consultas usam palavras-chave de recrutamento e tecnologia e restringem os resultados a URLs de publicações do LinkedIn. Os resultados são combinados e deduplicados pela URL. A janela padrão de análise é de 72 horas.
+
+A coleta é executada pelo comando:
+
+```bash
+php artisan linkedin:collect-posts
+```
+
+O agendamento está configurado quatro vezes ao dia, às 06h, 10h, 14h e 18h, no fuso `America/Sao_Paulo`. A execução depende de `LINKEDIN_POSTS_ENABLED=true`; por padrão, a configuração é desabilitada.
+
+### Validação dos candidatos
+
+O processador aplica verificações antes de encaminhar uma publicação para revisão:
+
+- data recuperável dentro da janela configurada;
+- sinais de recrutamento;
+- rejeição de chamadas de engajamento que condicionem informações, links ou candidatura a comentários, palavras-chave ou contato privado por DM;
+- exigência de e-mail corporativo de candidatura, rejeitando provedores pessoais conhecidos;
+- identificação de links repetidos em vagas e candidatos já registrados;
+- inspeção de URLs e bloqueio de agregadores ou destinos considerados inválidos;
+- aplicação das regras editoriais de área, senioridade, experiência e localização.
+
+Os registros são armazenados como candidatos. Mesmo os que passam pelos filtros automáticos permanecem em revisão manual: não há publicação automática de vagas no portal.
+
+### Limitações técnicas importantes
+
+Os buscadores fornecem resultados de descoberta, não uma cópia integral e confiável da publicação original. Snippets podem omitir texto, links, e-mails, data exata, comentários e informações sobre promoção/patrocínio.
+
+Existe a classe `LinkedInPublicPostFetcher`, preparada para tentar enriquecer uma página de post que esteja publicamente acessível sem sessão. Ela não usa login, cookies pessoais, contorno de desafios ou repetição de tentativas após bloqueios. **Entretanto, a execução atual do comando de coleta não injeta esse serviço no fluxo do processador.** Portanto, não se deve afirmar que a coleta agendada atualmente lê o conteúdo integral ou os comentários dos posts.
+
+O processador aceita comentários quando eles são fornecidos no payload, mas o cliente de busca atual inicia os candidatos com uma lista vazia de comentários. A análise de comentários depende de uma fonte de entrada compatível e ainda não está integrada ao comando agendado.
+
+Da mesma forma, o descarte de publicações promovidas ocorre quando a fonte informa explicitamente `isPromoted=true`. Os buscadores atuais não fornecem esse indicador de forma confiável; sua ausência não comprova que a publicação não seja patrocinada.
+
+Não utilizar sessões autenticadas, cookies pessoais, automação de navegador para contornar controles de acesso ou fornecedores que revendam conteúdo obtido por scraping em desacordo com as condições aplicáveis. Uma integração mais completa depende de uma fonte autorizada e de escopo compatível.
+
+## 2. Novas fontes Gupy
+
+Foram incorporadas fontes independentes à configuração do coletor:
+
+- Drogaria Globo;
+- Skill Consultoria;
+- Smart NX;
+- C&A;
+- Viceri.
+
+Os cadastros preservam a identificação de cada empresa e sua respectiva página de carreiras. A Drogaria Globo é uma fonte separada da empresa Globo; não se deve confundir os dois cadastros.
+
+Os detalhes e as particularidades dos filtros dessas fontes estão em [Fontes Gupy Recentes](FontesGupyRecentes.md). A configuração efetiva permanece em `config/vacancy_sources.php`.
+
+## 3. Validação de publicações com chamadas a DM
+
+As regras de validação foram ampliadas para rejeitar publicações que direcionem candidatos a mensagens privadas para obter informações essenciais sobre a oportunidade ou a candidatura.
+
+A validação considera expressões relacionadas a chamar, enviar mensagem ou entrar em contato por DM, Direct, inbox ou mensagem privada. O objetivo é evitar anúncios em que o link ou os detalhes da candidatura dependam de contato privado.
+
+A regra é aplicada ao texto do próprio post. Uma frase isolada em comentário não deve, por si só, invalidar a publicação. Comentários podem conter informações públicas úteis, mas só podem ser avaliados quando forem efetivamente fornecidos por uma fonte compatível.
+
+## 4. Organização e documentação do repositório
+
+A documentação foi ampliada e a árvore do projeto foi atualizada a partir da branch `developer`.
+
+O arquivo [Estrutura do Projeto](EstruturaDoProjeto.md) apresenta os diretórios e arquivos versionados. Em cada nível, as pastas aparecem primeiro em ordem alfabética e, em seguida, os arquivos também em ordem alfabética.
+
+A documentação técnica por assunto está relacionada no [README principal](../README.md).
+
+## 5. Referências de implementação
+
+| Assunto | Arquivos principais |
+|---|---|
+| Descoberta no LinkedIn | `app/Services/LinkedInPostSearchClient.php` |
+| Processamento e validação de candidatos | `app/Services/LinkedInPostCandidateProcessor.php` |
+| Busca agendada | `app/Console/Commands/CollectLinkedInPosts.php` e `routes/console.php` |
+| Enriquecimento de páginas públicas | `app/Services/LinkedInPublicPostFetcher.php` |
+| Configuração do LinkedIn | `config/linkedin.php` |
+| Fontes de recrutamento | `config/vacancy_sources.php` |
+| Testes | `tests/Feature` e `tests/Unit` |
+
+## 6. Como interpretar este documento
+
+Este é um resumo de alterações recentes, não uma substituição dos documentos técnicos específicos. Para regras detalhadas de elegibilidade, localização, segurança, instalação, automação e coleta, consulte os documentos correspondentes na pasta `docs/`.
+
+A existência de uma integração no código não garante que o serviço externo esteja sempre disponível, que todos os anúncios sejam encontrados ou que uma candidatura permaneça aberta. A disponibilidade real depende das fontes externas, da configuração de ambiente e da execução bem-sucedida das rotinas.

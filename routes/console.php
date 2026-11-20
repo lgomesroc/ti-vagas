@@ -14,25 +14,25 @@ Schedule::command('vacancies:collect')
     ->withoutOverlapping();
 
 /*
- * Publicações públicas do LinkedIn: execução local independente das fontes
- * tradicionais de vagas. O scheduler local deve rodar a cada minuto.
+ * LinkedIn: separa a pesquisa pública via DuckDuckGo do navegador autenticado.
+ * Os horários são fixos em America/Sao_Paulo e não se sobrepõem.
  */
-Schedule::command('linkedin:collect-posts')
+Schedule::command('linkedin:collect-posts --mode=bot')
+    ->dailyAt('00:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
+Schedule::command('linkedin:collect-posts --mode=bot')
+    ->dailyAt('12:00')
+    ->timezone('America/Sao_Paulo')
+    ->withoutOverlapping();
+
+Schedule::command('linkedin:collect-posts --mode=duckduckgo')
     ->dailyAt('06:00')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
-Schedule::command('linkedin:collect-posts')
-    ->dailyAt('10:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
-Schedule::command('linkedin:collect-posts')
-    ->dailyAt('14:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
-Schedule::command('linkedin:collect-posts')
+Schedule::command('linkedin:collect-posts --mode=duckduckgo')
     ->dailyAt('18:00')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();

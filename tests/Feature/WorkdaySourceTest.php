@@ -81,4 +81,55 @@ class WorkdaySourceTest extends TestCase
 
         $this->assertSame([], collect($source->fetch())->all());
     }
+
+    public function test_it_builds_the_application_url_without_a_locale_prefix_when_configured(): void
+    {
+        $endpoint = 'https://abcfinancial.wd5.myworkdayjobs.com/wday/cxs/abcfinancial/ABCFinancialServices/jobs';
+        $detailUrl = 'https://abcfinancial.wd5.myworkdayjobs.com/wday/cxs/abcfinancial/ABCFinancialServices/job/Brazil/Desenvolvedor-Backend-Jr_REQ-1604';
+
+        Http::fake(function ($request) use ($endpoint, $detailUrl) {
+            return match ($request->url()) {
+                $endpoint => Http::response([
+                    'total' => 1,
+                    'jobPostings' => [[
+                        'title' => 'Desenvolvedor Backend Jr',
+                        'externalPath' => '/job/Brazil/Desenvolvedor-Backend-Jr_REQ-1604',
+                        'locationsText' => 'Brazil',
+                    ]],
+                ]),
+                $detailUrl => Http::response([
+                    'jobPostingInfo' => [
+                        'title' => 'Desenvolvedor Backend Jr',
+                        'jobDescription' => '<p>Backend development with C# and .NET.</p>',
+                        'startDate' => '2026-11-16',
+                        'location' => 'Brazil',
+                        'remoteType' => 'Remote',
+                        'jobReqId' => 'REQ -1604',
+                        'externalUrl' => '',
+                        'timeType' => 'full_time',
+                    ],
+                ]),
+                default => Http::response(['unexpected_url' => $request->url()], 500),
+            };
+        });
+
+        $source = new WorkdaySource(
+            host: 'abcfinancial.wd5.myworkdayjobs.com',
+            tenant: 'abcfinancial',
+            site: 'ABCFinancialServices',
+            companyName: 'ABC Fitness',
+            locale: '',
+        );
+
+        $vacancies = collect($source->fetch())->all();
+
+        $this->assertCount(1, $vacancies);
+        $this->assertSame(
+            'https://abcfinancial.wd5.myworkdayjobs.com/ABCFinancialServices/job/Brazil/Desenvolvedor-Backend-Jr_REQ-1604',
+            $vacancies[0]['application_url']
+        );
+        $this->assertSame('ABC Fitness', $vacancies[0]['company']);
+        $this->assertSame('Remoto', $vacancies[0]['work_model']);
+    }
+
 }

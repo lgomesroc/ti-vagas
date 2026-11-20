@@ -61,6 +61,38 @@ class GupySourceTest extends TestCase
         $this->assertSame('full_time', $vacancies[0]['employment_type']);
     }
 
+
+    public function test_it_excludes_non_technology_roles_when_technology_only_is_enabled(): void
+    {
+        $baseUrl = 'https://empresa-teste.gupy.io';
+        $listing = '<script id="__NEXT_DATA__" type="application/json">'
+            . json_encode(['props' => ['pageProps' => ['jobs' => [['id' => 987]]]]])
+            . '</script><a href="/jobs/987">Vaga</a>';
+        $posting = [
+            '@type' => 'JobPosting',
+            'title' => 'Analista de BI Júnior',
+            'description' => 'Atuação com indicadores e relatórios.',
+            'datePosted' => '2026-11-10',
+        ];
+        $detail = '<script type="application/ld+json">'
+            . json_encode($posting)
+            . '</script>';
+
+        Http::fake([
+            $baseUrl . '/' => Http::response($listing),
+            $baseUrl . '/jobs/987' => Http::response($detail),
+        ]);
+
+        $source = new GupySource(
+            subdomain: 'empresa-teste',
+            companyName: 'Empresa Teste',
+            baseUrl: $baseUrl,
+            technologyOnly: true,
+        );
+
+        $this->assertSame([], collect($source->fetch())->all());
+    }
+
     public function test_it_discards_talent_pool_announcements(): void
     {
         $baseUrl = 'https://empresa-teste.gupy.io';
@@ -84,5 +116,36 @@ class GupySourceTest extends TestCase
         $source = new GupySource('empresa-teste', 'Empresa Teste', baseUrl: $baseUrl);
 
         $this->assertSame([], collect($source->fetch())->all());
+    }
+
+    public function test_skill_consultoria_is_registered_without_technology_only_restriction(): void
+    {
+        $skill = config('vacancy_sources.gupy.companies.skill-consultoria');
+
+        $this->assertSame('Skill Consultoria', $skill['name']);
+        $this->assertSame('https://skillconsultoria.gupy.io/', $skill['url']);
+        $this->assertArrayNotHasKey('technology_only', $skill);
+    }
+
+    public function test_drogaria_globo_is_registered_separately_from_globo(): void
+    {
+        $drogariaGlobo = config('vacancy_sources.gupy.companies.drogaria-globo');
+        $globo = config('vacancy_sources.gupy.companies.globo');
+
+        $this->assertSame('Drogaria Globo', $drogariaGlobo['name']);
+        $this->assertSame('https://drogariaglobo.gupy.io/', $drogariaGlobo['url']);
+        $this->assertTrue($drogariaGlobo['technology_only']);
+
+        $this->assertSame('Globo', $globo['name']);
+        $this->assertSame('https://globo.gupy.io/', $globo['url']);
+    }
+
+    public function test_light_is_registered_as_a_technology_only_gupy_source(): void
+    {
+        $light = config('vacancy_sources.gupy.companies.talentoslight');
+
+        $this->assertSame('Light', $light['name']);
+        $this->assertSame('https://talentoslight.gupy.io/', $light['url']);
+        $this->assertTrue($light['technology_only']);
     }
 }

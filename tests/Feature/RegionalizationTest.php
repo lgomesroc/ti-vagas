@@ -10,7 +10,6 @@ use App\Services\Geo\MunicipalityDirectory;
 use App\Services\Geo\VacancyLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\Concerns\BuildsVerifiedLocationSession;
 use Tests\Concerns\SeedsGeography;
 use Tests\TestCase;
@@ -522,83 +521,57 @@ class RegionalizationTest extends TestCase
             ->assertDontSee($vacancy->title);
     }
 
-    public function test_ibge_api_payload_is_applied_and_curated_units_replace_ibge_rms(): void
+    public function test_imports_official_dtb_csv_and_preserves_existing_coordinates(): void
     {
-        // O importador recusa respostas com menos de 5.000 municípios. Os
-        // itens de enchimento não têm região imediata e são ignorados.
-        $filler = array_map(
-            fn (int $id): array => ['id' => 9000000 + $id],
-            range(1, 5000)
-        );
+        $path = tempnam(sys_get_temp_dir(), 'dtb-2025-');
+        $handle = fopen($path, 'w');
 
-        Http::fake([
-            '*/v1/localidades/municipios' => Http::response(array_merge([
-                [
-                    'id' => (int) $this->ibge('Teresópolis', 'RJ'),
-                    'nome' => 'Teresópolis',
-                    'regiao-imediata' => [
-                        'id' => 330012,
-                        'nome' => 'Teresópolis',
-                        'regiao-intermediaria' => [
-                            'id' => 3303,
-                            'nome' => 'Petrópolis',
-                        ],
-                    ],
-                ],
-            ], $filler)),
-            '*/v1/localidades/regioes-imediatas' => Http::response([
-                [
-                    'id' => 330012,
-                    'nome' => 'Teresópolis',
-                    'regiao-intermediaria' => [
-                        'id' => 3303,
-                        'nome' => 'Petrópolis',
-                    ],
-                ],
-            ]),
-            '*/v1/localidades/regioes-metropolitanas' => Http::response([
-                [
-                    'id' => '3301',
-                    'nome' => 'Região Metropolitana do Rio de Janeiro',
-                    'municipios' => [
-                        ['id' => (int) $this->ibge('Teresópolis', 'RJ')],
-                    ],
-                ],
-                [
-                    'id' => '4201',
-                    'nome' => 'Florianópolis',
-                    'municipios' => [
-                        ['id' => (int) $this->ibge('Florianópolis', 'SC')],
-                        ['id' => (int) $this->ibge('São José', 'SC')],
-                    ],
-                ],
-            ]),
+        fputcsv($handle, [
+            'codigo_ibge', 'nome', 'codigo_uf',
+            'intermediate_region_code', 'intermediate_region_name',
+            'immediate_region_code', 'immediate_region_name',
         ]);
 
-        $importer = app(IbgeGeographyImporter::class);
-        $result = $importer->importFromIbgeApi();
+        foreach (Municipality::query()->orderBy('ibge_code')->get() as $municipality) {
+            $isRio = $municipality->state_code === 'RJ';
+            fputcsv($handle, [
+                $municipality->ibge_code,
+                $municipality->name,
+                substr($municipality->ibge_code, 0, 2),
+                $isRio ? '3303' : '3501',
+                $isRio ? 'Petrópolis' : 'São Paulo',
+                $isRio ? '330012' : '350001',
+                $isRio ? 'Teresópolis' : 'Campinas',
+            ]);
+        }
 
-        Http::assertSent(fn ($request): bool =>
-            str_ends_with($request->url(), '/v1/localidades/regioes-imediatas')
-        );
+        fclose($handle);
 
-        $this->assertSame(1, $result['municipalities']);
-        // A RM do Rio da API foi ignorada: o ajuste local prevalece.
-        $this->assertSame(2, $result['metropolitan']);
+        try {
+            $importer = app(IbgeGeographyImporter::class);
+            $result = $importer->importFromDtbCsv($path);
 
-        $this->assertSame([], $importer->applyCuratedUnits());
+            $this->assertSame(5571, $result['municipalities']);
+            $this->assertSame(2, $result['intermediate_regions']);
+            $this->assertSame(2, $result['immediate_regions']);
 
-        $teresopolis = Municipality::query()
-            ->where('ibge_code', $this->ibge('Teresópolis', 'RJ'))
-            ->first();
+            $teresopolis = Municipality::query()
+                ->where('ibge_code', $this->ibge('Teresópolis', 'RJ'))
+                ->firstOrFail();
 
-        $this->assertSame('3303', $teresopolis->intermediate_region_code);
-        $this->assertNull($teresopolis->region_code);
+            $this->assertSame('3303', $teresopolis->intermediate_region_code);
+            $this->assertSame('Petrópolis', $teresopolis->intermediate_region_name);
+            $this->assertSame('330012', $teresopolis->immediate_region_code);
+            $this->assertNotNull($teresopolis->latitude);
+            $this->assertNotNull($teresopolis->longitude);
 
-        $florianopolis = Municipality::query()
-            ->where('ibge_code', $this->ibge('Florianópolis', 'SC'))
-            ->first();
-
-        $this->assertSame('RM-4201', $florianopolis->region_code);
+            $this->assertDatabaseHas('geography_import_status', [
+                'source' => 'ibge-dtb-2025',
+                'records_count' => 5571,
+            ]);
+        } finally {
+            @unlink($path);
+        }
     }
+
 }

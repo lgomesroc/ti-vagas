@@ -29,7 +29,8 @@ A atualização é feita por requisições pontuais com `navigator.geolocation.g
 
 ## Dados territoriais
 
-- `database/data/municipios.csv`: municípios, unidades federativas e centroides.
+- `ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods`: planilha oficial da DTB 2025, lida diretamente pelo importador.
+- `database/data/municipios.csv`: origem histórica dos centroides; as coordenadas existentes são preservadas por código IBGE durante a atualização da DTB.
 - `config/geo_regions.php`: ajustes manuais de regiões metropolitanas e RIDEs.
 - `app/Services/Geo`: importação e resolução de dados geográficos.
 - `app/Services/VacancyLocationFilter.php`: aplicação dos critérios regionais na consulta de vagas.
@@ -43,7 +44,7 @@ php artisan geo:import-ibge
 php artisan vacancies:resolve-municipalities
 ```
 
-O comando de importação consulta a API de localidades do IBGE. A opção `--offline` utiliza os dados locais e os ajustes manuais. Em implantação, o Dockerfile executa a importação com `--if-empty`.
+A importação lê diretamente a planilha ODS da DTB 2025 versionada em `ibge/extraido/RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods`, sem exigir CSV intermediário nem chamadas à API. O Dockerfile executa `geo:import-ibge --if-empty` no deploy.
 
 ## Privacidade e limitações
 

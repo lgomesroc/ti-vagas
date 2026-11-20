@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: "0 6,10,14,18 * * *"
       timezone: "America/Sao_Paulo"
-
   workflow_dispatch:
 
 permissions:
@@ -17,8 +16,7 @@ concurrency:
 jobs:
   collect-linkedin-posts:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 45
     env:
       APP_ENV: production
       APP_DEBUG: "false"
@@ -30,6 +28,9 @@ jobs:
       QUEUE_CONNECTION: database
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
+      LINKEDIN_HEADLESS: "true"
+      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "false"
+      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
 
     steps:
       - name: Checkout
@@ -44,11 +45,32 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
           coverage: none
 
-      - name: Instalar dependências
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Instalar dependências Node
+        run: npm ci --ignore-scripts
+
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Restaurar sessão da conta secundária
+        if: ${{ env.LINKEDIN_SECONDARY_ACCOUNT_ENABLED == 'true' }}
+        env:
+          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
+        run: |
+          mkdir -p .local
+          printf '%s' "$LINKEDIN_STORAGE_STATE_B64" | base64 --decode > "$LINKEDIN_STORAGE_STATE_PATH"
+          chmod 600 "$LINKEDIN_STORAGE_STATE_PATH"
 
       - name: Aplicar migrações pendentes
         run: php artisan migrate --force
 
-      - name: Coletar publicações públicas do LinkedIn
+      - name: Coletar, validar e cadastrar publicações
         run: php artisan linkedin:collect-posts

@@ -89,6 +89,7 @@ class OracleHcmSourceTest extends TestCase
         return new OracleHcmSource(
             siteNumber: 'CX_1',
             siteName: 'Empresa',
+            baseUrl: 'https://iaziqy.fa.ocs.oraclecloud.com',
             companyName: 'Empresa Teste',
             maxJobs: 10,
         );

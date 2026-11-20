@@ -133,10 +133,7 @@ class VacancyImporter
 
             if (
                 !$valid ||
-                !filter_var(
-                    $data['application_url'],
-                    FILTER_VALIDATE_URL
-                ) ||
+                !$this->isValidApplicationUrl($data['application_url']) ||
                 empty($data['original_published_at'])
             ) {
                 $result['skipped']++;
@@ -217,5 +214,22 @@ class VacancyImporter
         }
 
         return $result;
+    }
+
+    private function isValidApplicationUrl(string $url): bool
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return in_array(
+                strtolower((string) parse_url($url, PHP_URL_SCHEME)),
+                ['http', 'https'],
+                true
+            );
+        }
+
+        if (str_starts_with(strtolower($url), 'mailto:')) {
+            return filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false;
+        }
+
+        return false;
     }
 }

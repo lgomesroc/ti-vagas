@@ -22,13 +22,6 @@
 */
 
 return [
-    'ibge_base_url' => env(
-        'IBGE_API_BASE_URL',
-        'https://servicodados.ibge.gov.br/api'
-    ),
-
-    'ca_bundle' => env('VACANCY_CA_BUNDLE'),
-
     'units' => [
 
         // Região Metropolitana do Rio de Janeiro (22 municípios).
