@@ -9,7 +9,6 @@ use App\Services\Geo\VisitorLocationResolver;
 use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -299,20 +298,87 @@ class VacancyController extends Controller
             ])
             ->where('availability_status', 'active')
             ->whereNotNull('original_published_at')
-            ->where('original_published_at', '>=', now()->subDays(60));
-
-        $this->applySqlFilters($query, $search);
-
-        $query
+            ->where('original_published_at', '>=', now()->subDays(60))
             ->orderByDesc('original_published_at')
             ->orderByDesc('collected_at')
             ->orderByRaw("CASE WHEN lower(title) LIKE '%exclusivo pcd%' THEN 1 ELSE 0 END ASC")
             ->orderByDesc('id');
 
+        $normalizedSearch = $this->normalize($search);
         $seenDuplicateKeys = [];
 
         foreach ($query->cursor() as $vacancy) {
+            if ($normalizedSearch !== '') {
+                $searchableText = $this->normalize(implode(' ', [
+                    $vacancy->title,
+                    $vacancy->company,
+                    $vacancy->location ?? '',
+                    $vacancy->description,
+                ]));
+
+                if (!Str::contains($searchableText, $normalizedSearch)) {
+                    continue;
+                }
+            }
+
+            if ($this->availabilityDetector->isUnavailable(
+                $vacancy->title,
+                $vacancy->description
+            )) {
+                continue;
+            }
+
             $title = $this->normalize($vacancy->title);
+
+            if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
+                continue;
+            }
+
+            if (
+                preg_match('/\\bpl\\s*$/i', $title) ||
+                preg_match('/\\bsoftware engineer\\s+(?:iii|iv|v)\\b/i', $title)
+            ) {
+                continue;
+            }
+
+            $description = $this->normalize($vacancy->description);
+
+            if (preg_match(
+                '/\\b(?:3|[4-9]|\\d{2,})\\s*(?:(?:\\+|plus)\\s*)?(?:[-–]\\s*(?:3|[4-9]|\\d{2,})\\s*)?(?:years?|anos)\\b/i',
+                $description
+            )) {
+                continue;
+            }
+
+            if (preg_match(
+                '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\\b(?:pleno|senior|sr|staff|principal|lead)\\b|\\b(?:pleno|senior|sr|staff|principal|lead)\\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
+                $description
+            )) {
+                continue;
+            }
+
+            $isRadarTecFullStackException =
+                $vacancy->source === 'radartec'
+                && (string) $vacancy->external_id === '13421'
+                && str_contains($title, 'desenvolvedor full stack web');
+
+            if (
+                !$isRadarTecFullStackException &&
+                preg_match(
+                    '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
+                    $description
+                )
+            ) {
+                continue;
+            }
+
+            if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
+                continue;
+            }
+
+            if (!$this->isTechnologyRole($title)) {
+                continue;
+            }
 
             $workModel = $this->locationFilter->classifyWorkModel(
                 $vacancy->title,
@@ -350,259 +416,6 @@ class VacancyController extends Controller
 
             yield $vacancy;
         }
-    }
-
-    /**
-     * Executa no PostgreSQL os filtros editoriais textuais. A regra regional
-     * permanece em PHP porque depende da resolução do município e da sessão.
-     */
-    private function applySqlFilters(Builder $query, string $search): void
-    {
-        $title = $this->normalizedSqlExpression('title');
-        $description = $this->normalizedSqlExpression('description');
-
-        $technologyTerms = array_merge(
-            self::DEVELOPMENT_TERMS,
-            self::SUPPORT_TERMS,
-            self::INFRASTRUCTURE_TERMS
-        );
-
-        $query
-            ->whereRaw("{$title} !~ ?", [$this->termsRegex(self::EXCLUDED_SENIORITY_TERMS)])
-            ->whereRaw("{$title} !~ ?", ['pl[[:space:]]*
-        Collection $vacancies
-    ): Collection {
-        return $vacancies
-            ->groupBy(function (Vacancy $vacancy) {
-                $normalizedTitle = $this->normalize(
-                    $vacancy->title
-                );
-
-                if (!preg_match(
-                    '/\((\d{4,})\)/',
-                    $normalizedTitle,
-                    $matches
-                )) {
-                    return 'unique-' . $vacancy->id;
-                }
-
-                return implode('|', [
-                    $this->normalize($vacancy->company),
-                    $matches[1],
-                ]);
-            })
-            ->map(function (Collection $group) {
-                return $group
-                    ->sort(function (Vacancy $a, Vacancy $b) {
-                        $dateComparison = $b->original_published_at
-                            <=> $a->original_published_at;
-
-                        if ($dateComparison !== 0) {
-                            return $dateComparison;
-                        }
-
-                        $collectionComparison = $b->collected_at
-                            <=> $a->collected_at;
-
-                        if ($collectionComparison !== 0) {
-                            return $collectionComparison;
-                        }
-
-                        $aIsExclusivePcd = str_contains(
-                            $this->normalize($a->title),
-                            'exclusivo pcd'
-                        );
-
-                        $bIsExclusivePcd = str_contains(
-                            $this->normalize($b->title),
-                            'exclusivo pcd'
-                        );
-
-                        if ($aIsExclusivePcd !== $bIsExclusivePcd) {
-                            return $aIsExclusivePcd ? 1 : -1;
-                        }
-
-                        return $b->id <=> $a->id;
-                    })
-                    ->first();
-            })
-            ->sortByDesc('original_published_at')
-            ->values();
-    }
-
-    private function isTechnologyRole(string $title): bool
-    {
-        return $this->containsAny(
-            $title,
-            self::DEVELOPMENT_TERMS
-        )
-            || $this->containsAny(
-                $title,
-                self::SUPPORT_TERMS
-            )
-            || $this->containsAny(
-                $title,
-                self::INFRASTRUCTURE_TERMS
-            );
-    }
-
-    private function containsAny(
-        string $text,
-        array $terms
-    ): bool {
-        foreach ($terms as $term) {
-            $normalizedTerm = $this->normalize($term);
-
-            if (preg_match(
-                '/(^|[^a-z0-9])' .
-                preg_quote($normalizedTerm, '/') .
-                '([^a-z0-9]|$)/',
-                $text
-            )) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function normalize(?string $value): string
-    {
-        return Str::ascii(mb_strtolower($value ?? ''));
-    }
-
-    public function index(Request $request): View
-    {
-        $search = trim($request->query('q', ''));
-
-        $perPage = 12;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $firstItem = ($currentPage - 1) * $perPage;
-        $total = 0;
-        $items = [];
-
-        foreach ($this->eligibleVacancies(
-            $this->visitorLocationResolver->scopeFromSession(
-                $request->session()
-            ),
-            $search
-        ) as $vacancy) {
-            if ($total >= $firstItem && count($items) < $perPage) {
-                $items[] = $vacancy;
-            }
-
-            $total++;
-        }
-
-        $items = collect($items);
-
-        $vacancies = new LengthAwarePaginator(
-            $items,
-            $total,
-            $perPage,
-            $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        );
-
-        return view('vacancies.index', [
-            'vacancies' => $vacancies,
-            'search' => $search,
-            'locationMode' => $request->session()->get('location_mode', 'limited'),
-            'ipLocationLabel' => $request->session()->get('ip_location_label'),
-        ]);
-    }
-
-    public function show(
-        Request $request,
-        Vacancy $vacancy
-    ): View {
-        $eligibleVacancy = null;
-
-        foreach ($this->eligibleVacancies(
-            $this->visitorLocationResolver->scopeFromSession(
-                $request->session()
-            )
-        ) as $candidate) {
-            if ($candidate->is($vacancy)) {
-                $eligibleVacancy = $candidate;
-                break;
-            }
-        }
-
-        abort_unless($eligibleVacancy, 404);
-
-        return view('vacancies.show', [
-            'vacancy' => $eligibleVacancy,
-        ]);
-    }
-}
-])
-            ->whereRaw("{$title} !~ ?", ['software engineer[[:space:]]+(iii|iv|v)([^a-z0-9]|$)'])
-            ->whereRaw("{$title} !~ ?", [$this->termsRegex(self::IRRELEVANT_TERMS)])
-            ->whereRaw("{$title} ~ ?", [$this->termsRegex($technologyTerms)])
-            ->whereRaw(
-                "{$description} !~ ?",
-                ['(^|[^a-z0-9])(3|[4-9]|[0-9]{2,})[[:space:]]*([+]|plus)?[[:space:]]*(-[[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
-            )
-            ->whereRaw(
-                "{$description} !~ ?",
-                ['((desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$)|(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead).{0,80}(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer))']
-            );
-
-        // Exceção já existente para a vaga específica da RadarTec.
-        $strongExperience = '(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)';
-        $query->where(function (Builder $nested) use ($description, $strongExperience) {
-            $nested->whereRaw("{$description} !~ ?", [$strongExperience])
-                ->orWhere(function (Builder $exception) {
-                    $exception->where('source', 'radartec')
-                        ->where('external_id', '13421')
-                        ->whereRaw(
-                            $this->normalizedSqlExpression('title') . ' ~ ?',
-                            ['desenvolvedor full stack web']
-                        );
-                });
-        });
-
-        // Expressões inequívocas de encerramento/cancelamento no título ou descrição.
-        $unavailable = '(encerrad[ao]s?|finalizad[ao]s?|cancelad[ao]s?|suspens[ao]s?|pausad[ao]s?|congelad[ao]s?|preenchid[ao]s?|removid[ao]s?|closed|filled|cancelled|canceled|suspended|paused|completed|finished|expired)';
-        $query
-            ->whereRaw(
-                "{$title} !~ ?",
-                ['(^|[^a-z0-9])' . $unavailable . '([^a-z0-9]|$)']
-            )
-            ->whereRaw(
-                "NOT ({$description} ~ ?)",
-                ['((esta|a|essa|desta)?[[:space:]]*(vaga|oportunidade|posicao)[[:space:]]+(foi[[:space:]]+)?' . $unavailable . '|inscricoes[[:space:]]+(foram[[:space:]]+)?encerradas|candidaturas[[:space:]]+(foram[[:space:]]+)?encerradas|no longer accepting applications|this (job|position|role|opportunity) is no longer available|applications (are|have been|were) closed)']
-            );
-
-        $normalizedSearch = $this->normalize($search);
-
-        if ($normalizedSearch !== '') {
-            $searchable = $this->normalizedSqlExpression(
-                "concat_ws(' ', title, company, location, description)"
-            );
-            $query->whereRaw("position(? in {$searchable}) > 0", [$normalizedSearch]);
-        }
-    }
-
-    private function normalizedSqlExpression(string $column): string
-    {
-        return "translate(lower(coalesce({$column}, '')), "
-            . "'áàâãäåéèêëíìîïóòôõöúùûüçñ', "
-            . "'aaaaaaeeeeiiiioooouuuucn')";
-    }
-
-    private function termsRegex(array $terms): string
-    {
-        $alternatives = array_map(
-            fn (string $term): string => preg_quote($this->normalize($term), '/'),
-            $terms
-        );
-
-        return '(^|[^a-z0-9])(' . implode('|', $alternatives) . ')([^a-z0-9]|$)';
     }
 
     private function removeDuplicateVacancies(
