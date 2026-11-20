@@ -6,7 +6,6 @@ use App\Models\Vacancy;
 use App\Services\Geo\RegionScope;
 use App\Services\Geo\VacancyLocationResolver;
 use App\Services\Geo\VisitorLocationResolver;
-use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -256,10 +255,114 @@ class VacancyController extends Controller
 
     public function __construct(
         private readonly VacancyLocationFilter $locationFilter,
-        private readonly VacancyAvailabilityDetector $availabilityDetector,
         private readonly VacancyLocationResolver $vacancyLocationResolver,
         private readonly VisitorLocationResolver $visitorLocationResolver
     ) {
+    }
+
+    /**
+     * Executa no PostgreSQL os filtros editoriais e a pesquisa textual para
+     * evitar transferir ao PHP registros que já seriam descartados.
+     * A elegibilidade regional permanece em PHP, pois depende do visitante.
+     */
+    private function applySqlEditorialFilters($query, string $search): void
+    {
+        $title = $this->normalizedSqlExpression('title');
+        $description = $this->normalizedSqlExpression('description');
+        $company = $this->normalizedSqlExpression('company');
+        $location = $this->normalizedSqlExpression('location');
+
+        if ($search !== '') {
+            $searchable = "concat_ws(' ', {$title}, {$company}, {$location}, {$description})";
+            $query->whereRaw("position(? in {$searchable}) > 0", [$this->normalize($search)]);
+        }
+
+        $query->whereRaw("{$title} !~ ?", [$this->sqlTermPattern(self::EXCLUDED_SENIORITY_TERMS)]);
+        $query->whereRaw("{$title} !~ ?", ['(^|[^a-z0-9])pl[[:space:]]*$']);
+        $query->whereRaw("{$title} !~ ?", ['(^|[^a-z0-9])software engineer[[:space:]]+(iii|iv|v)([^a-z0-9]|$)']);
+
+        $query->whereRaw(
+            "{$description} !~ ?",
+            ['(^|[^a-z0-9])(3|[4-9]|[0-9]{2,})[[:space:]]*((\\+|plus)[[:space:]]*)?([-–][[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
+        );
+
+        $seniorityDescriptionPattern = '(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$)|(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$).{0,80}(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)';
+        $query->whereRaw("{$description} !~ ?", [$seniorityDescriptionPattern]);
+
+        $strongExperiencePattern = '(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)';
+        $radarExceptionTitlePattern = '(^|[^a-z0-9])desenvolvedor full stack web([^a-z0-9]|$)';
+        $query->whereRaw(
+            "NOT (source = 'radartec' AND external_id = '13421' AND {$title} ~ ? AND {$description} ~ ?)",
+            [$radarExceptionTitlePattern, $strongExperiencePattern]
+        );
+        $query->whereRaw("{$description} !~ ?", [$strongExperiencePattern]);
+
+        $query->whereRaw("{$title} !~ ?", [$this->sqlTermPattern(self::IRRELEVANT_TERMS)]);
+        $query->whereRaw(
+            "{$title} ~ ?",
+            [$this->sqlTermPattern(array_merge(self::DEVELOPMENT_TERMS, self::SUPPORT_TERMS, self::INFRASTRUCTURE_TERMS))]
+        );
+
+        $statusTerms = [
+            'closed', 'filled', 'on hold', 'paused', 'suspended', 'cancelled', 'canceled',
+            'completed', 'finished', 'inactive', 'expired', 'encerrado', 'encerrada',
+            'finalizado', 'finalizada', 'preenchido', 'preenchida', 'pausado', 'pausada',
+            'suspenso', 'suspensa', 'cancelado', 'cancelada', 'congelado', 'congelada',
+        ];
+        $statusPattern = '(?:' . implode('|', array_map(
+            static fn (string $term): string => preg_quote($term, '/'),
+            $statusTerms
+        )) . ')';
+        $vacancyTerms = '(?:job|position|role|vacancy|opening|requisition|posting|vaga|oportunidade|posicao|candidatura|inscricoes)';
+        $titleUnavailable = '(?:^|[\\[\\(\\-:|])[[:space:]]*' . $statusPattern . '[[:space:]]*(?:[\\]\\)\\-:|]|$)|(^|[^a-z0-9])' . $vacancyTerms . '([^a-z0-9]|$).{0,35}(^|[^a-z0-9])' . $statusPattern . '([^a-z0-9]|$)|(^|[^a-z0-9])' . $statusPattern . '([^a-z0-9]|$).{0,35}(^|[^a-z0-9])' . $vacancyTerms . '([^a-z0-9]|$)';
+        $query->whereRaw("{$title} !~ ?", [$titleUnavailable]);
+
+        $descriptionUnavailablePatterns = [
+            '\m(esta|a|essa|desta)?[[:space:]]*vaga[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida)\M',
+            '\m(esta|a|essa|desta)?[[:space:]]*oportunidade[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida)\M',
+            '\m(esta|a|essa)?[[:space:]]*posicao[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida)\M',
+            '\minscricoes[[:space:]]+(foram[[:space:]]+)?encerradas\M',
+            '\mcandidaturas[[:space:]]+(foram[[:space:]]+)?encerradas\M',
+            '\mnao estamos mais recebendo candidaturas\M',
+            '\mnao estamos mais aceitando candidaturas\M',
+            '\mnao estamos mais aceitando inscricoes\M',
+            '\mnao aceitamos mais candidaturas\M',
+            '\mprocesso seletivo (desta vaga|desta oportunidade|para esta vaga|para esta oportunidade|da vaga)[[:space:]]+(foi[[:space:]]+)?(encerrado|finalizado|cancelado|suspenso|pausado)\M',
+            '\mprocesso seletivo[[:space:]]+(foi[[:space:]]+)?(encerrado|finalizado|cancelado|suspenso|pausado)\M',
+            '\m(this|the|our)[[:space:]]+(job|position|role|vacancy|opening|requisition|posting)[[:space:]]+(is|has been|was)[[:space:]]+(closed|filled|cancelled|canceled|suspended|paused|completed|finished)\M',
+            '\m(job|position|role|vacancy|opening|requisition|posting)[[:space:]]+(is|has been|was)[[:space:]]+(closed|filled|cancelled|canceled|suspended|paused|completed|finished)\M',
+            '\m(position|job|role|vacancy|opening)[[:space:]]+(has been[[:space:]]+)?filled\M',
+            '\m(applications|registrations)[[:space:]]+(are|have been|were)[[:space:]]+(closed|suspended|cancelled|canceled)\M',
+            '\mno longer accepting applications\M',
+            '\mno longer accepting candidates\M',
+            '\mwe are no longer receiving applications\M',
+            '\mthis opportunity is no longer available\M',
+            '\mthis position is no longer available\M',
+            '\mthe hiring process for this (job|position|role|vacancy)[[:space:]]+(is|has been|was)[[:space:]]+(closed|completed|finished|cancelled|canceled)\M',
+        ];
+        $descriptionUnavailable = '(?:' . implode('|', $descriptionUnavailablePatterns) . ')';
+        $historicalException = '(experiencia|experience|participacao|participated|worked on|historico).{0,70}(processo seletivo|processo de selecao|hiring process|recruitment process).{0,50}(encerrad|finalizad|closed|completed|finished)';
+        $otherTeamsException = '(outras areas|outras equipes|outros departamentos|other departments|other teams|other roles|other positions)';
+
+        $query->whereRaw(
+            "NOT ({$description} ~ ? AND {$description} !~ ? AND {$description} !~ ?)",
+            [$descriptionUnavailable, $historicalException, $otherTeamsException]
+        );
+    }
+
+    private function normalizedSqlExpression(string $column): string
+    {
+        return "translate(lower(coalesce({$column}, '')), 'áàâãäåéèêëíìîïóòôõöúùûüçñ', 'aaaaaaeeeeiiiiooooouuuucn')";
+    }
+
+    private function sqlTermPattern(array $terms): string
+    {
+        $alternatives = array_map(
+            fn (string $term): string => preg_quote($this->normalize($term), '/'),
+            $terms
+        );
+
+        return '(^|[^a-z0-9])(' . implode('|', $alternatives) . ')([^a-z0-9]|$)';
     }
 
     /**
@@ -308,82 +411,11 @@ class VacancyController extends Controller
             ->orderByRaw("CASE WHEN lower(title) LIKE '%exclusivo pcd%' THEN 1 ELSE 0 END ASC")
             ->orderByDesc('id');
 
-        $normalizedSearch = $this->normalize($search);
+        $this->applySqlEditorialFilters($query, $search);
+
         $seenDuplicateKeys = [];
 
         foreach ($query->cursor() as $vacancy) {
-            if ($normalizedSearch !== '') {
-                $searchableText = $this->normalize(implode(' ', [
-                    $vacancy->title,
-                    $vacancy->company,
-                    $vacancy->location ?? '',
-                    $vacancy->description,
-                ]));
-
-                if (!Str::contains($searchableText, $normalizedSearch)) {
-                    continue;
-                }
-            }
-
-            if ($this->availabilityDetector->isUnavailable(
-                $vacancy->title,
-                $vacancy->description
-            )) {
-                continue;
-            }
-
-            $title = $this->normalize($vacancy->title);
-
-            if ($this->containsAny($title, self::EXCLUDED_SENIORITY_TERMS)) {
-                continue;
-            }
-
-            if (
-                preg_match('/\\bpl\\s*$/i', $title) ||
-                preg_match('/\\bsoftware engineer\\s+(?:iii|iv|v)\\b/i', $title)
-            ) {
-                continue;
-            }
-
-            $description = $this->normalize($vacancy->description);
-
-            if (preg_match(
-                '/\\b(?:3|[4-9]|\\d{2,})\\s*(?:(?:\\+|plus)\\s*)?(?:[-–]\\s*(?:3|[4-9]|\\d{2,})\\s*)?(?:years?|anos)\\b/i',
-                $description
-            )) {
-                continue;
-            }
-
-            if (preg_match(
-                '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\\b(?:pleno|senior|sr|staff|principal|lead)\\b|\\b(?:pleno|senior|sr|staff|principal|lead)\\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
-                $description
-            )) {
-                continue;
-            }
-
-            $isRadarTecFullStackException =
-                $vacancy->source === 'radartec'
-                && (string) $vacancy->external_id === '13421'
-                && str_contains($title, 'desenvolvedor full stack web');
-
-            if (
-                !$isRadarTecFullStackException &&
-                preg_match(
-                    '/(?:forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(?:experiencia|experience|knowledge|conhecimento)/i',
-                    $description
-                )
-            ) {
-                continue;
-            }
-
-            if ($this->containsAny($title, self::IRRELEVANT_TERMS)) {
-                continue;
-            }
-
-            if (!$this->isTechnologyRole($title)) {
-                continue;
-            }
-
             $workModel = $this->locationFilter->classifyWorkModel(
                 $vacancy->title,
                 $vacancy->location,
