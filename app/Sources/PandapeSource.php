@@ -52,8 +52,6 @@ class PandapeSource implements VacancySource
         'tecnico em informatica',
         'assistente de ti',
         'auxiliar de ti',
-        'estagio em ti',
-        'estagiario de ti',
         'tecnologia da informacao',
         'ios developer',
         'android developer',
@@ -158,8 +156,10 @@ class PandapeSource implements VacancySource
         'supervisor',
         'supervisora',
         'trainee',
-
-        // Estágio e internship fazem parte do escopo do TI Vagas.
+        'estagio',
+        'estagiario',
+        'intern',
+        'internship',
 
         // Áreas administrativas e comerciais.
         'marketing',
@@ -377,7 +377,7 @@ class PandapeSource implements VacancySource
     }
 
     /**
-     * O TI Vagas publica somente oportunidades júnior e estágio.
+     * O TI Vagas publica somente oportunidades júnior.
      * A sinalização pode estar no título ou na descrição, pois alguns
      * portais não incluem o nível no título do anúncio.
      */
@@ -415,11 +415,6 @@ class PandapeSource implements VacancySource
             'jr',
             'entry level',
             'entry-level',
-            'estagio',
-            'estagiario',
-            'estagiaria',
-            'intern',
-            'internship',
         ]);
     }
 
