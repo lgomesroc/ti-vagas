@@ -53,6 +53,17 @@ RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
     && sed -ri 's/<VirtualHost *:80>/<VirtualHost *:10000>/' \
     /etc/apache2/sites-available/000-default.conf
 
+# Permitir que o Laravel use o public/.htaccess (incluindo a rota de health check /up).
+RUN printf '%s\\n' \
+    '<Directory /var/www/html/public>' \
+    '    Options FollowSymLinks' \
+    '    AllowOverride All' \
+    '    Require all granted' \
+    '    DirectoryIndex index.php' \
+    '</Directory>' \
+    > /etc/apache2/conf-available/laravel-public.conf \
+    && a2enconf laravel-public
+
 COPY . .
 
 # Dependências PHP e Node de produção
