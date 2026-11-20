@@ -16,7 +16,8 @@ class VacancyImporter
         private readonly VacancyAvailabilityDetector $availabilityDetector,
         private readonly GeoLocationNormalizer $geoLocationNormalizer,
         private readonly VacancyLocationResolver $locationResolver,
-        private readonly VacancyEditorialFilter $editorialFilter
+        private readonly VacancyEditorialFilter $editorialFilter,
+        private readonly VacancyDuplicateDetector $duplicateDetector
     ) {
     }
 
@@ -163,6 +164,21 @@ class VacancyImporter
             ]);
 
             $isNew = !$vacancy->exists;
+
+            // Mantém a identidade da fonte original e evita cadastrar a mesma
+            // candidatura novamente quando ela aparece em outra plataforma.
+            if ($isNew) {
+                $duplicate = $this->duplicateDetector->findDuplicate(
+                    $data,
+                    $sourceName,
+                    $externalId
+                );
+
+                if ($duplicate !== null) {
+                    $result['skipped']++;
+                    continue;
+                }
+            }
 
             $geo = $this->geoLocationNormalizer->normalize($data);
 
