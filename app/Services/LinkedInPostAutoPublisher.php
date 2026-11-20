@@ -25,7 +25,7 @@ class LinkedInPostAutoPublisher
         $totals = ['approved' => 0, 'rejected' => 0, 'failed' => 0];
 
         LinkedInPostCandidate::query()
-            ->where('status', 'pending_review')
+            ->whereIn('status', ['pending_publication', 'pending_review'])
             ->orderBy('id')
             ->chunkById(50, function ($candidates) use (&$totals): void {
                 foreach ($candidates as $candidate) {
@@ -69,7 +69,7 @@ class LinkedInPostAutoPublisher
             }
         }
 
-        $applicationUrl = $candidate->application_url ?: $candidate->post_url;
+        $applicationUrl = $candidate->application_url;
 
         if (
             blank($applicationUrl)
@@ -128,8 +128,8 @@ class LinkedInPostAutoPublisher
             }
 
             $candidate->forceFill([
-                'status' => 'approved',
-                'decision_reason' => 'Aprovado automaticamente após validação dos dados e cadastrado como vaga.',
+                'status' => 'published',
+                'decision_reason' => 'Publicado automaticamente após validação dos dados e cadastro da vaga.',
                 'reviewed_at' => now(),
             ])->save();
         });
