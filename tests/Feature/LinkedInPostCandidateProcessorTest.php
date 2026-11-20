@@ -116,7 +116,24 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
-            'decision_reason' => 'Publicação sem link de candidatura ou e-mail corporativo.',
+            'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
+        ]);
+    }
+
+
+    public function test_post_with_only_an_email_is_rejected_instead_of_being_queued_for_manual_review(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Envie seu currículo para talentos@acme.com.',
+        ]);
+
+        $result = app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertSame(1, $result['rejected']);
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação sem link público de candidatura; e-mail isolado não permite cadastro automatizado.',
         ]);
     }
 
