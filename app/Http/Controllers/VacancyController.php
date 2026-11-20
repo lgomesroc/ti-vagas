@@ -9,7 +9,6 @@ use App\Services\Geo\VisitorLocationResolver;
 use App\Services\VacancyAvailabilityDetector;
 use App\Services\VacancyLocationFilter;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -353,27 +352,23 @@ class VacancyController extends Controller
     }
 
     /**
-     * Aplica no PostgreSQL os filtros editoriais que não dependem da
-     * resolução geográfica do município nem da região validada do visitante.
-     *
-     * A normalização SQL reproduz a remoção de acentos usada pelo filtro PHP.
+     * Executa no PostgreSQL os filtros editoriais textuais. A regra regional
+     * permanece em PHP porque depende da resolução do município e da sessão.
      */
     private function applySqlFilters(Builder $query, string $search): void
     {
         $title = $this->normalizedSqlExpression('title');
         $description = $this->normalizedSqlExpression('description');
 
-        $excludedSeniority = $this->termsRegex(self::EXCLUDED_SENIORITY_TERMS);
-        $irrelevant = $this->termsRegex(self::IRRELEVANT_TERMS);
-        $technology = $this->termsRegex(array_merge(
+        $technologyTerms = array_merge(
             self::DEVELOPMENT_TERMS,
             self::SUPPORT_TERMS,
             self::INFRASTRUCTURE_TERMS
-        ));
+        );
 
         $query
-            ->whereRaw("{$title} !~ ?", [$excludedSeniority])
-            ->whereRaw("{$title} !~ ?", ['/pl[[:space:]]*
+            ->whereRaw("{$title} !~ ?", [$this->termsRegex(self::EXCLUDED_SENIORITY_TERMS)])
+            ->whereRaw("{$title} !~ ?", ['pl[[:space:]]*
         Collection $vacancies
     ): Collection {
         return $vacancies
@@ -545,18 +540,18 @@ class VacancyController extends Controller
 }
 ])
             ->whereRaw("{$title} !~ ?", ['software engineer[[:space:]]+(iii|iv|v)([^a-z0-9]|$)'])
-            ->whereRaw("{$title} !~ ?", [$irrelevant])
-            ->whereRaw("{$title} ~ ?", [$technology])
+            ->whereRaw("{$title} !~ ?", [$this->termsRegex(self::IRRELEVANT_TERMS)])
+            ->whereRaw("{$title} ~ ?", [$this->termsRegex($technologyTerms)])
             ->whereRaw(
                 "{$description} !~ ?",
-                ['([^a-z0-9]|^)(3|[4-9]|[0-9]{2,})[[:space:]]*((\\+|plus)[[:space:]]*)?(-[[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
+                ['(^|[^a-z0-9])(3|[4-9]|[0-9]{2,})[[:space:]]*([+]|plus)?[[:space:]]*(-[[:space:]]*(3|[4-9]|[0-9]{2,})[[:space:]]*)?(years?|anos)([^a-z0-9]|$)']
             )
             ->whereRaw(
                 "{$description} !~ ?",
                 ['((desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}(pleno|senior|sr|staff|principal|lead)([^a-z0-9]|$)|(^|[^a-z0-9])(pleno|senior|sr|staff|principal|lead).{0,80}(desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer))']
             );
 
-        // Exceção histórica mantida para a vaga específica da RadarTec.
+        // Exceção já existente para a vaga específica da RadarTec.
         $strongExperience = '(forte|solida|solido|ampla|vasta|extensa|extenso|strong|extensive).{0,40}(experiencia|experience|knowledge|conhecimento)';
         $query->where(function (Builder $nested) use ($description, $strongExperience) {
             $nested->whereRaw("{$description} !~ ?", [$strongExperience])
@@ -564,58 +559,23 @@ class VacancyController extends Controller
                     $exception->where('source', 'radartec')
                         ->where('external_id', '13421')
                         ->whereRaw(
-                            $this->normalizedSqlExpression('title') . " ~ ?",
+                            $this->normalizedSqlExpression('title') . ' ~ ?',
                             ['desenvolvedor full stack web']
                         );
                 });
         });
 
-        // Vagas encerradas/canceladas: status e expressões do título.
-        $unavailableStatuses = [
-            'closed', 'filled', 'on hold', 'paused', 'suspended',
-            'cancelled', 'canceled', 'completed', 'finished', 'inactive',
-            'expired', 'encerrado', 'encerrada', 'finalizado', 'finalizada',
-            'preenchido', 'preenchida', 'pausado', 'pausada', 'suspenso',
-            'suspensa', 'cancelado', 'cancelada', 'congelado', 'congelada',
-        ];
-        $statusRegex = $this->termsRegex($unavailableStatuses);
-        $vacancyWords = '(job|position|role|vacancy|opening|requisition|posting|vaga|oportunidade|posicao|candidatura|inscricoes)';
-        $query->whereRaw(
-            "{$title} !~ ?",
-            ['((^|[\\[\\(\\-:|])[[:space:]]*' . $statusRegex . '[[:space:]]*([\\]\\)\\-:|]|$))']
-        )->whereRaw(
-            "{$title} !~ ?",
-            ['((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$)).{0,35}(' . $statusRegex . ')([^a-z0-9]|$)']
-        )->whereRaw(
-            "{$title} !~ ?",
-            ['(' . $statusRegex . ')([^a-z0-9]|$).{0,35}((^|[^a-z0-9])' . $vacancyWords . '([^a-z0-9]|$))']
-        );
-
-        $unavailableDescription = '((esta|a|essa|desta)?[[:space:]]*vaga[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida)|'
-            . '((esta|a|essa|desta)?[[:space:]]*oportunidade[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida|removida))|'
-            . '((esta|a|essa)?[[:space:]]*posicao[[:space:]]+(foi[[:space:]]+)?(encerrada|finalizada|cancelada|suspensa|pausada|congelada|preenchida))|'
-            . '(inscricoes[[:space:]]+(foram[[:space:]]+)?encerradas)|'
-            . '(candidaturas[[:space:]]+(foram[[:space:]]+)?encerradas)|'
-            . '(nao estamos mais (recebendo|aceitando) (candidaturas|inscricoes))|'
-            . '(nao aceitamos mais candidaturas)|'
-            . '(processo seletivo.{0,70}(encerrado|finalizado|cancelado|suspenso|pausado))|'
-            . '((this|the|our)[[:space:]]+(job|position|role|vacancy|opening|requisition|posting)[[:space:]]+(is|has been|was)[[:space:]]+(closed|filled|cancelled|canceled|suspended|paused|completed|finished))|'
-            . '((job|position|role|vacancy|opening|requisition|posting)[[:space:]]+(is|has been|was)[[:space:]]+(closed|filled|cancelled|canceled|suspended|paused|completed|finished))|'
-            . '((position|job|role|vacancy|opening)[[:space:]]+(has been[[:space:]]+)?filled)|'
-            . '((applications|registrations)[[:space:]]+(are|have been|were)[[:space:]]+(closed|suspended|cancelled|canceled))|'
-            . '(no longer accepting (applications|candidates))|'
-            . '(we are no longer receiving applications)|'
-            . '(this opportunity is no longer available)|'
-            . '(this position is no longer available)|'
-            . '(the hiring process for this (job|position|role|vacancy).{0,30}(closed|completed|finished|cancelled|canceled)))';
-
-        $historicalClosure = '(experiencia|experience|participacao|participated|worked on|historico).{0,70}(processo seletivo|processo de selecao|hiring process|recruitment process).{0,50}(encerrad|finalizad|closed|completed|finished)';
-        $otherTeams = '(outras areas|outras equipes|outros departamentos|other departments|other teams|other roles|other positions)';
-
-        $query->whereRaw(
-            "NOT ({$description} ~ ? AND {$description} !~ ? AND {$description} !~ ?)",
-            [$unavailableDescription, $historicalClosure, $otherTeams]
-        );
+        // Expressões inequívocas de encerramento/cancelamento no título ou descrição.
+        $unavailable = '(encerrad[ao]s?|finalizad[ao]s?|cancelad[ao]s?|suspens[ao]s?|pausad[ao]s?|congelad[ao]s?|preenchid[ao]s?|removid[ao]s?|closed|filled|cancelled|canceled|suspended|paused|completed|finished|expired)';
+        $query
+            ->whereRaw(
+                "{$title} !~ ?",
+                ['(^|[^a-z0-9])' . $unavailable . '([^a-z0-9]|$)']
+            )
+            ->whereRaw(
+                "NOT ({$description} ~ ?)",
+                ['((esta|a|essa|desta)?[[:space:]]*(vaga|oportunidade|posicao)[[:space:]]+(foi[[:space:]]+)?' . $unavailable . '|inscricoes[[:space:]]+(foram[[:space:]]+)?encerradas|candidaturas[[:space:]]+(foram[[:space:]]+)?encerradas|no longer accepting applications|this (job|position|role|opportunity) is no longer available|applications (are|have been|were) closed)']
+            );
 
         $normalizedSearch = $this->normalize($search);
 
@@ -627,10 +587,6 @@ class VacancyController extends Controller
         }
     }
 
-    /**
-     * Expressão PostgreSQL equivalente a Str::ascii(mb_strtolower(...))
-     * para os caracteres acentuados comuns em português e espanhol.
-     */
     private function normalizedSqlExpression(string $column): string
     {
         return "translate(lower(coalesce({$column}, '')), "
@@ -638,9 +594,6 @@ class VacancyController extends Controller
             . "'aaaaaaeeeeiiiioooouuuucn')";
     }
 
-    /**
-     * Cria uma expressão regular POSIX com limites de palavra.
-     */
     private function termsRegex(array $terms): string
     {
         $alternatives = array_map(
