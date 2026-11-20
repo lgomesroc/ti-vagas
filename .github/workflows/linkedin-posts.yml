@@ -59,7 +59,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Restaurar sessão da conta secundária
-        if: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 != '' }}
+        if: ${{ env.LINKEDIN_SECONDARY_ACCOUNT_ENABLED == 'true' }}
         env:
           LINKEDIN_PROFILE_ARCHIVE: ${{ secrets.LINKEDIN_SECONDARY_ACCOUNT_PROFILE_B64 }}
         run: |
