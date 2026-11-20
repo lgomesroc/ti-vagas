@@ -31,7 +31,7 @@ const clean = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
 function parseRelativeDate(value) {
   const text = clean(value).toLowerCase();
   if (!text) return null;
-  const match = text.match(/(\\d+)\\s*(min|minute|minutes|h|hr|hour|hours|d|day|days|sem|week|weeks|mo|month|months)/i);
+  const match = text.match(/(?:há\\s*)?(\\d+)\\s*(min|minuto|minutos|minute|minutes|h|hr|hora|horas|hour|hours|d|dia|dias|day|days|sem|semana|semanas|week|weeks|mo|mês|mes|meses|month|months)/i);
   if (!match) {
     if (/today|hoje|just now|agora/.test(text)) return new Date().toISOString();
     if (/yesterday|ontem/.test(text)) return new Date(Date.now() - 86400000).toISOString();
@@ -39,9 +39,9 @@ function parseRelativeDate(value) {
   }
   const amount = Number(match[1]);
   const unit = match[2].toLowerCase();
-  const factor = /^(min|minute)/.test(unit) ? 60000
-    : /^(h|hr|hour)/.test(unit) ? 3600000
-    : /^(d|day)/.test(unit) ? 86400000
+  const factor = /^(min|minuto|minute)/.test(unit) ? 60000
+    : /^(h|hr|hora|hour)/.test(unit) ? 3600000
+    : /^(d|dia|day)/.test(unit) ? 86400000
     : /^sem|^week/.test(unit) ? 604800000
     : 2592000000;
   return new Date(Date.now() - amount * factor).toISOString();
