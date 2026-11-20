@@ -149,10 +149,8 @@ class PandapeSource implements VacancySource
         'supervisor',
         'supervisora',
         'trainee',
-        'estagio',
-        'estagiario',
-        'intern',
-        'internship',
+
+        // Estágio e internship fazem parte do escopo do TI Vagas.
 
         // Áreas administrativas e comerciais.
         'marketing',
@@ -369,6 +367,53 @@ class PandapeSource implements VacancySource
         );
     }
 
+    /**
+     * O TI Vagas publica somente oportunidades júnior e estágio.
+     * A sinalização pode estar no título ou na descrição, pois alguns
+     * portais não incluem o nível no título do anúncio.
+     */
+    private function isEligibleSeniority(string $title, string $description): bool
+    {
+        $normalizedTitle = $this->normalize($title);
+        $normalizedContent = $this->normalize($title . ' ' . $description);
+
+        if ($this->containsAny($normalizedTitle, [
+            'pleno',
+            'senior',
+            'staff',
+            'principal',
+            'lead',
+            'manager',
+            'gerente',
+            'director',
+            'diretor',
+            'head',
+            'architect',
+            'arquiteto',
+            'especialista',
+            'coordenador',
+            'coordenadora',
+            'lider',
+            'supervisor',
+            'supervisora',
+            'trainee',
+        ])) {
+            return false;
+        }
+
+        return $this->containsAny($normalizedContent, [
+            'junior',
+            'jr',
+            'entry level',
+            'entry-level',
+            'estagio',
+            'estagiario',
+            'estagiaria',
+            'intern',
+            'internship',
+        ]);
+    }
+
     private function containsAny(string $text, array $terms): bool
     {
         foreach ($terms as $term) {
@@ -501,6 +546,7 @@ class PandapeSource implements VacancySource
             $title === ''
             || $description === ''
             || !$this->isPotentialTechnologyRole($title)
+            || !$this->isEligibleSeniority($title, $description)
         ) {
             return null;
         }
