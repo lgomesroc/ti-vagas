@@ -39,7 +39,7 @@ class CollectSingleVacancySource extends Command
                     $this->table(
                         ['Etapa', 'Quantidade'],
                         array_map(
-                            static fn (string $label, int $count): array => [$label, $count],
+                            static fn (string $label, mixed $value): array => [$label, $value],
                             array_keys($diagnostics),
                             array_values($diagnostics)
                         )
