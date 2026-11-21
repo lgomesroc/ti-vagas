@@ -126,6 +126,67 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     }
 
 
+    public function test_market_opinion_without_a_concrete_hiring_announcement_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Minha opinião sobre o mercado de TI: o recrutamento está cada vez mais difícil. O que vocês acham dos processos seletivos atuais?',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Opinião, reflexão ou debate sobre mercado de trabalho, recrutamento ou carreira; não anuncia contratação.',
+        ]);
+    }
+
+    public function test_personal_project_and_portfolio_posts_are_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Compartilho meu projeto pessoal: desenvolvi uma aplicação em Laravel e publiquei o repositório no GitHub para demonstrar meu portfólio.',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Projeto pessoal, portfólio, demonstração ou aplicação de estudo; não é anúncio de vaga.',
+        ]);
+    }
+
+    public function test_study_project_demonstration_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Projeto de estudo: criei um sistema de controle de tarefas para praticar .NET. Veja a demo do projeto.',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Projeto pessoal, portfólio, demonstração ou aplicação de estudo; não é anúncio de vaga.',
+        ]);
+    }
+
+    public function test_real_recruitment_post_is_preserved_when_it_mentions_projects_and_technical_challenges(): void
+    {
+        $post = $this->makePost([
+            'authorHeadline' => 'Tech Recruiter',
+            'text' => 'Estamos contratando Desenvolvedor .NET Júnior. Você vai trabalhar em projetos reais e resolver desafios técnicos com C# e SQL Server. Candidate-se: https://acme.example/jobs/123',
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'pending_publication',
+            'application_url' => 'https://acme.example/jobs/123',
+        ]);
+    }
+
     public function test_post_with_corporate_email_only_is_queued_for_automatic_publication(): void
     {
         $post = $this->makePost([

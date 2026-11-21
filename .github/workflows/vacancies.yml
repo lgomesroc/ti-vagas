@@ -41,7 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: developer
+          ref: main
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
