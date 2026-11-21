@@ -60,59 +60,32 @@ class LinkedInJobsSource implements VacancySource
 
     public function filterFetched(array $vacancies): array
     {
-        return array_values(array_filter($vacancies, function (array $vacancy): bool {
+        // Não reaplica filtros editoriais nesta fonte. O coletor entrega ao
+        // VacancyImporter tudo que conseguiu extrair; o filtro central decide.
+        // Isso reduz falsos negativos causados por títulos e descrições incompletos.
+        return array_values(array_filter($vacancies, function (array &$vacancy): bool {
             $title = trim((string) ($vacancy['title'] ?? ''));
+            $company = trim((string) ($vacancy['company'] ?? ''));
             $description = trim((string) ($vacancy['description'] ?? ''));
-            $location = trim((string) ($vacancy['location'] ?? ''));
+            $applicationUrl = trim((string) ($vacancy['application_url'] ?? ''));
+            $publishedAt = trim((string) ($vacancy['original_published_at'] ?? ''));
 
-            if ($title === '' || mb_strlen($description) < 100) {
+            if (
+                $title === ''
+                || $company === ''
+                || mb_strlen($description) < 30
+                || $applicationUrl === ''
+                || $publishedAt === ''
+                || trim((string) ($vacancy['external_id'] ?? '')) === ''
+            ) {
                 return false;
             }
 
-            $normalizedTitle = $this->normalize($title);
-            $normalizedDescription = $this->normalize($description);
-
-            // Rejeita descrições contaminadas com textos da interface do LinkedIn.
-            if (preg_match(
-                '/ative um alerta para vagas semelhantes|pesquise vagas mais rapido com premium|milhoes de usuarios tem contas premium|demonstracao gratuita de 1 mes|activate an alert for similar jobs|search faster with premium/i',
-                $normalizedDescription
-            )) {
-                return false;
-            }
-
-            // Exige senioridade júnior explicitamente no título.
-            // Rejeita estágio, trainee e níveis superiores.
-            if (!$this->isStrictJuniorTitle($normalizedTitle)) {
-                return false;
-            }
-
-            // A vaga precisa pertencer a uma área de tecnologia.
-            if (!$this->isTechnologyTitle($normalizedTitle)) {
-                return false;
-            }
-
-            // Rejeita descrições que contradizem o nível júnior
-            // ou exigem experiência incompatível.
-            if ($this->hasIncompatibleRequirements($normalizedDescription)) {
-                return false;
-            }
-
-            $workModel = $this->locationFilter->classifyWorkModel(
+            $vacancy['work_model'] = $this->locationFilter->classifyWorkModel(
                 $title,
-                $location,
+                (string) ($vacancy['location'] ?? ''),
                 $description
             ) ?? ($vacancy['work_model'] ?? null);
-
-            if (!$this->locationFilter->isEligibleForCollection(
-                $location,
-                $title,
-                $description,
-                is_string($workModel) ? $workModel : null
-            )) {
-                return false;
-            }
-
-            $vacancy['work_model'] = $workModel;
 
             return true;
         }));
