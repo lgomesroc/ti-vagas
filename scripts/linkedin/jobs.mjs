@@ -199,6 +199,19 @@ async function extractFromOpenPanel(page, job) {
 
   await card.click({ timeout: 10000 });
   const panel = await getDetailPanel(page);
+  const titleSelector = [
+    '.job-details-jobs-unified-top-card__job-title',
+    '.jobs-unified-top-card__job-title',
+    'h1',
+  ].join(', ');
+
+  // Aguarda o painel atualizar para o cartão clicado antes de ler a descrição.
+  await panel.locator(titleSelector)
+    .filter({ hasText: job.title })
+    .first()
+    .waitFor({ state: 'visible', timeout: 8000 })
+    .catch(() => {});
+
   const title = await firstText(panel, [
     '.job-details-jobs-unified-top-card__job-title',
     '.jobs-unified-top-card__job-title',
