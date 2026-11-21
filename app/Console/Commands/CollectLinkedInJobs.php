@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\FetchLinkedInJobsJob;
 use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
 use App\Sources\LinkedInJobsSource;
@@ -11,9 +12,9 @@ use Throwable;
 
 class CollectLinkedInJobs extends Command
 {
-    protected $signature = 'linkedin:collect-jobs';
+    protected $signature = 'linkedin:collect-jobs {--sync : Executa a coleta imediatamente, sem fila}';
 
-    protected $description = 'Coleta vagas do LinkedIn Jobs usando a sessão autenticada da conta secundária';
+    protected $description = 'Enfileira ou executa a coleta autenticada de vagas do LinkedIn Jobs';
 
     public function handle(
         VacancyImporter $importer,
@@ -24,16 +25,25 @@ class CollectLinkedInJobs extends Command
             return self::SUCCESS;
         }
 
+        if (!$this->option('sync')) {
+            FetchLinkedInJobsJob::dispatch();
+
+            $this->info('Coleta do LinkedIn Jobs enviada para a fila linkedin.');
+            $this->line('Execute um worker da fila linkedin para processá-la.');
+
+            return self::SUCCESS;
+        }
+
         $this->info('Banco configurado: ' . config('database.default'));
 
         try {
             $source = new LinkedInJobsSource($locationFilter);
             $vacancies = $source->fetch();
-            $this->info('Vagas aprovadas pelos filtros da fonte: ' . count($vacancies));
+            $this->info('Vagas extraídas para importação: ' . count($vacancies));
             $result = $importer->importFetched($source->name(), $vacancies);
 
             $this->table(
-                ['Recebidas elegíveis', 'Novas', 'Atualizadas', 'Ignoradas'],
+                ['Extraídas', 'Novas', 'Atualizadas', 'Ignoradas'],
                 [[count($vacancies), $result['created'], $result['updated'], $result['skipped']]]
             );
 
