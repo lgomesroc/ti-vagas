@@ -3,7 +3,7 @@ services:
     name: ti-vagas
     runtime: docker
     plan: free
-    branch: developer
+    branch: main
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /up

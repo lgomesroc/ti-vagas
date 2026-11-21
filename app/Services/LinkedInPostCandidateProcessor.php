@@ -361,6 +361,36 @@ class LinkedInPostCandidateProcessor
             $normalized
         ) === 1;
 
+        // Só preserva conteúdo de mercado/projeto quando há sinal concreto de
+        // contratação. Menções genéricas a vagas, tecnologia ou desafios não bastam.
+        $explicitVacancy = $explicitVacancy || preg_match(
+            '/\\b(?:contratando|hiring|join\\s+our\\s+team|venha\\s+trabalhar|vem\\s+trabalhar|estamos\\s+buscando\\s+(?:um|uma|profissional|desenvolvedor|analista|tecnico)|buscamos\\s+(?:um|uma|profissional|desenvolvedor|analista|tecnico))\\b/',
+            $normalized
+        ) === 1;
+
+        $marketOpinion = preg_match(
+            '/\\b(?:minha\\s+opiniao|na\\s+minha\\s+visao|o\\s+mercado\\s+de\\s+trabalho|mercado\\s+de\\s+ti|mercado\\s+tech|mercado\\s+de\\s+tecnologia|recrutamento|processos?\\s+seletivos?|contratacao|empregabilidade|falta\\s+de\\s+oportunidades|escassez\\s+de\\s+vagas|dificuldade\\s+para\\s+conseguir\\s+emprego|carreira\\s+em\\s+ti)\\b/',
+            $normalized
+        ) === 1;
+
+        $opinionLanguage = preg_match(
+            '/\\b(?:nao\\s+acha[m]?|acredito\\s+que|penso\\s+que|considero\\s+que|o\\s+que\\s+voc[eê]s\\s+acham|qual\\s+e\\s+a\\s+opiniao|vamos\\s+debater|vale\\s+refletir|precisamos\\s+discutir|concorda[m]?\\s+comigo|e\\s+impressao\\s+minha)\\b/',
+            $normalized
+        ) === 1;
+
+        if (($marketOpinion || $opinionLanguage) && !$explicitVacancy) {
+            return 'Opinião, reflexão ou debate sobre mercado de trabalho, recrutamento ou carreira; não anuncia contratação.';
+        }
+
+        $personalProject = preg_match(
+            '/\\b(?:meu\\s+projeto|projeto\\s+pessoal|projeto\\s+proprio|desenvolvi\\s+(?:um|uma|o|a)|criei\\s+(?:um|uma|o|a)|constru[ií]\\s+(?:um|uma|o|a)|aplicativo\\s+que\\s+desenvolvi|sistema\\s+que\\s+criei|portfolio|portf[oó]lio|reposit[oó]rio\\s+(?:no\\s+)?github|github\\s+repo|projeto\\s+de\\s+estudo|projeto\\s+da\\s+faculdade|estudo\\s+de\\s+caso|demo\\s+do\\s+projeto|demonstra[cç][aã]o\\s+do\\s+projeto|apresento\\s+meu\\s+projeto|compartilho\\s+meu\\s+projeto)\\b/',
+            $normalized
+        ) === 1;
+
+        if ($personalProject && !$explicitVacancy) {
+            return 'Projeto pessoal, portfólio, demonstração ou aplicação de estudo; não é anúncio de vaga.';
+        }
+
         // Publicações de recolocação: a pessoa fala de si, procura emprego
         // ou informa disponibilidade. "Open to work" sozinho não basta.
         $jobSeeking = preg_match(
