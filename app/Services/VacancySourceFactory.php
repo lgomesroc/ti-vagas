@@ -13,6 +13,7 @@ use App\Sources\GupySource;
 use App\Sources\InhireSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
+use App\Sources\NerdinSource;
 use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
