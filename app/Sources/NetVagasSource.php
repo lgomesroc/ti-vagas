@@ -10,7 +10,9 @@ use DOMElement;
 use DOMXPath;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use RuntimeException;\nuse Throwable;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 class NetVagasSource implements VacancySource
 {
