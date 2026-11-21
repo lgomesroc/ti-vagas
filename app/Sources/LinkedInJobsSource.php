@@ -63,7 +63,7 @@ class LinkedInJobsSource implements VacancySource
         // Não reaplica filtros editoriais nesta fonte. O coletor entrega ao
         // VacancyImporter tudo que conseguiu extrair; o filtro central decide.
         // Isso reduz falsos negativos causados por títulos e descrições incompletos.
-        return array_values(array_filter($vacancies, function (array &$vacancy): bool {
+        return array_values(array_filter($vacancies, function (array $vacancy): bool {
             $title = trim((string) ($vacancy['title'] ?? ''));
             $company = trim((string) ($vacancy['company'] ?? ''));
             $description = trim((string) ($vacancy['description'] ?? ''));
@@ -80,12 +80,6 @@ class LinkedInJobsSource implements VacancySource
             ) {
                 return false;
             }
-
-            $vacancy['work_model'] = $this->locationFilter->classifyWorkModel(
-                $title,
-                (string) ($vacancy['location'] ?? ''),
-                $description
-            ) ?? ($vacancy['work_model'] ?? null);
 
             return true;
         }));
