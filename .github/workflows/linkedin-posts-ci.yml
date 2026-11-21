@@ -40,6 +40,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validar sintaxe dos coletores LinkedIn
+        run: |
+          node --check scripts/linkedin/jobs.mjs
+          node --check scripts/linkedin/secondary-account.mjs
+
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
         with:
