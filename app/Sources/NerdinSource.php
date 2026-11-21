@@ -19,6 +19,12 @@ class NerdinSource implements VacancySource
     private const LIST_URL = self::BASE_URL . '/vagas.php';
 
     private readonly VacancyLocationFilter $locationFilter;
+    private array $stats = [];
+
+    public function diagnostics(): array
+    {
+        return $this->stats;
+    }
 
     public function __construct(
         private readonly ?string $caBundle = null,
@@ -39,9 +45,26 @@ class NerdinSource implements VacancySource
         $vacancies = [];
         $seen = [];
         $detailRequests = 0;
+        $this->stats = [
+            'Páginas consultadas' => 0,
+            'Links de vagas encontrados' => 0,
+            'URLs únicas' => 0,
+            'Cartões identificados' => 0,
+            'Cartões sem leitura' => 0,
+            'Vagas descartadas por relevância' => 0,
+            'Detalhes consultados' => 0,
+            'Detalhes aceitos' => 0,
+            'Detalhes sem empresa' => 0,
+            'Detalhes sem descrição' => 0,
+            'Detalhes rejeitados por localização' => 0,
+            'Detalhes sem data' => 0,
+            'Páginas de detalhe indisponíveis' => 0,
+            'Exceções na leitura' => 0,
+        ];
 
         for ($page = 1; $page <= $this->maxPages && count($vacancies) < $this->maxJobs; $page++) {
             $url = self::LIST_URL . ($page > 1 ? '?pagina=' . $page : '');
+            $this->stats['Páginas consultadas']++;
             $xpath = $this->xpath($this->get($url));
             $links = $xpath->query('//a[contains(@href, "/vaga_emprego/")]');
 
@@ -49,6 +72,7 @@ class NerdinSource implements VacancySource
                 break;
             }
 
+            $this->stats['Links de vagas encontrados'] += $links->length;
             $pageIds = [];
 
             foreach ($links as $link) {
@@ -62,13 +86,21 @@ class NerdinSource implements VacancySource
                 }
 
                 $seen[$detailUrl] = true;
+                $this->stats['URLs únicas']++;
                 $card = $this->findCard($link);
                 if ($card === null) {
+                    $this->stats['Cartões sem leitura']++;
                     continue;
                 }
 
+                $this->stats['Cartões identificados']++;
                 $cardData = $this->parseCard($card);
-                if ($cardData === null || !$this->isPotentiallyRelevant($cardData)) {
+                if ($cardData === null) {
+                    $this->stats['Cartões sem leitura']++;
+                    continue;
+                }
+                if (!$this->isPotentiallyRelevant($cardData)) {
+                    $this->stats['Vagas descartadas por relevância']++;
                     continue;
                 }
 
@@ -244,6 +276,7 @@ class NerdinSource implements VacancySource
 
         $pageText = $this->cleanText($body?->textContent ?? '');
         if ($pageText === '' || preg_match('/no momento, n[aã]o estamos aceitando novas candidaturas|vaga n[aã]o est[aá] mais dispon[ií]vel|processo seletivo encerrado/iu', $pageText)) {
+            $this->stats['Páginas de detalhe indisponíveis']++;
             return null;
         }
 
@@ -258,6 +291,7 @@ class NerdinSource implements VacancySource
         }
 
         if ($company === null || $company === '') {
+            $this->stats['Detalhes sem empresa']++;
             return null;
         }
 
@@ -266,6 +300,7 @@ class NerdinSource implements VacancySource
             ?? $body;
         $description = $this->cleanText($descriptionNode?->textContent ?? '');
         if ($description === '') {
+            $this->stats['Detalhes sem descrição']++;
             return null;
         }
 
@@ -281,6 +316,7 @@ class NerdinSource implements VacancySource
             $description,
             $workModel
         )) {
+            $this->stats['Detalhes rejeitados por localização']++;
             return null;
         }
 
@@ -295,6 +331,7 @@ class NerdinSource implements VacancySource
             $publishedAt = $this->parseRelativeDate($pageText);
         }
         if ($publishedAt === null) {
+            $this->stats['Detalhes sem data']++;
             return null;
         }
 
