@@ -10,7 +10,7 @@ use DOMElement;
 use DOMXPath;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use RuntimeException;
+use RuntimeException;\nuse Throwable;
 
 class NetVagasSource implements VacancySource
 {
@@ -52,7 +52,7 @@ class NetVagasSource implements VacancySource
 
         $this->stats = [
             'Termos pesquisados' => count($terms),
-            'Páginas consultadas' => 0,
+            'Páginas consultadas' => 0,\n            'Falhas de consulta' => 0,
             'Anúncios encontrados' => 0,
             'Anúncios únicos' => 0,
             'Duplicados entre pesquisas' => 0,
@@ -73,7 +73,17 @@ class NetVagasSource implements VacancySource
             }
 
             $baseUrl = self::BASE_URL . self::SEARCH_PATH . $slug . '/';
-            $firstHtml = $this->get($baseUrl);
+            try {
+                $firstHtml = $this->get($baseUrl);
+            } catch (Throwable $exception) {
+                $this->stats['Falhas de consulta']++;
+                Log::warning('NetVagas: falha ao consultar termo de busca.', [
+                    'term' => $term,
+                    'message' => $exception->getMessage(),
+                ]);
+                continue;
+            }
+
             $pages = [$baseUrl => $firstHtml];
 
             // Descobre os links reais de paginação publicados no HTML.
@@ -85,7 +95,17 @@ class NetVagasSource implements VacancySource
                 if (isset($pages[$pageUrl])) {
                     continue;
                 }
-                $pages[$pageUrl] = $this->get($pageUrl);
+                try {
+                    $pages[$pageUrl] = $this->get($pageUrl);
+                } catch (Throwable $exception) {
+                    $this->stats['Falhas de consulta']++;
+                    Log::warning('NetVagas: falha ao consultar página de resultados.', [
+                        'term' => $term,
+                        'url' => $pageUrl,
+                        'message' => $exception->getMessage(),
+                    ]);
+                    continue;
+                }
                 $this->delay();
             }
 
