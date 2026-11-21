@@ -549,6 +549,10 @@ class LinkedInPostCandidateProcessor
             return 'Não foi possível identificar o cargo da oportunidade.';
         }
 
+        if (preg_match('/\\b(estagio|estagiario|trainee|internship|intern|apprentice)\\b/', $this->normalize($title))) {
+            return 'Estágio e trainee não fazem parte do escopo de vagas efetivas do TI Vagas.';
+        }
+
         // A publicação já passou pela identificação de anúncio real de vaga,
         // anti-spam e validação de canal público de candidatura. Não aplicar aqui
         // filtros rígidos de senioridade, anos de experiência ou área: preservar
