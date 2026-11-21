@@ -160,8 +160,23 @@ class VacancyImporter
                 continue;
             }
 
-            $vacancy = Vacancy::firstOrNew([
-                'source' => $sourceName,
+            $vacancy = null;
+
+            // Reaproveita os registros criados pelos antigos coletores por empresa.
+            // Assim a busca global não troca a identidade nem duplica vagas existentes.
+            if ($sourceName === 'gupy-global') {
+                $vacancy = Vacancy::query()
+                    ->where('source', 'like', 'gupy-%')
+                    ->where('external_id', $externalId)
+                    ->orderBy('id')
+                    ->first();
+            }
+
+            $vacancy ??= Vacancy::firstOrNew([
+                'source' => $vacancy->exists
+                    && str_starts_with((string) $vacancy->source, 'gupy-')
+                        ? $vacancy->source
+                        : $sourceName,
                 'external_id' => $externalId,
             ]);
 

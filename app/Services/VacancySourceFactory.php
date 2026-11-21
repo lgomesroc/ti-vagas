@@ -9,7 +9,7 @@ use App\Sources\BradescoCsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
-use App\Sources\GupySource;
+use App\Sources\GupyGlobalSource;
 use App\Sources\InhireSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
@@ -214,20 +214,7 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
-        $gupy = config('vacancy_sources.gupy', []);
-
-        foreach ($gupy['companies'] ?? [] as $subdomain => $company) {
-            $source = new GupySource(
-                subdomain: $subdomain,
-                companyName: $company['name'] ?? $subdomain,
-                caBundle: $gupy['ca_bundle'] ?? null,
-                maxJobs: (int) ($gupy['max_jobs'] ?? 200),
-                baseUrl: $company['url'] ?? null,
-                technologyOnly: (bool) ($company['technology_only'] ?? false),
-            );
-
-            $sources[$source->name()] = $source;
-        }
+        // Gupy global é criada sob demanda em make(), fora da fila das demais fontes.
 
         $oracle = config('vacancy_sources.oracle_hcm', []);
 
@@ -580,6 +567,21 @@ class VacancySourceFactory
 
     public function make(string $sourceName)
     {
+        if ($sourceName === 'gupy-global') {
+            $gupy = config('vacancy_sources.gupy', []);
+
+            return new GupyGlobalSource(
+                terms: $gupy['global']['terms'] ?? [],
+                pageSize: (int) ($gupy['global']['page_size'] ?? 50),
+                maxPages: (int) ($gupy['global']['max_pages'] ?? 5),
+                initialLookbackDays: (int) ($gupy['global']['initial_lookback_days'] ?? 60),
+                overlapMinutes: (int) ($gupy['global']['overlap_minutes'] ?? 60),
+                requestDelayMs: (int) ($gupy['global']['request_delay_ms'] ?? 250),
+                caBundle: $gupy['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+        }
+
         $source = $this->all()[$sourceName] ?? null;
 
         if ($source === null) {
