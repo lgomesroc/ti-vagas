@@ -94,7 +94,7 @@ class NerdinSource implements VacancySource
             }
             $this->stats['Exemplos de hrefs'] = implode(' | ', $hrefSamples);
             $this->stats['Exemplos de links de vagas'] = implode(' | ', $vacancyHrefSamples);
-            $links = $xpath->query('//a[contains(@href, "/vaga_emprego/")]');
+            $links = $xpath->query('//a[contains(@href, "vaga_emprego/")]');
 
             if ($links === false || $links->length === 0) {
                 break;
@@ -217,7 +217,7 @@ class NerdinSource implements VacancySource
 
     private function findCardByUrl(DOMXPath $xpath, string $url): ?DOMElement
     {
-        $links = $xpath->query('//a[contains(@href, "/vaga_emprego/")]');
+        $links = $xpath->query('//a[contains(@href, "vaga_emprego/")]');
         foreach ($links ?: [] as $link) {
             if ($link instanceof DOMElement && $this->absoluteUrl($link->getAttribute('href')) === $url) {
                 return $this->findCard($link);
@@ -536,6 +536,16 @@ class NerdinSource implements VacancySource
             && in_array(Str::lower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)
             && Str::lower((string) parse_url($url, PHP_URL_HOST)) === 'www.nerdin.com.br') {
             return $url;
+        }
+
+        // A listagem da Nerdin fornece links relativos sem a barra inicial,
+        // por exemplo: vaga_emprego/vaga-exemplo-123.php.
+        if (!str_starts_with($url, '#')
+            && !str_starts_with($url, '?')
+            && !str_starts_with($url, 'javascript:')
+            && parse_url($url, PHP_URL_SCHEME) === null
+            && parse_url($url, PHP_URL_HOST) === null) {
+            return self::BASE_URL . '/' . ltrim($url, './');
         }
 
         return null;
