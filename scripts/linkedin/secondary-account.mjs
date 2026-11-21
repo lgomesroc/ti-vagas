@@ -481,8 +481,13 @@ async function extractCard(page, card, keyword) {
     }
   }
 
+  const emailSource = [
+    postText,
+    ...comments.map(comment => comment.text),
+  ].join('\n');
+
   const emailMatches = [
-    ...postText.matchAll(
+    ...emailSource.matchAll(
       /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
     ),
   ].map(match => match[0].toLowerCase());
@@ -549,9 +554,9 @@ async function launchBrowser() {
 }
 
 async function main() {
-  if (!['login', 'search', 'jobs', 'all'].includes(mode)) {
+  if (!['login', 'search', 'posts', 'jobs', 'all'].includes(mode)) {
     throw new Error(
-      `Modo inválido: ${mode}. Use login, search, jobs ou all.`
+      `Modo inválido: ${mode}. Use login, search, posts, jobs ou all.`
     );
   }
 
@@ -631,7 +636,7 @@ async function main() {
         waitUntil: 'domcontentloaded',
       });
 
-      await page.waitForTimeout(2200);
+      await page.waitForTimeout(900);
 
       const diagnostic = keywordDiagnostics.get(keyword) ?? {
         cards: 0,
@@ -804,23 +809,13 @@ async function main() {
         }
 
         await page.mouse.wheel(0, 1800);
-        await page.waitForTimeout(900);
+        await page.waitForTimeout(400);
       }
-
-      await page.waitForTimeout(1100);
     }
 
-    const enriched = [];
-
-    for (const post of [...posts.values()].slice(0, 25)) {
-      try {
-        enriched.push(await enrichPost(page, post));
-      } catch {
-        enriched.push(post);
-      }
-
-      await page.waitForTimeout(350);
-    }
+    // O cartão já foi expandido e os links, e-mails e comentários públicos
+    // foram extraídos durante a busca. Evita abrir até 25 URLs individualmente.
+    const enriched = [...posts.values()];
 
     process.stderr.write(
       '[LinkedIn secondary diagnostics]\n' +
