@@ -13,66 +13,76 @@ const SEARCH_TERMS = [
   'technical support junior',
 ];
 
-const LOOKBACK_HOURS = 72;
+const LOOKBACK_CALENDAR_DAYS = 3;
+const LINKEDIN_SEARCH_DAYS = 4;
 const MAX_PAGES_PER_SEARCH = 20;
 const PAGE_SIZE = 25;
 
-const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
+const clean = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
 
 function normalize(value) {
-  return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return clean(value).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
 }
 
 function log(message) {
-  process.stderr.write(`[LinkedIn Jobs] ${message}\n`);
+  process.stderr.write(`[LinkedIn Jobs] ${message}\\n`);
 }
 
-function parseRelativeDate(value) {
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function subtractCalendarDays(date, days) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - days);
+}
+
+function parseRelativeDate(value, scrapedAt) {
   const text = normalize(value);
   if (!text) return null;
 
-  if (/\b(agora|just now|hoje|today)\b/.test(text)) {
-    return new Date();
+  if (/\\b(agora|just now|hoje|today)\\b/.test(text)) return new Date(scrapedAt);
+
+  if (/\\b(ontem|yesterday)\\b/.test(text)) {
+    return subtractCalendarDays(scrapedAt, 1);
   }
 
-  const match = text.match(
-    /(?:ha\s*)?(\d+)\s*(min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours|d|dia|dias|day|days|sem|semana|semanas|week|weeks|mo|mes|meses|month|months)\b/i
-  );
+  // "1 dia", "2 dias", "3 days ago" e "3d" são tratados como dias
+  // de calendário, não como blocos exatos de 24 horas.
+  const dayMatch = text.match(/(?:ha\\s*)?(\\d+)\\s*(d|dia|dias|day|days)\\b/i);
+  if (dayMatch) {
+    return subtractCalendarDays(scrapedAt, Number(dayMatch[1]));
+  }
 
+  const match = text.match(/(?:ha\\s*)?(\\d+)\\s*(min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours)\\b/i);
   if (!match) return null;
 
   const amount = Number(match[1]);
   const unit = match[2].toLowerCase();
-
-  const factor =
-    /^(min|minuto|minute)/.test(unit) ? 60000 :
-    /^(h|hr|hora|hour)/.test(unit) ? 3600000 :
-    /^(d|dia|day)/.test(unit) ? 86400000 :
-    /^(sem|week)/.test(unit) ? 604800000 :
-    2592000000;
-
-  return new Date(Date.now() - amount * factor);
+  const factor = /^(min|minuto|minute)/.test(unit) ? 60000 : 3600000;
+  return new Date(scrapedAt.getTime() - amount * factor);
 }
 
-function isWithinWindow(date) {
-  if (!date || Number.isNaN(date.getTime())) return false;
+function isWithinCalendarWindow(date, scrapedAt) {
+  if (!date || Number.isNaN(date.getTime()) || date.getTime() > scrapedAt.getTime()) {
+    return false;
+  }
 
-  const age = Date.now() - date.getTime();
-  return age >= 0 && age <= LOOKBACK_HOURS * 3600000;
+  const firstEligibleDay = subtractCalendarDays(scrapedAt, LOOKBACK_CALENDAR_DAYS);
+  return startOfLocalDay(date).getTime() >= firstEligibleDay.getTime();
 }
 
 function isJuniorTitle(title) {
   const value = normalize(title);
 
-  if (/\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/.test(value)) {
+  if (/\\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\\b/.test(value)) {
     return false;
   }
 
-  if (/\b(estagio|trainee|intern|internship|apprentice)\b/.test(value)) {
+  if (/\\b(estagio|trainee|intern|internship|apprentice)\\b/.test(value)) {
     return false;
   }
 
-  return /\b(junior|jr)\b/.test(value);
+  return /\\b(junior|jr)\\b/.test(value);
 }
 
 function isTechnologyTitle(title) {
@@ -94,12 +104,12 @@ function isTechnologyTitle(title) {
   return terms.some(term => value.includes(normalize(term)));
 }
 
-function extractCardSummary(text, id) {
-  const lines = String(text)
-    .split('\n')
+function extractCardSummary(card, id, scrapedAt) {
+  const lines = String(card.text || '')
+    .split('\\n')
     .map(clean)
     .filter(Boolean)
-    .map(line => line.replace(/^selecionada,\s*/i, ''));
+    .map(line => line.replace(/^selecionada,\\s*/i, ''));
 
   if (!lines.length) return null;
 
@@ -109,22 +119,18 @@ function extractCardSummary(text, id) {
 
   if (titleIndex < 0) return null;
 
-  const title = clean(lines[titleIndex]).replace(/\s*\(vaga verificada\)/i, '');
+  const title = clean(lines[titleIndex]).replace(/\\s*\\(vaga verificada\\)/i, '');
   const company = lines[titleIndex + 1] || '';
   const location = lines[titleIndex + 2] || '';
-
-  const dateText = lines.find(line =>
-    /\b(anunciada|posted|ha\s*\d|just now|agora|hoje|today)\b/i.test(normalize(line))
+  const dateCandidates = [...(card.dateCandidates || []), ...lines];
+  const dateText = dateCandidates.find(line =>
+    /\\b(agora|just now|hoje|today|ontem|yesterday|\\d+\\s*(?:min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours|d|dia|dias|day|days))\\b/i.test(normalize(line))
   ) || '';
+  const publishedAt = card.datetime
+    ? new Date(card.datetime)
+    : parseRelativeDate(dateText, scrapedAt);
 
-  return {
-    id,
-    title,
-    company,
-    location,
-    dateText,
-    publishedAt: parseRelativeDate(dateText),
-  };
+  return { id, title, company, location, dateText, publishedAt };
 }
 
 async function getCurrentCards(page) {
@@ -133,18 +139,36 @@ async function getCurrentCards(page) {
 
     for (const element of elements) {
       const key = element.getAttribute('componentkey') || '';
-      const match = key.match(/job-card-component-ref-(\d+)/);
-
+      const match = key.match(/job-card-component-ref-(\\d+)/);
       if (!match) continue;
 
       const id = match[1];
+      if (unique.has(id)) continue;
 
-      if (!unique.has(id)) {
-        unique.set(id, {
-          id,
-          text: element.innerText || '',
-        });
+      const dateElements = [...element.querySelectorAll('time[datetime], [datetime], [aria-label], [title]')];
+      const dateCandidates = [];
+      let datetime = null;
+
+      for (const node of dateElements) {
+        const candidate = [
+          node.getAttribute('datetime'),
+          node.getAttribute('aria-label'),
+          node.getAttribute('title'),
+          node.innerText,
+          node.textContent,
+        ].filter(Boolean);
+
+        for (const value of candidate) dateCandidates.push(value);
+        const rawDate = node.getAttribute('datetime');
+        if (!datetime && rawDate && !Number.isNaN(Date.parse(rawDate))) datetime = rawDate;
       }
+
+      unique.set(id, {
+        id,
+        text: element.innerText || '',
+        dateCandidates,
+        datetime,
+      });
     }
 
     return [...unique.values()];
@@ -157,7 +181,9 @@ async function openSearchPage(page, term, pageNo) {
   searchUrl.searchParams.set('keywords', term);
   searchUrl.searchParams.set('location', 'Brazil');
   searchUrl.searchParams.set('f_E', '1,2');
-  searchUrl.searchParams.set('f_TPR', 'r259200');
+  // 4 dias na busca para não perder o terceiro dia até 23:59.
+  // A validação final usa a data local da raspagem e três dias de calendário.
+  searchUrl.searchParams.set('f_TPR', 'r345600');
   searchUrl.searchParams.set('sortBy', 'DD');
   searchUrl.searchParams.set('start', String((pageNo - 1) * PAGE_SIZE));
 
@@ -318,15 +344,15 @@ async function extractJobDetail(page, job) {
   const normalized = normalize(`${location} ${bodyText}`);
 
   const workModel =
-    /\b(remote|remoto|home office)\b/.test(normalized) ? 'Remoto' :
-    /\b(hybrid|hibrido)\b/.test(normalized) ? 'Híbrido' :
-    /\b(on.site|onsite|presencial)\b/.test(normalized) ? 'Presencial' :
+    /\\b(remote|remoto|home office)\\b/.test(normalized) ? 'Remoto' :
+    /\\b(hybrid|hibrido)\\b/.test(normalized) ? 'Híbrido' :
+    /\\b(on.site|onsite|presencial)\\b/.test(normalized) ? 'Presencial' :
     null;
 
   const employmentType =
-    /\b(part.time|meio periodo)\b/.test(normalized) ? 'Meio período' :
-    /\b(contract|temporario|temporary)\b/.test(normalized) ? 'Temporário' :
-    /\b(full.time|tempo integral)\b/.test(normalized) ? 'Tempo integral' :
+    /\\b(part.time|meio periodo)\\b/.test(normalized) ? 'Meio período' :
+    /\\b(contract|temporario|temporary)\\b/.test(normalized) ? 'Temporário' :
+    /\\b(full.time|tempo integral)\\b/.test(normalized) ? 'Tempo integral' :
     null;
 
   if (!isJuniorTitle(title) || !isTechnologyTitle(title)) {
@@ -351,10 +377,15 @@ async function extractJobDetail(page, job) {
 }
 
 export async function collectLinkedInJobs(page) {
+  // Captura uma única referência de tempo para toda a execução.
+  const scrapedAt = new Date();
   const jobs = new Map();
 
+  log(`Início da raspagem: ${scrapedAt.toString()}`);
+  log('Janela: hoje + os três dias de calendário anteriores (até 23:59 do terceiro dia).');
+
   for (const term of SEARCH_TERMS) {
-    log(`\nIniciando pesquisa: ${term}`);
+    log(`\\nIniciando pesquisa: ${term}`);
 
     const seenIdsInSearch = new Set();
 
@@ -388,7 +419,7 @@ export async function collectLinkedInJobs(page) {
           continue;
         }
 
-        const summary = extractCardSummary(card.text, card.id);
+        const summary = extractCardSummary(card, card.id, scrapedAt);
 
         if (!summary) continue;
 
@@ -396,8 +427,13 @@ export async function collectLinkedInJobs(page) {
           continue;
         }
 
-        if (!isWithinWindow(summary.publishedAt)) {
-          log(`Fora das 72h ou sem data: ${summary.title} | ${summary.dateText || 'data ausente'}`);
+        if (!summary.publishedAt) {
+          log(`Data não identificada; descartada por segurança: ${summary.title} | ${summary.dateText || 'sem metadado de data'}`);
+          continue;
+        }
+
+        if (!isWithinCalendarWindow(summary.publishedAt, scrapedAt)) {
+          log(`Fora da janela de calendário: ${summary.title} | ${summary.dateText}`);
           continue;
         }
 
@@ -407,7 +443,7 @@ export async function collectLinkedInJobs(page) {
           matchedTerms: new Set([term]),
         });
 
-        log(`Elegível: ${summary.title} | ${summary.dateText}`);
+        log(`Elegível: ${summary.title} | ${summary.dateText} | ${summary.publishedAt.toString()}`);
       }
 
       if (pageNo > 1 && newIdsOnPage === 0) {
@@ -416,7 +452,7 @@ export async function collectLinkedInJobs(page) {
       }
 
       if (cards.length < PAGE_SIZE) {
-        log(`Menos de ${PAGE_SIZE} cartões encontrados. Última página provável.`);
+        log('Menos de 25 cartões encontrados. Última página provável.');
         break;
       }
     }
@@ -426,13 +462,13 @@ export async function collectLinkedInJobs(page) {
     (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
   );
 
-  log(`\nPesquisas concluídas: ${SEARCH_TERMS.length}`);
-  log(`Vagas únicas dentro de 72h: ${ordered.length}`);
+  log(`\\nPesquisas concluídas: ${SEARCH_TERMS.length}`);
+  log(`Vagas únicas dentro da janela de calendário: ${ordered.length}`);
 
   const results = [];
 
   for (const [index, job] of ordered.entries()) {
-    log(`\nDetalhando ${index + 1}/${ordered.length}: ${job.title}`);
+    log(`\\nDetalhando ${index + 1}/${ordered.length}: ${job.title}`);
 
     try {
       const vacancy = await extractJobDetail(page, job);
@@ -448,7 +484,7 @@ export async function collectLinkedInJobs(page) {
     }
   }
 
-  log(`\nTotal aprovado para importação: ${results.length}`);
+  log(`\\nTotal aprovado para importação: ${results.length}`);
 
   return results;
 }
