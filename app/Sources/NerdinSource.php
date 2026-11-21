@@ -102,7 +102,9 @@ class NerdinSource implements VacancySource
             }
 
             $this->stats['Links de vagas encontrados'] += $links->length;
-            $pageIds = [];
+            // Guarda os dados já extraídos de cada cartão. A etapa de detalhes
+            // reutiliza esse conteúdo em vez de percorrer novamente todo o DOM.
+            $pageCards = [];
 
             foreach ($links as $link) {
                 if (!$link instanceof DOMElement) {
@@ -133,28 +135,18 @@ class NerdinSource implements VacancySource
                     continue;
                 }
 
-                $pageIds[] = $detailUrl;
+                $pageCards[$detailUrl] = $cardData;
                 if ($detailRequests >= $this->maxJobs * 3) {
                     break 2;
                 }
             }
 
-            foreach ($pageIds as $detailUrl) {
+            foreach ($pageCards as $detailUrl => $cardData) {
                 if (count($vacancies) >= $this->maxJobs) {
                     break 2;
                 }
 
                 try {
-                    $card = $this->findCardByUrl($xpath, $detailUrl);
-                    if ($card === null) {
-                        continue;
-                    }
-
-                    $cardData = $this->parseCard($card);
-                    if ($cardData === null) {
-                        continue;
-                    }
-
                     $detailRequests++;
                     $this->stats['Detalhes consultados']++;
                     $vacancy = $this->parseDetail($this->get($detailUrl), $detailUrl, $cardData);
@@ -211,18 +203,6 @@ class NerdinSource implements VacancySource
             }
 
             $node = $node->parentNode;
-        }
-
-        return null;
-    }
-
-    private function findCardByUrl(DOMXPath $xpath, string $url): ?DOMElement
-    {
-        $links = $xpath->query('//a[contains(@href, "vaga_emprego/")]');
-        foreach ($links ?: [] as $link) {
-            if ($link instanceof DOMElement && $this->absoluteUrl($link->getAttribute('href')) === $url) {
-                return $this->findCard($link);
-            }
         }
 
         return null;
@@ -456,12 +436,14 @@ class NerdinSource implements VacancySource
 
     private function extractLocation(string $text): ?string
     {
-        if (preg_match('/\bHome Office\b|\bRemoto\b/iu', $text, $match)) {
-            return 'Home Office';
-        }
-
+        // Cidade/UF é uma evidência geográfica mais específica do que
+        // "Home Office"; não a descarte quando os dois aparecem no cartão.
         if (preg_match('/([\p{L} .\'-]+\s*[•\/-]\s*[A-Z]{2})/u', $text, $match)) {
             return trim($match[1]);
+        }
+
+        if (preg_match('/\bHome Office\b|\bRemoto\b/iu', $text)) {
+            return 'Home Office';
         }
 
         return null;
