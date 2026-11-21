@@ -1,0 +1,78 @@
+name: TI Vagas - LinkedIn Jobs
+
+on:
+  schedule:
+    - cron: "30 6,12,18,0 * * *"
+      timezone: "America/Sao_Paulo"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-linkedin-jobs
+  cancel-in-progress: false
+
+jobs:
+  collect-linkedin-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+      DB_SSLMODE: require
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      LINKEDIN_HEADLESS: "true"
+      LINKEDIN_POSTS_LOOKBACK_HOURS: "168"
+      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "true"
+      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: developer
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
+          coverage: none
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Instalar dependências Node
+        run: npm ci --ignore-scripts
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Restaurar sessão do LinkedIn
+        env:
+          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
+        run: |
+          test -n "$LINKEDIN_STORAGE_STATE_B64" || {
+            echo "::error::Secret LINKEDIN_STORAGE_STATE_B64 não configurada."
+            exit 1
+          }
+          mkdir -p .local
+          printf '%s' "$LINKEDIN_STORAGE_STATE_B64" | base64 --decode > "$LINKEDIN_STORAGE_STATE_PATH"
+          chmod 600 "$LINKEDIN_STORAGE_STATE_PATH"
+
+      - name: Aplicar migrações
+        run: php artisan migrate --force
+
+      - name: Coletar vagas do LinkedIn Jobs e importar no banco
+        run: php artisan linkedin:collect-jobs
