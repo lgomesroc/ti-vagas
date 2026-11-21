@@ -19,14 +19,17 @@ class CollectLinkedInJobs extends Command
         VacancyImporter $importer,
         VacancyLocationFilter $locationFilter
     ): int {
-        if (!config('linkedin.enabled') || !config('linkedin.secondary_account.enabled')) {
+        if (!config('linkedin.secondary_account.enabled')) {
             $this->warn('A coleta autenticada do LinkedIn está desabilitada.');
             return self::SUCCESS;
         }
 
+        $this->info('Banco configurado: ' . config('database.default'));
+
         try {
             $source = new LinkedInJobsSource($locationFilter);
             $vacancies = $source->fetch();
+            $this->info('Vagas aprovadas pelos filtros da fonte: ' . count($vacancies));
             $result = $importer->importFetched($source->name(), $vacancies);
 
             $this->table(
