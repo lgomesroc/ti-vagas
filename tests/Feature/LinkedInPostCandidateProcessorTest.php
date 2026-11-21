@@ -175,7 +175,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     {
         $post = $this->makePost([
             'authorHeadline' => 'Tech Recruiter',
-            'text' => 'Estamos contratando Desenvolvedor .NET Júnior. Você vai trabalhar em projetos reais e resolver desafios técnicos com C# e SQL Server. Candidate-se: https://acme.example/jobs/123',
+            'text' => 'Estamos contratando Desenvolvedor .NET Júnior. Remoto Brasil. Você vai trabalhar em projetos reais e resolver desafios técnicos com C# e SQL Server. Candidate-se: https://acme.example/jobs/123',
         ]);
 
         app(LinkedInPostCandidateProcessor::class)->process($post);
