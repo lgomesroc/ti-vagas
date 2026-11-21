@@ -35,6 +35,23 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertContains('contato@gmail.com', $candidate->emails);
     }
 
+    public function test_seniority_mismatch_is_preserved_for_later_editorial_review(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Analista de Suporte Sênior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para recrutamento@acme.com.',
+        ]);
+
+        $result = app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertSame(0, $result['rejected']);
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'pending_publication',
+            'title' => 'Analista de Suporte Sênior',
+            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
+        ]);
+    }
+
     public function test_engagement_bait_asking_people_to_comment_for_a_private_message_is_rejected(): void
     {
         $post = $this->makePost([
