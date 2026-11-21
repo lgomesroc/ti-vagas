@@ -67,6 +67,7 @@ class NetVagasSource implements VacancySource
         $cutoff = CarbonImmutable::now('America/Sao_Paulo')
             ->subDays(max(1, $this->initialLookbackDays));
         $jobs = [];
+        $seenIds = [];
 
         foreach ($terms as $term) {
             $slug = Str::slug($term);
@@ -133,10 +134,11 @@ class NetVagasSource implements VacancySource
                     $this->stats['Anúncios encontrados']++;
                     $externalId = 'netvagas:' . $idMatch[1];
 
-                    if (isset($jobs[$externalId])) {
+                    if (isset($seenIds[$externalId])) {
                         $this->stats['Duplicados entre pesquisas']++;
                         continue;
                     }
+                    $seenIds[$externalId] = true;
 
                     $card = $this->findCard($link);
                     if ($card === null) {
