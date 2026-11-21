@@ -120,7 +120,9 @@ O portal prioriza oportunidades destinadas a profissionais residentes no Brasil 
 
 - **Remoto:** oportunidades que permitem atuação remota no Brasil aparecem para todos, independentemente do local.
 - **Presencial, híbrido ou modalidade não informada:** aparecem somente para visitantes da mesma região da vaga.
-- O visitante precisa autorizar a localização no navegador. Sem autorização, apenas vagas remotas são exibidas.
+- O visitante precisa autorizar a localização no navegador. Sem autorização, apenas vagas remotas são exibidas. A região **nunca é adivinhada** (não há estimativa por IP).
+- A escolha vale nas visitas seguintes: permissão concedida mostra as vagas da região, bloqueada ou revogada volta às remotas, e redefinida nas configurações faz o navegador perguntar de novo.
+- Em movimento (por exemplo, no celular), a região acompanha o deslocamento do aparelho.
 
 #### Como a região é definida
 
@@ -152,6 +154,10 @@ O que o servidor faz:
 - A resposta ao navegador não revela o motivo da recusa (`reason: unverified`).
 
 **Limites, sem rodeios:** não existe proteção absoluta contra falsificação de localização. O navegador e o dispositivo do visitante estão sob o controle dele, e as ferramentas de desenvolvedor, extensões e aplicativos de GPS falso permitem simular uma posição. Quem informar coordenadas plausíveis, com ruído realista, a partir de um ponto que não coincide com nenhum centroide e sem trocar de região rápido demais, **não será detectado**. Estas regras tornam o abuso mais trabalhoso, limitado e registrável; elas não provam que o visitante está onde diz estar. Por isso a região libera apenas a exibição de vagas, nunca algo que dependa de a presença física ser comprovada.
+
+### HTTPS
+
+Em produção (ou com `APP_FORCE_HTTPS=true`) o site só funciona por https: pedidos `http` são redirecionados (301), todas as URLs geradas saem como https, e o navegador recebe `Strict-Transport-Security` e `upgrade-insecure-requests` (evita conteúdo misto, que faz o navegador marcar a página como não segura). O app roda atrás do proxy da hospedagem, que termina o TLS; o esquema vem de `X-Forwarded-Proto`. Confira também que `APP_URL` no painel da hospedagem começa com `https://`.
 
 Ajustes por variável de ambiente: `LOCATION_GUARD_ENABLED`, `LOCATION_GUARD_LOG_CHANNEL` e `LOCATION_GUARD_IP_CROSSCHECK`. Em produção, defina `TRUSTED_PROXIES` com os proxies reais, ou o IP usado nos limites e no cruzamento com o GPS pode ser forjado por quem envia o cabeçalho `X-Forwarded-For`.
 
@@ -365,7 +371,8 @@ Entre os cenários cobertos estão:
 - Verificação HTTP dos links de candidatura, redirecionamentos e respostas inconclusivas;
 - Captura, sanitização e preservação da primeira atribuição UTM;
 - Aceite dos termos, persistência de cookies e preferências de cookies não essenciais;
-- Primeira autorização de localização a partir do modo limitado.
+- Primeira autorização de localização a partir do modo limitado;
+- Retorno do visitante com cookie de termos e sessão nova, permissão bloqueada ou revogada e ausência de estimativa por IP.
 
 A quantidade de testes e as asserções muda conforme o projeto evolui. Não há nesta documentação uma contagem fixa apresentada como resultado atual; consulte a execução mais recente do CI ou execute a suíte no ambiente local.
 

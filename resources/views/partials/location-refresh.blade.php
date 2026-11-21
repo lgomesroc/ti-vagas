@@ -8,21 +8,58 @@
     }
 
     var ENDPOINT = @json(route('location.refresh'));
+    var DISABLE_ENDPOINT = @json(route('location.disable'));
     var CSRF_TOKEN = @json(csrf_token());
     var MAX_ACCURACY_METERS = @json(
         \App\Services\Geo\VisitorLocationResolver::MAX_ACCURACY_METERS
     );
 
-    var MIN_INTERVAL_MS = 30 * 60 * 1000;
-    var ACQUISITION_WINDOW_MS = 12000;
+    // Precisão (m) a partir da qual a leitura é enviada na hora, sem esperar
+    // uma leitura melhor.
+    var GOOD_ACCURACY_METERS = 100;
+    // Depois da primeira leitura aceitável, quanto esperar por uma melhor.
+    // Só começa a contar quando o aparelho já devolveu uma posição: o tempo
+    // gasto respondendo ao aviso de permissão do navegador não entra aqui.
+    var REFINE_WINDOW_MS = 8000;
+    // Limite do navegador para obter uma posição. Pela especificação, também
+    // não inclui o tempo de resposta ao aviso de permissão.
+    var GEO_TIMEOUT_MS = 30000;
+    // Deslocamento mínimo para enviar uma nova posição ao servidor.
+    var MOVE_THRESHOLD_KM = 1;
+    // O servidor aceita 6 envios por minuto: ficamos bem abaixo disso.
+    var MIN_SEND_INTERVAL_MS = 20000;
+    // Pausa depois que o servidor recusa uma leitura (evita insistir).
+    var REFUSED_BACKOFF_MS = 120000;
+    var RATE_LIMIT_BACKOFF_MS = 60000;
+    var NETWORK_BACKOFF_MS = 30000;
+
+    // Caixa aproximada do Brasil (a mesma usada pelo servidor): fora dela
+    // não há o que enviar, e o servidor trataria como tentativa suspeita.
+    var BRAZIL = { minLat: -34.0, maxLat: 6.0, minLon: -74.5, maxLon: -28.0 };
+
     var STORAGE_KEY = 'ti_vagas_location_refresh';
     var LOCATION_MODE = @json(session('location_mode', 'limited'));
 
-    var running = false;
-    var attemptedThisPage = false;
+    var watchId = null;
+    var permissionWatched = false;
+    var askedThisPage = false;
+    var sending = false;
+    var disabling = false;
+    var firstSendDone = false;
+    var refineTimer = null;
+    var best = null;
+    var lastSent = null;
+    var blockedUntil = 0;
     var memoryState = {};
     var statusElement = null;
-    var retryButton = null;
+    var actionButton = null;
+    // Mensagem "fixa" (recusa do servidor, rede, bloqueio): só sai por uma
+    // nova ação ou por sucesso, não a cada leitura do GPS.
+    var statusSticky = false;
+
+    // ---------------------------------------------------------------
+    // Armazenamento local (só a última posição enviada)
+    // ---------------------------------------------------------------
 
     function readState() {
         try {
@@ -41,15 +78,20 @@
         }
     }
 
+    // ---------------------------------------------------------------
+    // Mensagens na tela
+    // ---------------------------------------------------------------
+
     function clearStatus() {
         if (statusElement && statusElement.parentNode) {
             statusElement.parentNode.removeChild(statusElement);
         }
         statusElement = null;
-        retryButton = null;
+        actionButton = null;
+        statusSticky = false;
     }
 
-    function showStatus(message, actionLabel, action) {
+    function showStatus(message, actionLabel, action, sticky) {
         if (!statusElement) {
             statusElement = document.createElement('div');
             statusElement.id = 'location-refresh-status';
@@ -67,21 +109,18 @@
         }
 
         statusElement.textContent = message;
-
-        if (retryButton && retryButton.parentNode) {
-            retryButton.parentNode.removeChild(retryButton);
-        }
-        retryButton = null;
+        statusSticky = sticky === true;
+        actionButton = null;
 
         if (actionLabel && typeof action === 'function') {
-            retryButton = document.createElement('button');
-            retryButton.type = 'button';
-            retryButton.textContent = actionLabel;
-            retryButton.style.cssText =
+            actionButton = document.createElement('button');
+            actionButton.type = 'button';
+            actionButton.textContent = actionLabel;
+            actionButton.style.cssText =
                 'flex:none;border:0;border-radius:6px;padding:8px 12px;'
                 + 'background:#2563eb;color:#fff;cursor:pointer;';
-            retryButton.addEventListener('click', action);
-            statusElement.appendChild(retryButton);
+            actionButton.addEventListener('click', action);
+            statusElement.appendChild(actionButton);
         }
     }
 
@@ -89,20 +128,10 @@
         return !!document.querySelector('.cookie-modal-overlay');
     }
 
-    function distanceKm(lat1, lon1, lat2, lon2) {
-        var toRad = function (value) { return value * Math.PI / 180; };
-        var dLat = toRad(lat2 - lat1);
-        var dLon = toRad(lon2 - lon1);
-        var a = Math.pow(Math.sin(dLat / 2), 2)
-            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
-            * Math.pow(Math.sin(dLon / 2), 2);
-        return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
-    }
-
-    function notifyAndReload(region) {
+    function reloadWithNotice(message) {
         var notice = document.createElement('div');
         notice.setAttribute('role', 'status');
-        notice.textContent = 'Sua região mudou para ' + region + '. Atualizando as vagas...';
+        notice.textContent = message;
         notice.style.cssText =
             'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);'
             + 'background:#202938;color:#fff;padding:12px 18px;'
@@ -120,33 +149,31 @@
         }, 1200);
     }
 
-    function send(position) {
-        var coords = position.coords;
+    // ---------------------------------------------------------------
+    // Geometria
+    // ---------------------------------------------------------------
 
-        if (!Number.isFinite(coords.accuracy) || coords.accuracy > MAX_ACCURACY_METERS) {
-            showStatus(
-                'A melhor precisão obtida foi de '
-                + Math.round(coords.accuracy).toLocaleString('pt-BR')
-                + ' m. O limite para liberar vagas presenciais e híbridas é 5.000 m. '
-                + 'Ative a localização do Windows ou tente em um dispositivo com localização mais precisa.',
-                'Tentar novamente',
-                function () { requestLocation(true); }
-            );
-            return Promise.resolve();
-        }
+    function distanceKm(lat1, lon1, lat2, lon2) {
+        var toRad = function (value) { return value * Math.PI / 180; };
+        var dLat = toRad(lat2 - lat1);
+        var dLon = toRad(lon2 - lon1);
+        var a = Math.pow(Math.sin(dLat / 2), 2)
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+            * Math.pow(Math.sin(dLon / 2), 2);
+        return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
 
-        var state = readState();
-        if (
-            typeof state.lat === 'number'
-            && typeof state.lon === 'number'
-            && LOCATION_MODE === 'available'
-            && distanceKm(state.lat, state.lon, coords.latitude, coords.longitude) < 1
-        ) {
-            clearStatus();
-            return Promise.resolve();
-        }
+    function insideBrazil(lat, lon) {
+        return lat >= BRAZIL.minLat && lat <= BRAZIL.maxLat
+            && lon >= BRAZIL.minLon && lon <= BRAZIL.maxLon;
+    }
 
-        return fetch(ENDPOINT, {
+    // ---------------------------------------------------------------
+    // Comunicação com o servidor
+    // ---------------------------------------------------------------
+
+    function post(url, payload) {
+        return fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -155,12 +182,7 @@
                 'X-CSRF-TOKEN': CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                accuracy: coords.accuracy,
-                captured_at: position.timestamp
-            })
+            body: JSON.stringify(payload || {})
         }).then(function (response) {
             if (!response.ok) {
                 var error = new Error('HTTP ' + response.status);
@@ -168,153 +190,458 @@
                 throw error;
             }
             return response.json();
-        }).then(function (result) {
-            var next = readState();
-            next.lat = coords.latitude;
-            next.lon = coords.longitude;
-            next.checkedAt = Date.now();
-            writeState(next);
-
-            if (result.updated) {
-                LOCATION_MODE = 'available';
-                clearStatus();
-                notifyAndReload(result.region);
-                return;
-            }
-
-            if (result.reason === 'inaccurate') {
-                showStatus('O servidor recebeu uma precisão acima de 5.000 m. Tente novamente.', 'Tentar novamente', function () { requestLocation(true); });
-            } else if (result.reason === 'unverified') {
-                showStatus('Não foi possível validar esta leitura. Aguarde um pouco e tente novamente.', 'Tentar novamente', function () { requestLocation(true); });
-            } else if (result.reason === 'unresolved') {
-                showStatus('Não foi possível identificar um município brasileiro com esta posição. Confira a localização do dispositivo e tente novamente.', 'Tentar novamente', function () { requestLocation(true); });
-            } else {
-                clearStatus();
-            }
-        }).catch(function (error) {
-            var message = error.status === 419
-                ? 'Sua sessão expirou. Atualize a página e tente novamente.'
-                : error.status === 429
-                    ? 'Muitas tentativas em pouco tempo. Aguarde um minuto antes de tentar novamente.'
-                    : 'Não foi possível enviar sua localização ao servidor. Verifique a conexão e tente novamente.';
-            showStatus(message, 'Tentar novamente', function () { requestLocation(true); });
         });
     }
 
-    function acquireBestPosition() {
-        return new Promise(function (resolve, reject) {
-            var watchId = null;
-            var best = null;
-            var finished = false;
-            var deadline;
-
-            function finish(error) {
-                if (finished) return;
-                finished = true;
-                window.clearTimeout(deadline);
-                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-                if (best) resolve(best);
-                else reject(error || new Error('POSITION_UNAVAILABLE'));
-            }
-
-            watchId = navigator.geolocation.watchPosition(function (position) {
-                if (!best || position.coords.accuracy < best.coords.accuracy) {
-                    best = position;
-                }
-            }, function (error) {
-                finish(error);
-            }, {
-                enableHighAccuracy: true,
-                timeout: 25000,
-                maximumAge: 0
-            });
-
-            deadline = window.setTimeout(function () {
-                finish(best ? null : new Error('TIMEOUT'));
-            }, ACQUISITION_WINDOW_MS);
-        });
+    function retryAction() {
+        blockedUntil = 0;
+        stopTracking();
+        startTracking();
+        showStatus('Obtendo sua localização. Isso pode levar alguns segundos...');
     }
 
-    function requestLocation(force) {
-        if (running || (attemptedThisPage && !force) || hasCookieModal()) {
+    function showRefusal(reason) {
+        var message;
+
+        if (reason === 'inaccurate') {
+            message = 'O servidor recebeu uma precisão acima de '
+                + Math.round(MAX_ACCURACY_METERS).toLocaleString('pt-BR')
+                + ' m. Tente novamente.';
+        } else if (reason === 'unverified') {
+            message = 'Não foi possível validar esta leitura. Aguarde um pouco e tente novamente.';
+        } else if (reason === 'unresolved') {
+            message = 'Não foi possível identificar um município brasileiro com esta posição. Confira a localização do dispositivo e tente novamente.';
+        } else {
+            clearStatus();
             return;
         }
 
-        running = true;
-        attemptedThisPage = true;
+        showStatus(message, 'Tentar novamente', retryAction, true);
+    }
 
-        if (retryButton) retryButton.disabled = true;
-        showStatus('Obtendo a melhor localização disponível. Isso pode levar alguns segundos...');
+    function sendPosition(position) {
+        var coords = position.coords;
+        var state = readState();
 
-        acquireBestPosition().then(function (position) {
-            var state = readState();
-            state.lastAttemptAt = Date.now();
-            writeState(state);
-            return send(position);
+        // O servidor já tem uma região para este ponto: não há o que enviar.
+        if (
+            LOCATION_MODE === 'available'
+            && typeof state.lat === 'number'
+            && typeof state.lon === 'number'
+            && distanceKm(state.lat, state.lon, coords.latitude, coords.longitude) < MOVE_THRESHOLD_KM
+        ) {
+            lastSent = { lat: coords.latitude, lon: coords.longitude, at: Date.now() };
+            clearStatus();
+            return Promise.resolve();
+        }
+
+        sending = true;
+
+        return post(ENDPOINT, {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            captured_at: position.timestamp
+        }).then(function (result) {
+            var accepted = result.updated === true
+                || result.reason === 'unchanged'
+                || result.reason === 'nearby';
+
+            if (accepted) {
+                LOCATION_MODE = 'available';
+                lastSent = { lat: coords.latitude, lon: coords.longitude, at: Date.now() };
+
+                var next = readState();
+                next.lat = coords.latitude;
+                next.lon = coords.longitude;
+                next.checkedAt = Date.now();
+                writeState(next);
+            }
+
+            if (result.updated) {
+                clearStatus();
+                reloadWithNotice('Sua região mudou para ' + result.region + '. Atualizando as vagas...');
+                return;
+            }
+
+            if (accepted) {
+                clearStatus();
+                return;
+            }
+
+            blockedUntil = Date.now() + REFUSED_BACKOFF_MS;
+            showRefusal(result.reason);
         }).catch(function (error) {
-            var denied = error && error.code === error.PERMISSION_DENIED;
-            var unavailable = error && error.code === error.POSITION_UNAVAILABLE;
-            var message = denied
-                ? 'A permissão de localização foi bloqueada. Libere a localização deste site nas configurações do navegador e tente novamente.'
-                : unavailable
-                    ? 'O dispositivo não conseguiu determinar sua posição. Confira se a localização do Windows está ativada.'
-                    : 'A localização demorou para responder. Confira as configurações do dispositivo e tente novamente.';
-            showStatus(message, denied ? null : 'Tentar novamente', function () { requestLocation(true); });
+            if (error.status === 419) {
+                showStatus(
+                    'Sua sessão expirou. Atualize a página para continuar.',
+                    'Atualizar página',
+                    function () { window.location.reload(); },
+                    true
+                );
+                return;
+            }
+
+            if (error.status === 429) {
+                blockedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+                showStatus(
+                    'Muitas tentativas em pouco tempo. Aguarde um minuto antes de tentar novamente.',
+                    'Tentar novamente',
+                    retryAction,
+                    true
+                );
+                return;
+            }
+
+            blockedUntil = Date.now() + NETWORK_BACKOFF_MS;
+            showStatus(
+                'Não foi possível enviar sua localização ao servidor. Verifique a conexão e tente novamente.',
+                'Tentar novamente',
+                retryAction,
+                true
+            );
         }).finally(function () {
-            running = false;
-            if (retryButton) retryButton.disabled = false;
+            sending = false;
         });
     }
+
+    // A permissão foi bloqueada ou revogada: o servidor deixa de mostrar
+    // vagas locais e a página volta a listar somente vagas remotas.
+    function disableOnServer() {
+        if (disabling) {
+            return;
+        }
+        disabling = true;
+
+        post(DISABLE_ENDPOINT, {}).then(function (result) {
+            LOCATION_MODE = 'limited';
+            lastSent = null;
+            best = null;
+
+            var next = readState();
+            delete next.lat;
+            delete next.lon;
+            writeState(next);
+
+            if (result.changed) {
+                reloadWithNotice('A permissão de localização foi removida. Mostrando somente vagas remotas...');
+            }
+        }).catch(function () {
+            showStatus(
+                'A permissão de localização foi removida, mas não foi possível atualizar as vagas. Tente novamente.',
+                'Tentar novamente',
+                disableOnServer,
+                true
+            );
+        }).finally(function () {
+            disabling = false;
+        });
+    }
+
+    // ---------------------------------------------------------------
+    // Leituras do aparelho
+    // ---------------------------------------------------------------
+
+    function flush() {
+        if (refineTimer !== null) {
+            window.clearTimeout(refineTimer);
+            refineTimer = null;
+        }
+
+        if (!best || sending || Date.now() < blockedUntil) {
+            return;
+        }
+
+        var position = best;
+        best = null;
+        firstSendDone = true;
+        sendPosition(position);
+    }
+
+    function movedEnough(position) {
+        if (sending || Date.now() < blockedUntil) {
+            return false;
+        }
+
+        // Nada aceito pelo servidor ainda: qualquer leitura serve.
+        if (!lastSent) {
+            return true;
+        }
+
+        return Date.now() - lastSent.at >= MIN_SEND_INTERVAL_MS
+            && distanceKm(
+                lastSent.lat,
+                lastSent.lon,
+                position.coords.latitude,
+                position.coords.longitude
+            ) >= MOVE_THRESHOLD_KM;
+    }
+
+    function onPosition(position) {
+        var coords = position.coords;
+
+        if (!Number.isFinite(coords.accuracy) || coords.accuracy > MAX_ACCURACY_METERS) {
+            // Com a região já definida, uma leitura ruim passageira não
+            // precisa incomodar: a próxima tende a ser melhor.
+            if (LOCATION_MODE !== 'available') {
+                showStatus(
+                    'A melhor precisão obtida foi de '
+                    + Math.round(coords.accuracy).toLocaleString('pt-BR')
+                    + ' m. O limite para liberar vagas presenciais e híbridas é '
+                    + Math.round(MAX_ACCURACY_METERS).toLocaleString('pt-BR')
+                    + ' m. Ative a localização do aparelho (GPS ou serviço de localização do sistema) e tente novamente.',
+                    'Tentar novamente',
+                    retryAction
+                );
+            }
+            return;
+        }
+
+        if (!insideBrazil(coords.latitude, coords.longitude)) {
+            showStatus('Sua posição está fora do Brasil. Mostrando somente vagas remotas nacionais.');
+            return;
+        }
+
+        if (!statusSticky) {
+            clearStatus();
+        }
+
+        if (!firstSendDone) {
+            if (!best || coords.accuracy < best.coords.accuracy) {
+                best = position;
+            }
+
+            if (coords.accuracy <= GOOD_ACCURACY_METERS) {
+                flush();
+            } else if (refineTimer === null) {
+                refineTimer = window.setTimeout(flush, REFINE_WINDOW_MS);
+            }
+            return;
+        }
+
+        // Já enviado nesta página: acompanha o deslocamento do aparelho.
+        if (movedEnough(position)) {
+            best = position;
+            flush();
+        }
+    }
+
+    function onGeolocationError(error) {
+        var code = error && error.code;
+
+        // 1 = PERMISSION_DENIED: o navegador negou ou o aviso foi dispensado.
+        if (code === 1) {
+            stopTracking();
+            getPermissionState().then(function (state) {
+                if (state === 'prompt') {
+                    promptDismissed();
+                } else if (state === 'granted') {
+                    // O site tem permissão, mas o sistema do aparelho (e não o
+                    // navegador) está impedindo o acesso à localização.
+                    showStatus(
+                        'O sistema do aparelho está impedindo o acesso à localização. '
+                        + 'Ative a localização do dispositivo para este navegador e tente novamente.',
+                        'Tentar novamente',
+                        retryAction,
+                        true
+                    );
+                } else {
+                    blocked();
+                }
+            });
+            return;
+        }
+
+        // 2 e 3: a leitura segue sendo tentada pelo navegador; só avisamos.
+        if (code === 3) {
+            showStatus(
+                'A localização demorou para responder. Confira as configurações do dispositivo.',
+                'Tentar novamente',
+                retryAction
+            );
+        } else {
+            showStatus(
+                'O dispositivo não conseguiu determinar sua posição. Confira se a localização do aparelho está ativada.',
+                'Tentar novamente',
+                retryAction
+            );
+        }
+    }
+
+    function startTracking() {
+        if (watchId !== null) {
+            return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(onPosition, onGeolocationError, {
+            enableHighAccuracy: true,
+            timeout: GEO_TIMEOUT_MS,
+            maximumAge: 0
+        });
+    }
+
+    function stopTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+
+        if (refineTimer !== null) {
+            window.clearTimeout(refineTimer);
+            refineTimer = null;
+        }
+
+        best = null;
+    }
+
+    // ---------------------------------------------------------------
+    // Permissão do navegador
+    // ---------------------------------------------------------------
 
     function getPermissionState() {
         if (!navigator.permissions || typeof navigator.permissions.query !== 'function') {
             return Promise.resolve('unknown');
         }
+
         return navigator.permissions.query({ name: 'geolocation' })
-            .then(function (status) { return status.state; })
+            .then(function (status) {
+                // Mudança feita nas configurações do navegador com a página
+                // aberta (liberar, bloquear ou redefinir): reage na hora.
+                if (!permissionWatched && typeof status.addEventListener === 'function') {
+                    permissionWatched = true;
+                    status.addEventListener('change', sync);
+                }
+                return status.state;
+            })
             .catch(function () { return 'unknown'; });
     }
 
-    function check() {
-        if (running || document.visibilityState !== 'visible' || hasCookieModal()) return;
+    // Permissão bloqueada: não há como perguntar de novo pelo site.
+    function blocked() {
+        stopTracking();
 
-        getPermissionState().then(function (permissionState) {
-            var state = readState();
-            var last = typeof state.lastAttemptAt === 'number' ? state.lastAttemptAt : 0;
-            var due = Date.now() - last >= MIN_INTERVAL_MS;
+        if (LOCATION_MODE === 'available') {
+            disableOnServer();
+        }
 
-            if (permissionState === 'granted') {
-                if (due) {
-                    requestLocation(false);
-                } else if (LOCATION_MODE === 'limited') {
-                    showStatus(
-                        'Sua localização ainda não foi confirmada com precisão suficiente. Você pode tentar novamente agora.',
-                        'Tentar novamente',
-                        function () { requestLocation(true); }
-                    );
+        var noPermissionsApi = !(navigator.permissions && typeof navigator.permissions.query === 'function');
+
+        showStatus(
+            'A localização está bloqueada para este site, então mostramos somente vagas remotas. '
+            + 'Para ver também vagas presenciais e híbridas da sua região, libere a localização nas configurações do navegador.',
+            noPermissionsApi ? 'Tentar novamente' : null,
+            noPermissionsApi ? userRequestedLocation : null,
+            true
+        );
+    }
+
+    // O aviso do navegador foi fechado sem uma resposta.
+    function promptDismissed() {
+        showStatus(
+            'A permissão de localização não foi concedida. Você continua vendo somente vagas remotas.',
+            'Permitir localização',
+            userRequestedLocation,
+            true
+        );
+    }
+
+    // Permissão ainda não decidida (primeira visita) ou redefinida/revogada
+    // nas configurações: o navegador precisa perguntar de novo.
+    function ask() {
+        stopTracking();
+
+        // Uma região guardada de antes não vale mais sem permissão.
+        if (LOCATION_MODE === 'available') {
+            disableOnServer();
+            return;
+        }
+
+        if (askedThisPage) {
+            promptDismissed();
+            return;
+        }
+
+        askedThisPage = true;
+        showStatus(
+            'Permita a localização no aviso do navegador para ver também vagas presenciais e híbridas da sua região. '
+            + 'Sem a permissão, mostramos somente vagas remotas.'
+        );
+        startTracking();
+    }
+
+    // Decide o que fazer a partir da permissão que o navegador tem agora.
+    function sync() {
+        if (document.visibilityState !== 'visible' || hasCookieModal()) {
+            return;
+        }
+
+        getPermissionState().then(function (state) {
+            if (state === 'granted') {
+                if (!firstSendDone && LOCATION_MODE !== 'available') {
+                    showStatus('Obtendo sua localização. Isso pode levar alguns segundos...');
                 }
+                startTracking();
                 return;
             }
 
-            if (permissionState === 'denied') {
-                showStatus('A localização está bloqueada para este site. Você pode liberar a permissão nas configurações do navegador.');
+            if (state === 'denied') {
+                blocked();
                 return;
             }
 
-            showStatus(
-                'Ative a localização para encontrar vagas presenciais e híbridas próximas. Você também pode continuar usando o portal sem informar sua localização.',
-                'Ativar localização',
-                function () { requestLocation(true); }
-            );
+            if (state === 'prompt') {
+                ask();
+                return;
+            }
+
+            // Navegador sem API de permissões: ele mesmo decide se pergunta.
+            startTracking();
         });
     }
 
-    // Com aviso de cookies aberto, a localização aguarda a escolha do visitante.
-    check();
+    // Pedido explícito do visitante (botão ou link "Ativar localização").
+    function userRequestedLocation() {
+        askedThisPage = false;
+        blockedUntil = 0;
 
-    document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') check();
+        getPermissionState().then(function (state) {
+            if (state === 'denied') {
+                blocked();
+                return;
+            }
+
+            stopTracking();
+            showStatus('Obtendo sua localização. Isso pode levar alguns segundos...');
+            startTracking();
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        var target = event.target && event.target.closest
+            ? event.target.closest('[data-location-request]')
+            : null;
+
+        if (target) {
+            event.preventDefault();
+            userRequestedLocation();
+        }
     });
+
+    // Com a aba em segundo plano o acompanhamento para (bateria e privacidade);
+    // ao voltar, a permissão é conferida de novo.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            sync();
+        } else {
+            stopTracking();
+        }
+    });
+
+    window.addEventListener('pagehide', stopTracking);
+
+    // Com o aviso de cookies aberto, a localização aguarda a escolha do
+    // visitante; a página recarrega depois dela e o fluxo recomeça.
+    sync();
 })();
 </script>
 @endif

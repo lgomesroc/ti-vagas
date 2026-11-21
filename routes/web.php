@@ -30,4 +30,9 @@ Route::middleware('welcome.accepted')->group(function (): void {
     Route::post('/localizacao/atualizar', [LocationRefreshController::class, 'refresh'])
         ->middleware(['throttle:6,1', 'location.overrides:coordinates'])
         ->name('location.refresh');
+
+    // Permissão bloqueada ou revogada no navegador: volta ao modo limitado.
+    Route::post('/localizacao/desativar', [LocationRefreshController::class, 'disable'])
+        ->middleware(['throttle:12,1', 'location.overrides'])
+        ->name('location.disable');
 });

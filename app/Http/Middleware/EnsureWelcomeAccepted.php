@@ -26,7 +26,35 @@ class EnsureWelcomeAccepted
             );
         }
 
+        self::ensureLocationMode($request);
+
         return $next($request);
+    }
+
+    /**
+     * Garante que a sessão de quem já aceitou os termos tenha um modo de
+     * localização.
+     *
+     * O aceite fica num cookie de longa duração, mas a sessão expira antes.
+     * Sem isto, quem volta com sessão nova (cookie de termos válido) ficava
+     * sem `location_mode`: o script de localização não era carregado e o
+     * endpoint de atualização respondia "disabled", mantendo o visitante
+     * preso às vagas remotas mesmo com a permissão já concedida no navegador.
+     *
+     * `limited` só libera vagas remotas; a região continua dependendo de uma
+     * posição validada pelo servidor.
+     */
+    public static function ensureLocationMode(Request $request): void
+    {
+        if (!$request->hasSession()) {
+            return;
+        }
+
+        $session = $request->session();
+
+        if (!in_array($session->get('location_mode'), ['limited', 'available'], true)) {
+            $session->put('location_mode', 'limited');
+        }
     }
 
     /**

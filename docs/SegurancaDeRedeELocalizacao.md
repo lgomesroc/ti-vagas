@@ -13,7 +13,9 @@ O fluxo de localização:
 - Valida plausibilidade e coerência temporal das amostras;
 - Assina os dados de localização mantidos na sessão com a chave da aplicação;
 - Remove e registra tentativas de sobrescrever a localização por parâmetros não autorizados;
-- Limita atualizações e mudanças excessivas de região.
+- Limita atualizações e mudanças excessivas de região;
+- Volta ao modo limitado (somente vagas remotas) quando o navegador informa que a permissão foi bloqueada ou revogada, sem apagar o histórico de suspeitas;
+- Não usa o IP para estimar a localização: o IP serve apenas como sinal de segurança (conferência da UF informada pelo GPS).
 
 Os principais componentes ficam em `app/Services/Geo/Security`, `app/Services/Geo/VisitorLocationResolver.php` e `app/Http/Middleware/RejectLocationOverrides.php`.
 

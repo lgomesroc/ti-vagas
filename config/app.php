@@ -58,6 +58,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Forçar HTTPS
+    |--------------------------------------------------------------------------
+    |
+    | Em produção (ou com APP_FORCE_HTTPS=true) toda URL gerada pela aplicação
+    | usa https, acessos por http são redirecionados e o navegador recebe HSTS
+    | e `upgrade-insecure-requests`. A aplicação roda atrás do proxy da
+    | hospedagem, que termina o TLS: sem isto, URLs, links e o aviso do
+    | navegador podiam aparecer como http mesmo com o site aberto em https.
+    |
+    */
+
+    'force_https' => filter_var(
+        env('APP_FORCE_HTTPS', env('APP_ENV', 'production') === 'production'),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
