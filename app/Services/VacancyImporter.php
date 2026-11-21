@@ -160,23 +160,20 @@ class VacancyImporter
                 continue;
             }
 
-            $vacancy = null;
+            $legacyVacancy = null;
 
             // Reaproveita os registros criados pelos antigos coletores por empresa.
             // Assim a busca global não troca a identidade nem duplica vagas existentes.
             if ($sourceName === 'gupy-global') {
-                $vacancy = Vacancy::query()
+                $legacyVacancy = Vacancy::query()
                     ->where('source', 'like', 'gupy-%')
                     ->where('external_id', $externalId)
                     ->orderBy('id')
                     ->first();
             }
 
-            $vacancy ??= Vacancy::firstOrNew([
-                'source' => $vacancy->exists
-                    && str_starts_with((string) $vacancy->source, 'gupy-')
-                        ? $vacancy->source
-                        : $sourceName,
+            $vacancy = $legacyVacancy ?? Vacancy::firstOrNew([
+                'source' => $sourceName,
                 'external_id' => $externalId,
             ]);
 
@@ -221,7 +218,9 @@ class VacancyImporter
                 'employment_type' => $data['employment_type'] ?? null,
                 'salary' => $data['salary'] ?? null,
                 'application_url' => trim($data['application_url']),
-                'source' => $sourceName,
+                'source' => $legacyVacancy !== null
+                    ? $legacyVacancy->source
+                    : $sourceName,
                 'external_id' => $externalId,
                 'collected_at' => now(),
 
