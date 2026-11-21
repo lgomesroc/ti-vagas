@@ -60,12 +60,34 @@ class NerdinSource implements VacancySource
             'Detalhes sem data' => 0,
             'Páginas de detalhe indisponíveis' => 0,
             'Exceções na leitura' => 0,
+            'Título HTML recebido' => '',
+            'Quantidade de links HTML' => 0,
+            'Links com texto vaga no href' => 0,
+            'Exemplos de hrefs' => '',
         ];
 
         for ($page = 1; $page <= $this->maxPages && count($vacancies) < $this->maxJobs; $page++) {
             $url = self::LIST_URL . ($page > 1 ? '?pagina=' . $page : '');
             $this->stats['Páginas consultadas']++;
-            $xpath = $this->xpath($this->get($url));
+            $html = $this->get($url);
+            $xpath = $this->xpath($html);
+            $this->stats['Título HTML recebido'] = $this->nodeText($xpath, '//title');
+            $allLinks = $xpath->query('//a[@href]');
+            $this->stats['Quantidade de links HTML'] = $allLinks?->length ?? 0;
+            $hrefSamples = [];
+            foreach ($allLinks ?: [] as $htmlLink) {
+                if (!$htmlLink instanceof DOMElement) {
+                    continue;
+                }
+                $href = trim($htmlLink->getAttribute('href'));
+                if (stripos($href, 'vaga') !== false) {
+                    $this->stats['Links com texto vaga no href']++;
+                }
+                if (count($hrefSamples) < 8) {
+                    $hrefSamples[] = $href;
+                }
+            }
+            $this->stats['Exemplos de hrefs'] = implode(' | ', $hrefSamples);
             $links = $xpath->query('//a[contains(@href, "/vaga_emprego/")]');
 
             if ($links === false || $links->length === 0) {
