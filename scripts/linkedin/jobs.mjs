@@ -9,7 +9,7 @@ const SEARCH_TERMS = [
   'junior software engineer',
 ];
 
-const LOOKBACK_HOURS = 72;
+const LOOKBACK_HOURS = Math.max(1, Number(process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 168));
 const MAX_PAGES_PER_SEARCH = 3;
 const PAGE_SIZE = 25;
 const CARD_SELECTOR = '[componentkey^="job-card-component-ref-"]';
@@ -266,7 +266,7 @@ async function openSearchPage(page, term, pageNo) {
   url.searchParams.set('keywords', term);
   url.searchParams.set('location', 'Brazil');
   url.searchParams.set('f_E', '1,2');
-  url.searchParams.set('f_TPR', 'r259200');
+  url.searchParams.set('f_TPR', 'r' + String(Math.round(LOOKBACK_HOURS * 3600)));
   url.searchParams.set('sortBy', 'DD');
   url.searchParams.set('start', String((pageNo - 1) * PAGE_SIZE));
 
