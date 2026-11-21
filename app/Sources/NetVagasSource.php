@@ -54,7 +54,8 @@ class NetVagasSource implements VacancySource
 
         $this->stats = [
             'Termos pesquisados' => count($terms),
-            'Páginas consultadas' => 0,\n            'Falhas de consulta' => 0,
+            'Páginas consultadas' => 0,
+            'Falhas de consulta' => 0,
             'Anúncios encontrados' => 0,
             'Anúncios únicos' => 0,
             'Duplicados entre pesquisas' => 0,
