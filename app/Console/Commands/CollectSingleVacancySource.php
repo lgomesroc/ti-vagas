@@ -31,6 +31,22 @@ class CollectSingleVacancySource extends Command
             }
             $received = count($vacancies);
 
+            if (method_exists($source, 'diagnostics')) {
+                $diagnostics = $source->diagnostics();
+                if ($diagnostics !== []) {
+                    $this->newLine();
+                    $this->info('Diagnóstico da coleta:');
+                    $this->table(
+                        ['Etapa', 'Quantidade'],
+                        array_map(
+                            static fn (string $label, int $count): array => [$label, $count],
+                            array_keys($diagnostics),
+                            array_values($diagnostics)
+                        )
+                    );
+                }
+            }
+
             $this->info("Vagas retornadas pela fonte: {$received}");
 
             $result = $importer->importFetched($source->name(), $vacancies);
