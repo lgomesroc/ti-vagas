@@ -173,6 +173,23 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
     public function test_real_recruitment_post_is_preserved_when_it_mentions_projects_and_technical_challenges(): void
     {
+        // acme.example é um domínio reservado para documentação e não resolve
+        // em DNS. Simulamos a verificação externa para manter o teste determinístico.
+        $this->mock(LinkedInUrlInspector::class)
+            ->shouldReceive('inspect')
+            ->once()
+            ->with('https://acme.example/jobs/123')
+            ->andReturn([
+                'valid' => true,
+                'verified' => true,
+                'blocked' => false,
+                'final_url' => 'https://acme.example/jobs/123',
+                'reason' => null,
+                'page_title' => 'Desenvolvedor .NET Júnior',
+                'page_description' => 'Vaga para Desenvolvedor .NET Júnior.',
+                'page_text' => 'Candidate-se para trabalhar com C# e SQL Server.',
+            ]);
+
         $post = $this->makePost([
             'authorHeadline' => 'Tech Recruiter',
             'text' => 'Estamos contratando Desenvolvedor .NET Júnior. Remoto Brasil. Você vai trabalhar em projetos reais e resolver desafios técnicos com C# e SQL Server. Candidate-se: https://acme.example/jobs/123',
