@@ -60,50 +60,33 @@ class LinkedInJobsSource implements VacancySource
             $title = trim((string) ($vacancy['title'] ?? ''));
             $description = trim((string) ($vacancy['description'] ?? ''));
             $location = trim((string) ($vacancy['location'] ?? ''));
+
+            if ($title === '' || mb_strlen($description) < 80) {
+                return false;
+            }
+
+            $normalizedTitle = $this->normalize($title);
+            $normalizedDescription = $this->normalize($description);
+
+            // O nível precisa estar explícito no título. Estágio/trainee nunca entram.
+            if (!$this->isStrictJuniorTitle($normalizedTitle)) {
+                return false;
+            }
+
+            if (!$this->isTechnologyTitle($normalizedTitle)) {
+                return false;
+            }
+
+            // Rejeita descrições que contradizem o nível júnior ou exigem experiência alta.
+            if ($this->hasIncompatibleRequirements($normalizedDescription)) {
+                return false;
+            }
+
             $workModel = $this->locationFilter->classifyWorkModel(
                 $title,
                 $location,
                 $description
             ) ?? ($vacancy['work_model'] ?? null);
-
-            if ($title === '' || $description === '') {
-                return false;
-            }
-
-            $normalized = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title . ' ' . $description));
-            if (preg_match('/\b(pleno|senior|sênior|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/u', $normalized)) {
-                return false;
-            }
-
-            $isJuniorOrInternship = preg_match('/\b(junior|júnior|jr\.?|entry.level|estagio|estágio|intern|internship)\b/u', $normalized) === 1;
-            if (!$isJuniorOrInternship) {
-                return false;
-            }
-
-            $normalizedTitle = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title));
-            $technologyTerms = [
-                'desenvolvedor', 'developer', 'programador', 'software engineer',
-                'engenheiro de software', 'backend', 'back-end', 'frontend',
-                'front-end', 'full stack', 'fullstack', 'php', '.net', 'java',
-                'python', 'javascript', 'typescript', 'analista de sistemas',
-                'analista de desenvolvimento', 'suporte', 'help desk', 'helpdesk',
-                'service desk', 'infraestrutura', 'infrastructure', 'redes',
-                'network', 'devops', 'sysadmin', 'qa', 'quality assurance',
-                'analista de testes', 'technical support', 'it support',
-            ];
-
-            $isTechnology = false;
-            foreach ($technologyTerms as $term) {
-                $term = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $term));
-                if (str_contains($normalizedTitle, $term)) {
-                    $isTechnology = true;
-                    break;
-                }
-            }
-
-            if (!$isTechnology) {
-                return false;
-            }
 
             if (!$this->locationFilter->isEligibleForCollection(
                 $location,
@@ -117,5 +100,64 @@ class LinkedInJobsSource implements VacancySource
             $vacancy['work_model'] = $workModel;
             return true;
         }));
+    }
+
+    private function normalize(string $value): string
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+        return mb_strtolower($ascii === false ? $value : $ascii);
+    }
+
+    private function isStrictJuniorTitle(string $title): bool
+    {
+        if (preg_match('/\bwordpress\b/', $title)) {
+            return false;
+        }
+
+        if (preg_match('/\b(jr|junior)\s*(\/|&|-|\|)\s*(pl|pleno|mid|mid-level)\b/', $title)) {
+            return false;
+        }
+
+        if (preg_match('/\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/', $title)) {
+            return false;
+        }
+
+        if (preg_match('/\b(estagio|trainee|intern|internship|apprentice)\b/', $title)) {
+            return false;
+        }
+
+        return preg_match('/\b(junior|jr)\b/', $title) === 1;
+    }
+
+    private function isTechnologyTitle(string $title): bool
+    {
+        $terms = [
+            'desenvolvedor', 'developer', 'programador', 'software engineer',
+            'engenheiro de software', 'backend', 'back-end', 'frontend',
+            'front-end', 'full stack', 'fullstack', 'php', '.net', 'java',
+            'python', 'javascript', 'typescript', 'analista de sistemas',
+            'analista de desenvolvimento', 'suporte', 'help desk', 'helpdesk',
+            'service desk', 'infraestrutura', 'infrastructure', 'redes',
+            'network', 'devops', 'sysadmin', 'qa', 'quality assurance',
+            'analista de testes', 'technical support', 'it support',
+        ];
+
+        foreach ($terms as $term) {
+            if (str_contains($title, $this->normalize($term))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasIncompatibleRequirements(string $description): bool
+    {
+        return preg_match(
+            '/\b(?:minimum of |at least |minimum |minimo de |pelo menos )?(?:3|4|5|6|7|8|9|10)\s*\+?\s*(?:years?|anos?)\b/',
+            $description
+        ) === 1
+            || preg_match('/\b(?:3|4|5|6|7|8|9|10)\s*(?:or more|ou mais)\s*(?:years?|anos?)\b/', $description) === 1
+            || preg_match('/\b(?:senior|mid.level|midlevel|pleno)\s+(?:experience|position|role|level|experiencia|nivel|posicao)\b/', $description) === 1;
     }
 }
