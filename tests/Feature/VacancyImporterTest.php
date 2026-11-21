@@ -167,6 +167,32 @@ class VacancyImporterTest extends TestCase
         );
     }
 
+    public function test_linkedin_jobs_are_saved_before_editorial_filtering_for_later_review(): void
+    {
+        $vacancy = $this->validVacancy([
+            'title' => 'Analista de Marketing Sênior',
+            'external_id' => 'linkedin-jobs:987654',
+            'description' => 'Oportunidade encontrada na pesquisa do LinkedIn e preservada para revisão editorial.',
+            'application_url' => 'https://www.linkedin.com/jobs/view/987654/',
+        ]);
+
+        $result = app(VacancyImporter::class)->import(
+            $this->makeSource([$vacancy], 'linkedin-jobs')
+        );
+
+        $this->assertSame([
+            'created' => 1,
+            'updated' => 0,
+            'skipped' => 0,
+        ], $result);
+
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'linkedin-jobs',
+            'external_id' => 'linkedin-jobs:987654',
+            'title' => 'Analista de Marketing Sênior',
+        ]);
+    }
+
     public function test_global_gupy_import_updates_legacy_tenant_record_without_changing_its_source(): void
     {
         $legacy = $this->validVacancy([
