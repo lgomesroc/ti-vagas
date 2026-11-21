@@ -544,75 +544,20 @@ class LinkedInPostCandidateProcessor
         ?string $applicationUrl,
         array $emails
     ): ?string {
-        $titleText = $this->normalize($title);
-        $descriptionText = $this->normalize($description);
-
         if ($title === null) {
             return 'Não foi possível identificar o cargo da oportunidade.';
         }
 
-        foreach ([
-            'estagio', 'estagiario', 'trainee', 'internship', 'intern',
-            'pleno', 'senior', 'sr', 'mid-level', 'mid level',
-            'staff', 'principal', 'lead', 'manager', 'gerente', 'diretor',
-            'head', 'especialista', 'coordenador', 'supervisor',
-        ] as $term) {
-            if (preg_match('/(^|[^a-z0-9])' . preg_quote($term, '/') . '([^a-z0-9]|$)/', $titleText)) {
-                return 'Nível fora do escopo: somente vagas efetivas júnior.';
-            }
-        }
-
-        if (preg_match('/\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus)?\s*(?:[-–]\s*\d+\s*)?(?:anos?|years?)\b/', $descriptionText)) {
-            return 'Descrição exige três anos ou mais de experiência.';
-        }
-
-        if (preg_match(
-            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|mid[- ]level|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|sr|mid[- ]level|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b|\\b(?:experienced|experiente)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
-            $descriptionText
-        )) {
-            return 'A descrição identifica explicitamente a oportunidade como nível pleno, sênior ou equivalente.';
-        }
-
-        $excluded = [
-            'crm', 'erp', 'sap', 'abap', 'business intelligence',
-            'analista de dados', 'data analyst', 'data engineer',
-            'data scientist', 'machine learning', 'deep learning',
-            'cientista de dados', 'engenheiro de dados', 'bi analyst',
-        ];
-
-        foreach ($excluded as $term) {
-            if (str_contains($titleText, $this->normalize($term))) {
-                return 'Área fora do escopo editorial do TI Vagas.';
-            }
-        }
-
-        $allowed = [
-            'desenvolvedor', 'developer', 'programador', 'software engineer',
-            'engenheiro de software', 'backend', 'back-end', 'frontend',
-            'front-end', 'full stack', 'fullstack', 'php', '.net', 'java',
-            'python', 'javascript', 'typescript', 'qa', 'quality assurance',
-            'analista de testes', 'infraestrutura', 'infrastructure',
-            'devops', 'cloud engineer', 'sysadmin', 'redes', 'network',
-            'suporte', 'help desk', 'helpdesk', 'service desk', 'it support',
-            'technical support', 'noc', 'security analyst', 'ciberseguranca',
-        ];
-
-        $isAllowed = false;
-        foreach ($allowed as $term) {
-            if (str_contains($titleText, $this->normalize($term))) {
-                $isAllowed = true;
-                break;
-            }
-        }
-
-        if (!$isAllowed) {
-            return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
-        }
-
+        // A publicação já passou pela identificação de anúncio real de vaga,
+        // anti-spam e validação de canal público de candidatura. Não aplicar aqui
+        // filtros rígidos de senioridade, anos de experiência ou área: preservar
+        // a oportunidade permite corrigir a regra sem perder o post de origem.
         if ($applicationUrl === null) {
-            return 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.';
+            return 'Sem link de candidatura ou e-mail informado na publicação.';
         }
 
+        // Mantém a regra geográfica do projeto para não transformar vagas
+        // globais em oportunidades brasileiras sem evidência.
         if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
