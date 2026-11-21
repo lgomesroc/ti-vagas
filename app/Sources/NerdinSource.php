@@ -57,6 +57,7 @@ class NerdinSource implements VacancySource
             'Detalhes sem empresa' => 0,
             'Detalhes sem descrição' => 0,
             'Detalhes rejeitados por localização' => 0,
+            'Exemplos rejeitados por localização' => '',
             'Detalhes sem data' => 0,
             'Páginas de detalhe indisponíveis' => 0,
             'Exceções na leitura' => 0,
@@ -348,6 +349,19 @@ class NerdinSource implements VacancySource
             $workModel
         )) {
             $this->stats['Detalhes rejeitados por localização']++;
+            $samples = $this->stats['Exemplos rejeitados por localização'] === ''
+                ? []
+                : explode("\n", $this->stats['Exemplos rejeitados por localização']);
+            if (count($samples) < 15) {
+                $samples[] = implode(' | ', [
+                    'Título: ' . $title,
+                    'Local: ' . ($location ?: '(não identificado)'),
+                    'Modelo: ' . ($workModel ?: '(não identificado)'),
+                    'Descrição: ' . mb_substr($description, 0, 180),
+                    'URL: ' . $url,
+                ]);
+                $this->stats['Exemplos rejeitados por localização'] = implode("\n", $samples);
+            }
             return null;
         }
 
