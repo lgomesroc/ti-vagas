@@ -369,7 +369,7 @@ class NerdinSource implements VacancySource
             return false;
         }
 
-        return preg_match('/desenvolvedor|desenvolvedora|developer|programador|software|backend|back.?end|frontend|front.?end|full.?stack|php|laravel|java|\.net|c#|python|javascript|typescript|angular|react|node|devops|infraestrutura|infra|cloud|suporte|service desk|help desk|redes|network|seguranca|cybersecurity|qa|quality assurance|testes|tester|banco de dados|database|dba|analista de sistemas|sistemas|linux|windows server|noc|soc|tecnico de ti|t[eé]cnico em inform[aá]tica/i', $text) === 1;
+        return preg_match('/desenvolvedor|desenvolvedora|developer|programador|software|backend|back.?end|frontend|front.?end|full.?stack|php|laravel|java|\.net|c#|python|javascript|typescript|angular|react|node|devops|infraestrutura|infra|cloud|suporte|service desk|help desk|redes|network|seguranca|cybersecurity|qa|quality assurance|testes|tester|banco de dados|database|dba|analista de sistemas|analista de dados|analista bi|engenheiro de software|dados|data|power bi|analytics|bi|sistemas|linux|windows server|noc|soc|tecnico de ti|t[eé]cnico em inform[aá]tica/i', $text) === 1;
     }
 
     private function extractLocation(string $text): ?string
