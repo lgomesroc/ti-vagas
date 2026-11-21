@@ -174,7 +174,7 @@ class LinkedInPostCandidateProcessor
         }
 
         $verifiedLinks = [];
-        foreach ($links as $link) {
+        foreach ($hasApplicationEmail ? [] : $links as $link) {
             $inspection = $this->urlInspector->inspect($link);
             $verifiedLinks[] = ['url' => $link] + $inspection;
 
@@ -215,7 +215,7 @@ class LinkedInPostCandidateProcessor
         // Quando a publicação oferece e-mail, o TI Vagas exibe a própria
         // publicação como origem da oportunidade. O e-mail permanece no texto
         // original para que o candidato veja as instruções da pessoa recrutadora.
-        if ($applicationUrl === null && $hasApplicationEmail) {
+        if ($hasApplicationEmail) {
             $applicationUrl = $postUrl;
         }
 
