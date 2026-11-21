@@ -14,6 +14,7 @@ use App\Sources\InhireSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
 use App\Sources\NerdinSource;
+use App\Sources\NetVagasSource;
 use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
@@ -557,6 +558,17 @@ class VacancySourceFactory
             locationFilter: $this->locationFilter,
         );
         $sources[$nerdinSource->name()] = $nerdinSource;
+
+        $netvagas = config('vacancy_sources.netvagas', []);
+        $netvagasSource = new NetVagasSource(
+            terms: $netvagas['terms'] ?? [],
+            maxPages: (int) ($netvagas['max_pages'] ?? 2),
+            initialLookbackDays: (int) ($netvagas['initial_lookback_days'] ?? 60),
+            requestDelayMs: (int) ($netvagas['request_delay_ms'] ?? 150),
+            caBundle: $netvagas['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$netvagasSource->name()] = $netvagasSource;
 
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
