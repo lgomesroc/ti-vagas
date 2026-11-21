@@ -984,6 +984,12 @@ return [
         ],
     ],
 
+    'nerdin' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 45,
+        'max_jobs' => 500,
+    ],
+
     'rjempregos' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'base_url' => 'https://rjempregos.net',
