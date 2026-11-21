@@ -230,6 +230,7 @@ class LinkedInPostCandidateProcessor
         $description = trim(
             $enrichedText
             . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
+            . ($links !== [] ? "\n\nLinks identificados na publicação:\n" . implode("\n", $links) : '')
         );
 
         $reason = $this->validateBusinessRules(
