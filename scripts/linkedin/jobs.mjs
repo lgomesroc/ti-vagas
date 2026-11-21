@@ -17,14 +17,14 @@ const LOOKBACK_CALENDAR_DAYS = 3;
 const MAX_PAGES_PER_SEARCH = 20;
 const PAGE_SIZE = 25;
 
-const clean = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 
 function normalize(value) {
-  return clean(value).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+  return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 function log(message) {
-  process.stderr.write(`[LinkedIn Jobs] ${message}\\n`);
+  process.stderr.write(`[LinkedIn Jobs] ${message}\n`);
 }
 
 function startOfLocalDay(date) {
@@ -39,21 +39,21 @@ function parseRelativeDate(value, scrapedAt) {
   const text = normalize(value);
   if (!text) return null;
 
-  if (/\\b(agora|just now)\\b/.test(text)) return new Date(scrapedAt);
-  if (/\\b(hoje|today)\\b/.test(text)) return startOfLocalDay(scrapedAt);
+  if (/\b(agora|just now)\b/.test(text)) return new Date(scrapedAt);
+  if (/\b(hoje|today)\b/.test(text)) return startOfLocalDay(scrapedAt);
 
-  if (/\\b(ontem|yesterday)\\b/.test(text)) {
+  if (/\b(ontem|yesterday)\b/.test(text)) {
     return subtractCalendarDays(scrapedAt, 1);
   }
 
   // "1 dia", "2 dias", "3 days ago" e "3d" são tratados como dias
   // de calendário, não como blocos exatos de 24 horas.
-  const dayMatch = text.match(/(?:ha\\s*)?(\\d+)\\s*(d|dia|dias|day|days)\\b/i);
+  const dayMatch = text.match(/(?:ha\s*)?(\d+)\s*(d|dia|dias|day|days)\b/i);
   if (dayMatch) {
     return subtractCalendarDays(scrapedAt, Number(dayMatch[1]));
   }
 
-  const match = text.match(/(?:ha\\s*)?(\\d+)\\s*(min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours)\\b/i);
+  const match = text.match(/(?:ha\s*)?(\d+)\s*(min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours)\b/i);
   if (!match) return null;
 
   const amount = Number(match[1]);
@@ -74,15 +74,15 @@ function isWithinCalendarWindow(date, scrapedAt) {
 function isJuniorTitle(title) {
   const value = normalize(title);
 
-  if (/\\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\\b/.test(value)) {
+  if (/\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/.test(value)) {
     return false;
   }
 
-  if (/\\b(estagio|trainee|intern|internship|apprentice)\\b/.test(value)) {
+  if (/\b(estagio|trainee|intern|internship|apprentice)\b/.test(value)) {
     return false;
   }
 
-  return /\\b(junior|jr)\\b/.test(value);
+  return /\b(junior|jr)\b/.test(value);
 }
 
 function isTechnologyTitle(title) {
@@ -106,10 +106,10 @@ function isTechnologyTitle(title) {
 
 function extractCardSummary(card, id, scrapedAt) {
   const lines = String(card.text || '')
-    .split('\\n')
+    .split('\n')
     .map(clean)
     .filter(Boolean)
-    .map(line => line.replace(/^selecionada,\\s*/i, ''));
+    .map(line => line.replace(/^selecionada,\s*/i, ''));
 
   if (!lines.length) return null;
 
@@ -119,12 +119,12 @@ function extractCardSummary(card, id, scrapedAt) {
 
   if (titleIndex < 0) return null;
 
-  const title = clean(lines[titleIndex]).replace(/\\s*\\(vaga verificada\\)/i, '');
+  const title = clean(lines[titleIndex]).replace(/\s*\(vaga verificada\)/i, '');
   const company = clean(card.company || '');
   const location = clean(card.location || '');
   const dateCandidates = [...(card.dateCandidates || []), ...lines];
   const dateText = dateCandidates.find(line =>
-    /\\b(agora|just now|hoje|today|ontem|yesterday|\\d+\\s*(?:min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours|d|dia|dias|day|days))\\b/i.test(normalize(line))
+    /\b(agora|just now|hoje|today|ontem|yesterday|\d+\s*(?:min|minuto|minutos|minute|minutes|h|hr|hrs|hora|horas|hour|hours|d|dia|dias|day|days))\b/i.test(normalize(line))
   ) || '';
   const publishedAt = card.datetime
     ? new Date(card.datetime)
@@ -139,7 +139,7 @@ async function getCurrentCards(page) {
 
     for (const element of elements) {
       const key = element.getAttribute('componentkey') || '';
-      const match = key.match(/job-card-component-ref-(\\d+)/);
+      const match = key.match(/job-card-component-ref-(\d+)/);
       if (!match) continue;
 
       const id = match[1];
@@ -375,15 +375,15 @@ async function extractJobDetail(page, job) {
   const normalized = normalize(`${location} ${bodyText}`);
 
   const workModel =
-    /\\b(remote|remoto|home office)\\b/.test(normalized) ? 'Remoto' :
-    /\\b(hybrid|hibrido)\\b/.test(normalized) ? 'Híbrido' :
-    /\\b(on.site|onsite|presencial)\\b/.test(normalized) ? 'Presencial' :
+    /\b(remote|remoto|home office)\b/.test(normalized) ? 'Remoto' :
+    /\b(hybrid|hibrido)\b/.test(normalized) ? 'Híbrido' :
+    /\b(on.site|onsite|presencial)\b/.test(normalized) ? 'Presencial' :
     null;
 
   const employmentType =
-    /\\b(part.time|meio periodo)\\b/.test(normalized) ? 'Meio período' :
-    /\\b(contract|temporario|temporary)\\b/.test(normalized) ? 'Temporário' :
-    /\\b(full.time|tempo integral)\\b/.test(normalized) ? 'Tempo integral' :
+    /\b(part.time|meio periodo)\b/.test(normalized) ? 'Meio período' :
+    /\b(contract|temporario|temporary)\b/.test(normalized) ? 'Temporário' :
+    /\b(full.time|tempo integral)\b/.test(normalized) ? 'Tempo integral' :
     null;
 
   if (!isJuniorTitle(title) || !isTechnologyTitle(title)) {
@@ -421,7 +421,7 @@ export async function collectLinkedInJobs(page) {
   log('Janela: hoje + os três dias de calendário anteriores (até 23:59 do terceiro dia).');
 
   for (const term of SEARCH_TERMS) {
-    log(`\\nIniciando pesquisa: ${term}`);
+    log(`\nIniciando pesquisa: ${term}`);
 
     const seenIdsInSearch = new Set();
 
@@ -498,13 +498,13 @@ export async function collectLinkedInJobs(page) {
     (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
   );
 
-  log(`\\nPesquisas concluídas: ${SEARCH_TERMS.length}`);
+  log(`\nPesquisas concluídas: ${SEARCH_TERMS.length}`);
   log(`Vagas únicas dentro da janela de calendário: ${ordered.length}`);
 
   const results = [];
 
   for (const [index, job] of ordered.entries()) {
-    log(`\\nDetalhando ${index + 1}/${ordered.length}: ${job.title}`);
+    log(`\nDetalhando ${index + 1}/${ordered.length}: ${job.title}`);
 
     try {
       const vacancy = await extractJobDetail(page, job);
@@ -520,7 +520,7 @@ export async function collectLinkedInJobs(page) {
     }
   }
 
-  log(`\\nTotal aprovado para importação: ${results.length}`);
+  log(`\nTotal aprovado para importação: ${results.length}`);
 
   return results;
 }
