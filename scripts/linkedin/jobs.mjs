@@ -83,25 +83,9 @@ function isWithinWindow(date, scrapedAt) {
 }
 
 function isJuniorTitle(title) {
-  const value = normalize(title);
-
-  if (!value || /\bwordpress\b/.test(value)) {
-    return false;
-  }
-
-  if (/\b(jr|junior)\s*(\/|&|-|\|)\s*(pl|pleno|mid|mid-level)\b/.test(value)) {
-    return false;
-  }
-
-  if (/\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/.test(value)) {
-    return false;
-  }
-
-  if (/\b(estagio|trainee|intern|internship|apprentice)\b/.test(value)) {
-    return false;
-  }
-
-  return /\b(junior|jr)\b/.test(value);
+  // A busca já usa termos de entrada. Não exigir "júnior" no título:
+  // títulos ambíguos seguem para o importador central, evitando falsos negativos.
+  return Boolean(normalize(title)) && !/\bwordpress\b/.test(normalize(title));
 }
 
 function isTechnologyTitle(title) {
@@ -298,7 +282,7 @@ async function openSearchPage(page, term, pageNo) {
     .waitFor({ state: 'attached', timeout: 15000 })
     .catch(() => {});
 
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(450);
 
   return getCurrentCards(page);
 }
@@ -433,18 +417,20 @@ function resolveApplicationUrl(href) {
 }
 
 async function extractApplyUrl(panel) {
-  const href = await panel.locator('a[href]').evaluateAll(links => {
+  const href = await panel.locator(
+    'a[href], a[data-tracking-control-name*="apply"], .jobs-apply-button a[href], [class*="jobs-apply-button"] a[href]'
+  ).evaluateAll(links => {
     const link = links.find(element => {
-      const label = (
-        element.innerText ||
-        element.textContent ||
-        ''
-      ).trim();
+      const label = [
+        element.innerText,
+        element.textContent,
+        element.getAttribute('aria-label'),
+        element.getAttribute('title'),
+        element.getAttribute('data-tracking-control-name'),
+      ].filter(Boolean).join(' ').trim();
 
-      return (
-        /candidatar-se|apply|easy apply/i.test(label) &&
-        element.offsetParent !== null
-      );
+      return /candidatar-se|candidate-se|apply|easy apply|inscrever-se/i.test(label)
+        && element.offsetParent !== null;
     });
 
     return link?.href || null;
@@ -553,17 +539,8 @@ async function extractFromOpenPanel(page, job) {
     return null;
   }
 
-  if (hasIncompatibleRequirements(description)) {
-    log('Requisitos incompatíveis com nível júnior: ' + title);
-    return null;
-  }
-
-  if (
-    /\b(wordpress|marketing|vendas|sales|recruiter|recrutamento|customer success|data analyst|analista de dados|estagio|trainee)\b/i.test(
-      normalize(title)
-    )
-  ) {
-    log('Área ou modalidade fora do escopo: ' + title);
+  if (/\bwordpress\b/i.test(normalize(title))) {
+    log('WordPress permanece fora do escopo: ' + title);
     return null;
   }
 
