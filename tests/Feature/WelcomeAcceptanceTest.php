@@ -11,16 +11,13 @@ class WelcomeAcceptanceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_declining_browser_location_keeps_only_national_remote_scope_and_uses_ip_estimate(): void
+    public function test_declining_browser_location_keeps_only_national_remote_scope_and_never_guesses_from_ip(): void
     {
+        // A região do visitante só existe depois que o navegador informa uma
+        // posição validada pelo servidor: o IP nunca é consultado para
+        // "adivinhar" onde ele está.
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')
-                ->once()
-                ->andReturn([
-                    'city' => 'Nova Iguaçu',
-                    'state_code' => 'RJ',
-                    'label' => 'Nova Iguaçu - RJ',
-                ]);
+            $mock->shouldNotReceive('resolve');
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -34,13 +31,13 @@ class WelcomeAcceptanceTest extends TestCase
             EnsureWelcomeAccepted::TERMS_VERSION
         );
         $response->assertSessionHas('location_mode', 'limited');
-        $response->assertSessionHas('ip_location_label', 'Nova Iguaçu - RJ');
+        $response->assertSessionMissing('ip_location_label');
     }
 
     public function test_accepting_terms_defers_coordinates_until_the_location_refresh_endpoint(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -87,7 +84,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_accepting_terms_defers_precise_location_until_the_vacancies_page(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $response = $this->post(route('welcome.accept'), [
@@ -111,7 +108,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_declining_location_also_sets_terms_cookie(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $this->post(route('welcome.accept'), [
@@ -257,7 +254,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_background_submission_returns_the_destination_instead_of_a_redirect_page(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $response = $this->postJson(route('welcome.accept'), [
@@ -290,7 +287,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_cookie_returned_by_accept_releases_the_home_page_for_a_fresh_session(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $accept = $this->postJson(route('welcome.accept'), [
@@ -313,7 +310,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_responses_tied_to_the_visitor_are_never_cacheable(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $redirect = $this->get(route('vacancies.index'));
@@ -331,7 +328,7 @@ class WelcomeAcceptanceTest extends TestCase
     public function test_accepting_terms_clears_current_and_legacy_location_keys_but_keeps_guard_state(): void
     {
         $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(null);
+            $mock->shouldNotReceive('resolve');
         });
 
         $this->withSession([

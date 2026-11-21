@@ -140,6 +140,27 @@ class LocationRefreshController extends Controller
         ]);
     }
 
+    /**
+     * O navegador informou que a permissão de localização deixou de valer
+     * (bloqueada ou revogada nas configurações). A sessão perde a região e
+     * volta a mostrar somente vagas remotas, até que uma nova permissão
+     * resulte numa posição validada.
+     *
+     * Só reduz o acesso: não há o que ganhar forjando esta chamada, e ela
+     * não apaga o histórico de suspeitas do LocationGuard.
+     */
+    public function disable(Request $request): JsonResponse
+    {
+        $changed = $this->visitorLocationResolver->forgetFromSession(
+            $request->session()
+        );
+
+        return $this->respond([
+            'disabled' => true,
+            'changed' => $changed,
+        ]);
+    }
+
     private function unchanged(string $reason): JsonResponse
     {
         return $this->respond([

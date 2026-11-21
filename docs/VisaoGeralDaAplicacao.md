@@ -12,8 +12,8 @@ O portal contempla desenvolvimento de software convencional, infraestrutura de T
 
 1. O visitante acessa a página de boas-vindas, consulta os termos e registra o aceite.
 2. O aceite dos termos é mantido na sessão e em cookie persistente de cinco anos, evitando solicitar novo aceite a cada sessão enquanto a versão dos termos não mudar.
-3. Na página de vagas, o navegador pode solicitar autorização para obter a localização. Até uma posição válida ser confirmada pelo servidor, a sessão permanece limitada às vagas remotas nacionais.
-4. Quando a localização é autorizada e validada, o servidor identifica o município e libera a exibição das vagas presenciais e híbridas compatíveis com a região.
+3. Na página de vagas, o navegador solicita autorização para obter a localização. Até uma posição válida ser confirmada pelo servidor, a sessão permanece limitada às vagas remotas nacionais. A região nunca é estimada pelo IP.
+4. Quando a localização é autorizada e validada, o servidor identifica o município e libera a exibição das vagas presenciais e híbridas compatíveis com a região. Nas visitas seguintes vale a escolha feita no navegador: permissão concedida mantém as vagas da região; bloqueada ou revogada volta às vagas remotas; redefinida nas configurações, o navegador pergunta de novo. Em movimento (por exemplo, no celular), a região acompanha o deslocamento.
 5. O visitante consulta os detalhes e segue para o endereço original de candidatura da empresa ou plataforma.
 6. O visitante também pode escolher aceitar ou rejeitar cookies não essenciais; ferramentas de publicidade e análise que dependem desse consentimento só são carregadas após a escolha positiva.
 

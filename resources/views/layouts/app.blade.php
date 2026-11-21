@@ -852,7 +852,6 @@
     @if (
         !request()->routeIs('welcome')
         && \App\Http\Middleware\EnsureWelcomeAccepted::isAccepted(request())
-        && in_array(session('location_mode'), ['limited', 'available'], true)
     )
         @include('partials.location-refresh')
     @endif

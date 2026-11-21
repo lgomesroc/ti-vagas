@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureWelcomeAccepted;
-use App\Http\Middleware\EvaluateNetworkReputation;
-use App\Services\Geo\IpLocationResolver;
-use App\Services\Network\NetworkAssessment;
+use App\Services\Geo\VisitorLocationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +13,7 @@ use Illuminate\Support\Facades\Cookie;
 class WelcomeController extends Controller
 {
     public function __construct(
-        private readonly IpLocationResolver $ipLocationResolver
+        private readonly VisitorLocationResolver $visitorLocationResolver
     ) {}
 
     public function show(Request $request): Response|RedirectResponse
@@ -46,43 +44,13 @@ class WelcomeController extends Controller
 
         // A localização será solicitada somente na página de vagas.
         // Até que o visitante autorize, a experiência fica limitada às vagas remotas.
-        $request->session()->put('location_mode', 'limited');
-
-        // Limpa tanto as chaves atuais quanto nomes legados usados por versões anteriores.
+        // Também limpa as chaves atuais e os nomes legados de versões anteriores.
         // O estado do LocationGuard não é apagado aqui: aceitar os termos novamente
         // não pode funcionar como mecanismo para contornar uma trava antifraude.
-        $request->session()->forget([
-            'location_latitude',
-            'location_longitude',
-            'visitor_state_code',
-            'visitor_municipality_ibge',
-            'visitor_location_label',
-            'ip_location_label',
-            'visitor_ip_region_label',
-            'visitor_latitude',
-            'visitor_longitude',
-            'visitor_ibge_code',
-            'visitor_city_name',
-            'visitor_region_label',
-            \App\Services\Geo\Security\LocationProof::SESSION_KEY,
-        ]);
-
-        // A estimativa por IP é apenas informativa.
-        // Ela não habilita vagas presenciais ou híbridas.
-        // Em VPN, proxy, Tor ou datacenter o IP é o do ponto de saída, não o
-        // do visitante: nesses casos a estimativa seria enganosa e é omitida.
-        $assessment = $request->attributes->get(EvaluateNetworkReputation::ATTRIBUTE);
-
-        $ipLocation = ! $assessment instanceof NetworkAssessment || $assessment->isOrdinary()
-            ? $this->ipLocationResolver->resolve($request)
-            : null;
-
-        if ($ipLocation !== null) {
-            $request->session()->put(
-                'ip_location_label',
-                $ipLocation['label']
-            );
-        }
+        //
+        // Não há estimativa de localização por IP: a região do visitante só
+        // existe depois que o navegador informa uma posição e o servidor a valida.
+        $this->visitorLocationResolver->forgetFromSession($request->session());
 
         $secureCookie = config('session.secure') ?? $request->isSecure();
 

@@ -43,6 +43,27 @@ class VisitorLocationResolver
      */
     public const MIN_MOVE_KM = 5.0;
 
+    /**
+     * Chaves de sessão que descrevem a localização do visitante (atuais e
+     * legadas). `ip_location_label` é legado: a estimativa por IP deixou de
+     * ser gravada, mas sessões antigas podem tê-la.
+     */
+    public const SESSION_LOCATION_KEYS = [
+        'location_latitude',
+        'location_longitude',
+        'visitor_state_code',
+        'visitor_municipality_ibge',
+        'visitor_location_label',
+        'ip_location_label',
+        'visitor_ip_region_label',
+        'visitor_latitude',
+        'visitor_longitude',
+        'visitor_ibge_code',
+        'visitor_city_name',
+        'visitor_region_label',
+        LocationProof::SESSION_KEY,
+    ];
+
     public function __construct(
         private readonly MunicipalityDirectory $directory,
         private readonly LocationProof $proof
@@ -147,13 +168,34 @@ class VisitorLocationResolver
             'visitor_state_code' => $municipality['uf'],
             'visitor_municipality_ibge' => $municipality['ibge'],
             'visitor_location_label' => $municipality['name'] . ' - ' . $municipality['uf'],
-            'ip_location_label' => null,
             LocationProof::SESSION_KEY => $this->proof->issue(
                 $municipality,
                 $latitude,
                 $longitude
             ),
         ]);
+    }
+
+    /**
+     * Remove da sessão a localização do visitante e volta ao modo limitado
+     * (somente vagas remotas).
+     *
+     * Usado quando o visitante aceita os termos de novo e quando o navegador
+     * informa que a permissão de localização foi bloqueada ou revogada.
+     * Inclui nomes legados de versões anteriores. O estado do LocationGuard
+     * não é apagado: pedir ou revogar a permissão não pode funcionar como
+     * mecanismo para contornar uma trava antifraude.
+     *
+     * @return bool true se havia uma localização ativa na sessão.
+     */
+    public function forgetFromSession(Session $session): bool
+    {
+        $wasAvailable = $session->get('location_mode') === 'available';
+
+        $session->forget(self::SESSION_LOCATION_KEYS);
+        $session->put('location_mode', 'limited');
+
+        return $wasAvailable;
     }
 
     /**

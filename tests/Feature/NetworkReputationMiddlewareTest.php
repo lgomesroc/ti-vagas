@@ -386,31 +386,20 @@ class NetworkReputationMiddlewareTest extends TestCase
 
     // --- Geolocalização: o IP nunca a substitui --------------------------
 
-    public function test_the_ip_estimate_is_skipped_for_vpn_proxy_tor_and_datacenter_exit_points(): void
+    public function test_the_ip_is_never_used_to_guess_the_location_at_acceptance(): void
     {
-        // Em VPN, proxy, Tor ou datacenter o IP é o do ponto de saída.
+        // Nem em rede comum nem em VPN, proxy, Tor ou datacenter: a região só
+        // vem de uma posição que o navegador informa e o servidor valida.
         $this->mock(IpLocationResolver::class, function ($mock): void {
             $mock->shouldNotReceive('resolve');
         });
 
-        foreach ([self::VPN, self::PROXY, self::TOR, self::DATACENTER] as $ip) {
+        foreach ([self::ORDINARY, self::VPN, self::PROXY, self::TOR, self::DATACENTER] as $ip) {
             $response = $this->fromIp($ip)->postJson(route('welcome.accept'), ['terms' => '1']);
 
             $response->assertOk()->assertJsonPath('accepted', true);
             $response->assertSessionMissing('ip_location_label');
         }
-    }
-
-    public function test_the_ip_estimate_is_still_used_for_ordinary_networks(): void
-    {
-        $this->mock(IpLocationResolver::class, function ($mock): void {
-            $mock->shouldReceive('resolve')->once()->andReturn(['label' => 'São Paulo - SP']);
-        });
-
-        $this->fromIp(self::ORDINARY)
-            ->postJson(route('welcome.accept'), ['terms' => '1'])
-            ->assertOk()
-            ->assertSessionHas('ip_location_label', 'São Paulo - SP');
     }
 
     public function test_network_classification_never_grants_or_changes_the_visitor_location(): void

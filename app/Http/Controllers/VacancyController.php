@@ -609,7 +609,6 @@ class VacancyController extends Controller
             'vacancies' => $vacancies,
             'search' => $search,
             'locationMode' => $request->session()->get('location_mode', 'limited'),
-            'ipLocationLabel' => $request->session()->get('ip_location_label'),
         ]);
     }
 

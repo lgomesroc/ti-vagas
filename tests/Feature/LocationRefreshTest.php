@@ -239,17 +239,26 @@ class LocationRefreshTest extends TestCase
             ->get(route('vacancies.index'))
             ->assertSee('id="location-refresh"', false)
             ->assertSee(json_encode(route('location.refresh')), false)
+            ->assertSee(json_encode(route('location.disable')), false)
+            ->assertSee('var LOCATION_MODE = "available"', false)
+            // Acompanha o deslocamento (celular em movimento) com precisão alta.
             ->assertSee('watchPosition(', false)
             ->assertSee('enableHighAccuracy: true', false)
-            ->assertSee('ACQUISITION_WINDOW_MS = 12000', false)
-            ->assertSee('permissionState === \'granted\'', false)
-            ->assertSee('Ativar localização', false)
-            ->assertDontSee('getCurrentPosition(', false);
+            // O prazo de refinamento só conta depois da primeira leitura: o
+            // tempo de resposta ao aviso de permissão não entra nele.
+            ->assertSee('REFINE_WINDOW_MS = 8000', false)
+            // A permissão atual do navegador decide o que fazer.
+            ->assertSee('state === \'granted\'', false)
+            ->assertSee('state === \'denied\'', false)
+            ->assertSee('state === \'prompt\'', false)
+            ->assertDontSee('getCurrentPosition(', false)
+            ->assertDontSee('MIN_INTERVAL_MS = 30 * 60 * 1000', false);
 
         $this->withSession($this->sessionData('limited'))
             ->get(route('vacancies.index'))
             ->assertSee('id="location-refresh"', false)
             ->assertSee('var LOCATION_MODE = "limited"', false)
+            ->assertSee('data-location-request', false)
             ->assertSee('Ativar localização', false);
 
         $this->withSession($this->sessionData('available'))
