@@ -352,11 +352,14 @@ async function extractJobDetail(page, job) {
     'a[href*="/company/"]',
   ]) || job.company;
 
-  const location = await firstText(page, [
-    '.job-details-jobs-unified-top-card__primary-description-container',
-    '.jobs-unified-top-card__primary-description',
+  const locationLine = await firstText(page, [
     '.job-details-jobs-unified-top-card__tertiary-description-container',
-  ]) || job.location;
+    '.jobs-unified-top-card__primary-description',
+    '.job-details-jobs-unified-top-card__primary-description-container',
+  ]);
+  // O bloco terciário costuma apresentar "localidade · data · candidaturas".
+  // Guarda somente o primeiro segmento para não gravar empresa/data como cidade.
+  const location = clean(locationLine.split(/\\s*[·•]\\s*/)[0]) || job.location;
 
   const description = await extractJobDescription(page);
   const bodyText = await page.locator('body').innerText().catch(() => '');
