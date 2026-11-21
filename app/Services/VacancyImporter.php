@@ -7,6 +7,7 @@ use App\Models\Vacancy;
 use App\Models\VacancyAvailabilityCheck;
 use App\Services\Geo\VacancyLocationResolver;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Throwable;
 
@@ -49,7 +50,7 @@ class VacancyImporter
 
         foreach ($vacancies as $data) {
             if (!is_array($data)) {
-                $result['skipped']++;
+                $this->skip($result, $sourceName, [], 'invalid_payload');
                 continue;
             }
 
@@ -59,7 +60,7 @@ class VacancyImporter
                 !is_string($externalId) ||
                 trim($externalId) === ''
             ) {
-                $result['skipped']++;
+                $this->skip($result, $sourceName, $data, 'missing_external_id');
                 continue;
             }
 
@@ -108,7 +109,7 @@ class VacancyImporter
                     ]);
                 }
 
-                $result['skipped']++;
+                $this->skip($result, $sourceName, $data, 'source_reports_unavailable');
 
                 continue;
             }
@@ -138,7 +139,8 @@ class VacancyImporter
                 !$this->isValidApplicationUrl($data['application_url']) ||
                 empty($data['original_published_at'])
             ) {
-                $result['skipped']++;
+                 $reason = !$valid ? 'missing_required_field' : (!$this->isValidApplicationUrl($data['application_url']) ? 'invalid_application_url' : 'missing_original_published_at');
+                $this->skip($result, $sourceName, $data, $reason);
                 continue;
             }
 
@@ -147,14 +149,14 @@ class VacancyImporter
                     $data['original_published_at']
                 );
             } catch (Throwable) {
-                $result['skipped']++;
+                $this->skip($result, $sourceName, $data, 'invalid_original_published_at');
                 continue;
             }
 
             // Aplica os critérios editoriais antes de qualquer consulta ou gravação
             // da vaga no banco. O banco recebe somente oportunidades elegíveis.
             if (!$this->editorialFilter->isEligible($data, $sourceName)) {
-                $result['skipped']++;
+                $this->skip($result, $sourceName, $data, 'editorial_filter');
                 continue;
             }
 
@@ -175,7 +177,7 @@ class VacancyImporter
                 );
 
                 if ($duplicate !== null) {
-                    $result['skipped']++;
+                    $this->skip($result, $sourceName, $data, 'duplicate_in_another_source');
                     continue;
                 }
             }
@@ -238,6 +240,24 @@ class VacancyImporter
         }
 
         return $result;
+    }
+
+    /**
+     * Registra o motivo de descarte das fontes Gupy sem alterar os critérios.
+     * @param array{created:int,updated:int,skipped:int} $result
+     * @param array<string,mixed> $data
+     */
+    private function skip(array &$result, string $sourceName, array $data, string $reason): void
+    {
+        $result['skipped']++;
+        if (str_starts_with($sourceName, 'gupy-')) {
+            Log::warning('Gupy: vaga ignorada pelo importador.', [
+                'source' => $sourceName,
+                'reason' => $reason,
+                'external_id' => $data['external_id'] ?? null,
+                'title' => $data['title'] ?? null,
+            ]);
+        }
     }
 
     private function isValidApplicationUrl(string $url): bool
