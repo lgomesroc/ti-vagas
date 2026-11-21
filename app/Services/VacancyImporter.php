@@ -153,9 +153,20 @@ class VacancyImporter
                 continue;
             }
 
-            // Aplica os critérios editoriais antes de qualquer consulta ou gravação
-            // da vaga no banco. O banco recebe somente oportunidades elegíveis.
-            if (!$this->editorialFilter->isEligible($data, $sourceName)) {
+            // LinkedIn é uma fonte de descoberta ampla: não descartar oportunidades
+            // por senioridade, cargo ou classificação editorial nesta etapa.
+            // Os demais coletores continuam sujeitos ao filtro editorial central.
+            // Assim, os registros extraídos do LinkedIn podem ser revisados e os
+            // critérios ajustados sem perder a oportunidade na coleta.
+            $isLinkedInSource = in_array($sourceName, [
+                'linkedin-jobs',
+                'linkedin-posts',
+            ], true);
+
+            if (
+                !$isLinkedInSource
+                && !$this->editorialFilter->isEligible($data, $sourceName)
+            ) {
                 $this->skip($result, $sourceName, $data, 'editorial_filter');
                 continue;
             }
