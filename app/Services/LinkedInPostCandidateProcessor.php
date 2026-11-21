@@ -113,14 +113,14 @@ class LinkedInPostCandidateProcessor
             is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
         )));
 
-        $hasCorporateEmail = $this->hasCorporateEmail($emails);
+        $hasApplicationEmail = $emails !== [];
 
         if (
             (
                 ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
                 || ($post['secondaryAccountSource'] ?? false) === true
                 || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
-            ) && $links === [] && !$hasCorporateEmail
+            ) && $links === [] && !$hasApplicationEmail
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
@@ -132,7 +132,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($links === [] && !$hasCorporateEmail) {
+        if ($links === [] && !$hasApplicationEmail) {
             $candidate->fill($base + [
                 'embedded_links' => [],
                 'emails' => $emails,
@@ -212,16 +212,11 @@ class LinkedInPostCandidateProcessor
             }
         }
 
-        // Publicações de recrutamento no LinkedIn também podem receber currículos
-        // diretamente por e-mail corporativo. Representamos esse canal como mailto:
-        // para que a oportunidade permaneça publicável sem inventar uma URL web.
-        if ($applicationUrl === null && $hasCorporateEmail) {
-            $corporateEmail = collect($emails)->first(
-                fn (string $email): bool => $this->isCorporateEmail($email)
-            );
-            if ($corporateEmail !== null) {
-                $applicationUrl = 'mailto:' . $corporateEmail;
-            }
+        // Quando a publicação oferece e-mail, o TI Vagas exibe a própria
+        // publicação como origem da oportunidade. O e-mail permanece no texto
+        // original para que o candidato veja as instruções da pessoa recrutadora.
+        if ($applicationUrl === null && $hasApplicationEmail) {
+            $applicationUrl = $postUrl;
         }
 
         $enrichedText = trim($text . "\n" . $pageContent);
