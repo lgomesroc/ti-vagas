@@ -11,7 +11,7 @@ class NetVagasSourceTest extends TestCase
     public function test_it_collects_recent_public_announcements_from_search_pages(): void
     {
         Http::fake([
-            'www.netvagas.com.br/empresa/anuncios/cargo/desenvolvedor/' => Http::response($this->listingHtml(), 200),
+            '*netvagas.com.br/empresa/anuncios/cargo/desenvolvedor/*' => Http::response($this->listingHtml(), 200),
         ]);
 
         $source = new NetVagasSource(
