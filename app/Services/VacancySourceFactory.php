@@ -563,7 +563,12 @@ class VacancySourceFactory
         $sources[$ibmSource->name()] = $ibmSource;
 
         $nerdin = config('vacancy_sources.nerdin', []);
-        $nerdinSource = new NerdinSource(\n            caBundle: $nerdin['ca_bundle'] ?? null,\n            maxPages: (int) ($nerdin['max_pages'] ?? 45),\n            maxJobs: (int) ($nerdin['max_jobs'] ?? 500),\n            locationFilter: $this->locationFilter,\n        );\n        $sources[$nerdinSource->name()] = $nerdinSource;
+        $nerdinSource = new NerdinSource(
+            caBundle: $nerdin['ca_bundle'] ?? null,
+            maxPages: (int) ($nerdin['max_pages'] ?? 45),
+            maxJobs: (int) ($nerdin['max_jobs'] ?? 500),
+            locationFilter: $this->locationFilter,
+        );\n        $sources[$nerdinSource->name()] = $nerdinSource;
 
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
