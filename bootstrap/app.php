@@ -3,6 +3,7 @@
 use App\Http\Middleware\CaptureUtmParameters;
 use App\Http\Middleware\EnsureWelcomeAccepted;
 use App\Http\Middleware\EvaluateNetworkReputation;
+use App\Http\Middleware\ForceHttps;
 use App\Http\Middleware\RejectLocationOverrides;
 use App\Services\Network\AbuseTracker;
 use App\Services\Network\NetworkAction;
@@ -38,6 +39,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Política de acesso por tipo de rede (VPN, proxy, Tor, datacenter).
         // Antes da sessão: acessos bloqueados não criam sessões.
         $middleware->web(prepend: [
+            // Primeiro de todos: http nunca chega a criar sessão.
+            ForceHttps::class,
             EvaluateNetworkReputation::class,
         ], append: [
             // Captura a primeira origem de campanha na sessão, sem alterar URLs internas.

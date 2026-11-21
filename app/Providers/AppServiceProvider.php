@@ -13,6 +13,7 @@ use App\Services\Network\NetworkPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -71,6 +72,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.force_https')) {
+            // Links, formulários e a URL canônica nunca saem como http.
+            URL::forceScheme('https');
+
+            $url = (string) config('app.url');
+            if (str_starts_with(strtolower($url), 'http://')) {
+                config(['app.url' => 'https://' . substr($url, 7)]);
+            }
+        }
+
         // Aceite dos termos e confirmação de cookies: uso humano, poucas vezes.
         RateLimiter::for('welcome', fn (Request $request): Limit => Limit::perMinute(20)
             ->by('welcome:' . $request->ip()));

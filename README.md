@@ -155,6 +155,10 @@ O que o servidor faz:
 
 **Limites, sem rodeios:** não existe proteção absoluta contra falsificação de localização. O navegador e o dispositivo do visitante estão sob o controle dele, e as ferramentas de desenvolvedor, extensões e aplicativos de GPS falso permitem simular uma posição. Quem informar coordenadas plausíveis, com ruído realista, a partir de um ponto que não coincide com nenhum centroide e sem trocar de região rápido demais, **não será detectado**. Estas regras tornam o abuso mais trabalhoso, limitado e registrável; elas não provam que o visitante está onde diz estar. Por isso a região libera apenas a exibição de vagas, nunca algo que dependa de a presença física ser comprovada.
 
+### HTTPS
+
+Em produção (ou com `APP_FORCE_HTTPS=true`) o site só funciona por https: pedidos `http` são redirecionados (301), todas as URLs geradas saem como https, e o navegador recebe `Strict-Transport-Security` e `upgrade-insecure-requests` (evita conteúdo misto, que faz o navegador marcar a página como não segura). O app roda atrás do proxy da hospedagem, que termina o TLS; o esquema vem de `X-Forwarded-Proto`. Confira também que `APP_URL` no painel da hospedagem começa com `https://`.
+
 Ajustes por variável de ambiente: `LOCATION_GUARD_ENABLED`, `LOCATION_GUARD_LOG_CHANNEL` e `LOCATION_GUARD_IP_CROSSCHECK`. Em produção, defina `TRUSTED_PROXIES` com os proxies reais, ou o IP usado nos limites e no cruzamento com o GPS pode ser forjado por quem envia o cabeçalho `X-Forwarded-For`.
 
 #### Base territorial
