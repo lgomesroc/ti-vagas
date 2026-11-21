@@ -641,99 +641,10 @@ async function main() {
       const diagnostic = keywordDiagnostics.get(keyword) ?? {
         cards: 0,
         samples: [],
+        pages: 0,
+        cardElements: 0,
       };
-
-      diagnostic.searchUrl = page.url();
-      diagnostic.pageTitle = await page.title().catch(() => '');
-      diagnostic.bodyText = (
-        await page.locator('body').innerText().catch(() => '')
-      ).slice(0, 1800);
-
-      diagnostic.mainText = (
-        await page.locator('main').innerText().catch(() => '')
-      ).slice(0, 1200);
-
-      diagnostic.selectorCounts = {
-        urnDivs: await page.locator('div[data-urn]').count().catch(() => -1),
-        feedUpdates: await page.locator('div.feed-shared-update-v2').count().catch(() => -1),
-        reusableResults: await page.locator('li.reusable-search__result-container').count().catch(() => -1),
-        articles: await page.locator('main article').count().catch(() => -1),
-        listItems: await page.locator('main li').count().catch(() => -1),
-      };
-
-      diagnostic.listItemSamples = await page.locator('main li').evaluateAll(nodes =>
-        nodes.slice(0, 10).map(node => ({
-          className: typeof node.className === 'string' ? node.className : '',
-          text: (node.innerText || '').slice(0, 700),
-          links: [...node.querySelectorAll('a[href]')]
-            .slice(0, 12)
-            .map(a => ({
-              text: (a.innerText || '').trim().slice(0, 100),
-              href: a.href,
-            })),
-          time: [...node.querySelectorAll('time')]
-            .slice(0, 3)
-            .map(t => ({
-              text: (t.innerText || '').trim(),
-              datetime: t.getAttribute('datetime'),
-              ariaLabel: t.getAttribute('aria-label'),
-            })),
-        }))
-      ).catch(() => []);
-
-      diagnostic.timestampAncestors = await page.locator('main').evaluate(main => {
-        const candidates = [...main.querySelectorAll('*')].filter(node => {
-          const text = (node.innerText || '').trim();
-
-          return (
-            text.length >= 250 &&
-            text.length <= 10000 &&
-            /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(text) &&
-            ![...node.children].some(child => {
-              const childText = (child.innerText || '').trim();
-
-              return (
-                childText.length >= 250 &&
-                childText.length <= 10000 &&
-                /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(childText)
-              );
-            })
-          );
-        }).slice(0, 5);
-
-        return candidates.map(node => {
-          const chain = [];
-          let current = node;
-
-          for (let i = 0; current && i < 7; i++, current = current.parentElement) {
-            chain.push({
-              tag: current.tagName,
-              className: typeof current.className === 'string'
-                ? current.className
-                : '',
-              role: current.getAttribute('role'),
-              dataUrn: current.getAttribute('data-urn'),
-              text: (current.innerText || '').slice(0, 900),
-              links: [...current.querySelectorAll('a[href]')]
-                .slice(0, 8)
-                .map(a => ({
-                  text: (a.innerText || '').trim().slice(0, 80),
-                  href: a.href,
-                })),
-              times: [...current.querySelectorAll('time')]
-                .slice(0, 3)
-                .map(t => ({
-                  text: (t.innerText || '').trim(),
-                  datetime: t.getAttribute('datetime'),
-                  aria: t.getAttribute('aria-label'),
-                })),
-            });
-          }
-
-          return chain;
-        });
-      }).catch(() => []);
-
+      diagnostic.pages++;
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 2; pageNo++) {
