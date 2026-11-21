@@ -145,7 +145,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        foreach ($links as $link) {
+        foreach ($hasApplicationEmail ? [] : $links as $link) {
             $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
             $duplicateCandidate = $this->findDuplicateCandidate(
                 null,
