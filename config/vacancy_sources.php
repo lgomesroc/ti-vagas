@@ -592,6 +592,30 @@ return [
                 'technology_only' => true,
             ],
 
+            'atento-ti' => [
+                'name' => 'Atento TI',
+                'url' => 'https://atentoti.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'grupotecnospeed' => [
+                'name' => 'Grupo TecnoSpeed',
+                'url' => 'https://grupotecnospeed.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'icarotech' => [
+                'name' => 'Ícaro Tech',
+                'url' => 'https://icarotech.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'raizen' => [
+                'name' => 'Raízen',
+                'url' => 'https://genteraizen.gupy.io/',
+                'technology_only' => true,
+            ],
+
         ],
     ],
 
