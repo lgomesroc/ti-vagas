@@ -70,17 +70,27 @@ class LinkedInJobsSource implements VacancySource
                 return false;
             }
 
-            $normalized = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title . ' ' . $description));
-            if (preg_match('/\b(pleno|senior|sênior|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/u', $normalized)) {
-                return false;
-            }
-
-            $isJuniorOrInternship = preg_match('/\b(junior|júnior|jr\.?|entry.level|estagio|estágio|intern|internship)\b/u', $normalized) === 1;
-            if (!$isJuniorOrInternship) {
-                return false;
-            }
-
             $normalizedTitle = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title));
+            $normalizedDescription = mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $description));
+
+            // Senioridade precisa estar explícita no título. Uma menção incidental
+            // a "junior" na descrição não transforma uma vaga pleno em júnior.
+            if (preg_match('/\\b(pleno|senior|sênior|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor|trainee|estagio|estagiario|intern|internship)\\b/u', $normalizedTitle)) {
+                return false;
+            }
+
+            if (preg_match('/\\b(junior|júnior|jr\\.?|entry.level)\\b/u', $normalizedTitle) !== 1) {
+                return false;
+            }
+
+            if (preg_match('/ative um alerta para vagas semelhantes|pesquise vagas mais rapido com premium|milhoes de usuarios tem contas premium|demonstracao gratuita de 1 mes|activate an alert for similar jobs|search faster with premium/i', $normalizedDescription)) {
+                return false;
+            }
+
+            if (mb_strlen($description) < 100) {
+                return false;
+            }
+
             $technologyTerms = [
                 'desenvolvedor', 'developer', 'programador', 'software engineer',
                 'engenheiro de software', 'backend', 'back-end', 'frontend',
