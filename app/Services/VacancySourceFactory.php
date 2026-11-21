@@ -568,7 +568,8 @@ class VacancySourceFactory
             maxPages: (int) ($nerdin['max_pages'] ?? 45),
             maxJobs: (int) ($nerdin['max_jobs'] ?? 500),
             locationFilter: $this->locationFilter,
-        );\n        $sources[$nerdinSource->name()] = $nerdinSource;
+        );
+        $sources[$nerdinSource->name()] = $nerdinSource;
 
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
