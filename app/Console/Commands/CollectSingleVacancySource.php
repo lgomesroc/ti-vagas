@@ -26,7 +26,10 @@ class CollectSingleVacancySource extends Command
             $this->info('Banco configurado: ' . config('database.default'));
 
             $vacancies = $source->fetch();
-            $received = is_countable($vacancies) ? count($vacancies) : iterator_count($vacancies);
+            if ($vacancies instanceof \\Traversable) {
+                $vacancies = iterator_to_array($vacancies, false);
+            }
+            $received = count($vacancies);
 
             $this->info("Vagas retornadas pela fonte: {$received}");
 
