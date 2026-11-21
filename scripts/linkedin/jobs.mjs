@@ -14,7 +14,6 @@ const SEARCH_TERMS = [
 ];
 
 const LOOKBACK_CALENDAR_DAYS = 3;
-const LINKEDIN_SEARCH_DAYS = 4;
 const MAX_PAGES_PER_SEARCH = 20;
 const PAGE_SIZE = 25;
 
@@ -40,7 +39,8 @@ function parseRelativeDate(value, scrapedAt) {
   const text = normalize(value);
   if (!text) return null;
 
-  if (/\\b(agora|just now|hoje|today)\\b/.test(text)) return new Date(scrapedAt);
+  if (/\\b(agora|just now)\\b/.test(text)) return new Date(scrapedAt);
+  if (/\\b(hoje|today)\\b/.test(text)) return startOfLocalDay(scrapedAt);
 
   if (/\\b(ontem|yesterday)\\b/.test(text)) {
     return subtractCalendarDays(scrapedAt, 1);
