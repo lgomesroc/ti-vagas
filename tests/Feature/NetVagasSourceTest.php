@@ -26,7 +26,7 @@ class NetVagasSourceTest extends TestCase
         $this->assertSame('Desenvolvedor PHP Júnior', $vacancies[0]['title']);
         $this->assertSame('Empresa de Tecnologia', $vacancies[0]['company']);
         $this->assertSame(
-            'https://www.netvagas.com.br/empresa/anuncios/a1234567/desenvolvedor-php-junior',
+            'https://www.netvagas.com.br/empresa/anuncios/a1234567/desenvolvedor-php-junior/',
             $vacancies[0]['application_url']
         );
         $this->assertSame('netvagas:1234567', $vacancies[0]['external_id']);
