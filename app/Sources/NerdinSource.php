@@ -127,11 +127,14 @@ class NerdinSource implements VacancySource
                     }
 
                     $detailRequests++;
+                    $this->stats['Detalhes consultados']++;
                     $vacancy = $this->parseDetail($this->get($detailUrl), $detailUrl, $cardData);
                     if ($vacancy !== null) {
                         $vacancies[] = $vacancy;
+                        $this->stats['Detalhes aceitos']++;
                     }
                 } catch (\Throwable $exception) {
+                    $this->stats['Exceções na leitura']++;
                     report($exception);
                 }
             }
