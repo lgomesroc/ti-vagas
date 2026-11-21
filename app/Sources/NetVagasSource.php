@@ -388,6 +388,12 @@ class NetVagasSource implements VacancySource
         if (preg_match('/\bha\s+(\d+)\s+dias?/u', $normalized, $match)) {
             return $now->subDays((int) $match[1]);
         }
+        if (preg_match('/\bha\s+(\d+)\s+semanas?/u', $normalized, $match)) {
+            return $now->subWeeks((int) $match[1]);
+        }
+        if (preg_match('/\bha\s+(\d+)\s+mes(?:es)?/u', $normalized, $match)) {
+            return $now->subMonths((int) $match[1]);
+        }
         if (preg_match('/\b(\d{2})\/(\d{2})\/(\d{4})\b/u', $text, $match)) {
             try {
                 return CarbonImmutable::createFromFormat(
