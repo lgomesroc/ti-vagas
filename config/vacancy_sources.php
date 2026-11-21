@@ -622,6 +622,16 @@ return [
                 'technology_only' => true,
             ],
 
+            'gera' => [
+                'name' => 'Gera',
+                'url' => 'https://gera.gupy.io/',
+            ],
+
+            'dedalus' => [
+                'name' => 'Dedalus',
+                'url' => 'https://dedalus.gupy.io/',
+            ],
+
         ],
     ],
 
