@@ -85,7 +85,10 @@ function isWithinWindow(date, scrapedAt) {
 function isJuniorTitle(title) {
   // A busca já usa termos de entrada. Não exigir "júnior" no título:
   // títulos ambíguos seguem para o importador central, evitando falsos negativos.
-  return Boolean(normalize(title)) && !/\bwordpress\b/.test(normalize(title));
+  const value = normalize(title);
+  return Boolean(value)
+    && !/\bwordpress\b/.test(value)
+    && !/\b(estagio|estagiario|trainee|internship|intern|apprentice)\b/.test(value);
 }
 
 function isTechnologyTitle(title) {
