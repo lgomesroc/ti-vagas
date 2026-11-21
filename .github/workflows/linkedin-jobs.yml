@@ -26,6 +26,7 @@ jobs:
       DB_SSLMODE: require
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      DB_QUEUE_RETRY_AFTER: "1900"
       LINKEDIN_HEADLESS: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "168"
       LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "true"
@@ -75,4 +76,6 @@ jobs:
         run: php artisan migrate --force
 
       - name: Coletar vagas do LinkedIn Jobs e importar no banco
-        run: php artisan linkedin:collect-jobs
+        run: |
+          php artisan linkedin:collect-jobs
+          php artisan queue:work database --queue=linkedin --stop-when-empty --timeout=1800 --tries=1
