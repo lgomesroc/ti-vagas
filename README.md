@@ -26,13 +26,14 @@ O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md)
 - **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e leitura de comentários visíveis quando disponíveis. Publicações já reservadas não são enriquecidas novamente, mesmo se rejeitadas. No LinkedIn Jobs, IDs com consulta detalhada concluída são ignorados antes de novas requisições; novos anúncios continuam tendo a descrição completa consultada antes dos filtros editoriais.
 - **Validação de recrutamento:** chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM são rejeitadas tanto no texto da publicação quanto nos comentários públicos disponíveis. E-mails pessoais/gratuitos não são aceitos como canal de candidatura; um link válido continua sendo analisado normalmente.
 - **Gupy:** substituição da coleta individual por empresa por um coletor global baseado na API pública de busca, com termos e janela incremental configurados.
+- **Abler:** inclusão de um coletor global baseado na listagem pública JSON do portal de candidatos, com paginação e normalização para o contrato comum.
 - **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
 - **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
 - **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
 - **Automação:** inventário dos workflows do GitHub Actions: sete arquivos em `developer` e oito em `main`, com branch de checkout, agenda, secrets, jobs e grupos de concorrência. O failover PostgreSQL existe somente em `main`.
 - **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
 
-Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais.
+Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais, incluindo Abler.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
