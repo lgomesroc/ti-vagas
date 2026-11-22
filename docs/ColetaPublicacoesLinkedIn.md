@@ -1,63 +1,118 @@
-# Integração de oportunidades descobertas no LinkedIn
+# Coleta de Oportunidades no LinkedIn
 
-## Fontes de descoberta
+O projeto mantém fluxos distintos para publicações de recrutamento e para anúncios do LinkedIn Jobs. Eles não devem ser confundidos: cada fluxo possui fonte, filtros, persistência e automação próprios.
 
-A busca pública utiliza:
+## 1. Publicações de recrutamento
+
+### Descoberta por buscadores públicos
+
+O serviço `LinkedInPostSearchClient` pesquisa URLs públicas de publicações do LinkedIn utilizando:
+
 - Bing RSS;
-- DuckDuckGo (HTML público).
+- DuckDuckGo HTML.
 
-A descoberta por buscadores não equivale a uma API oficial do LinkedIn e não garante localizar todas as publicações, datas, conteúdo integral ou comentários.
+A consulta é limitada a URLs de posts do LinkedIn e às palavras-chave definidas em `config/linkedin.php`. A janela padrão é de 72 horas. Os resultados dos provedores são combinados e deduplicados pela URL.
 
-## Conta secundária de pesquisa
+O modo `duckduckgo` consulta somente DuckDuckGo. O modo `all` combina Bing, DuckDuckGo e, quando habilitada e disponível, a conta secundária. O modo `bot` utiliza a conta secundária.
 
-A conta secundária destinada exclusivamente à pesquisa de suporte técnico será a única conta considerada na integração autenticada. A conta pessoal não será utilizada. Publicações promovidas/patrocinadas devem ser descartadas; a busca deve se limitar a posts com indícios de oportunidades de TI.
+### Conta secundária e comentários
 
-O acesso autenticado ocorre em um perfil persistente e separado do navegador, iniciado pelo próprio titular da conta secundária. A senha não é armazenada pelo projeto; a sessão fica em `.local/linkedin-secondary-profile/`, diretório ignorado pelo Git. O coletor consulta resultados e comentários visíveis, sem automatizar desafios/CAPTCHA, contornar bloqueios ou reutilizar a sessão da conta pessoal.
+A conta secundária utiliza um perfil/sessão separado, com Playwright e Chromium. A sessão é fornecida pelo ambiente; não se deve usar a conta pessoal do titular. A automação consulta apenas conteúdo que esteja visível para essa conta e não deve contornar CAPTCHA, desafios, bloqueios ou controles de acesso.
 
-A conta secundária pesquisa exclusivamente vagas de suporte técnico, help desk e service desk. O comando `npm run linkedin:secondary:login` abre o navegador para o primeiro login manual. O comando `npm run linkedin:secondary:search` executa a pesquisa usando a sessão local.
+O coletor pode expandir comentários visíveis e procurar neles links e informações públicas úteis para candidatura. A presença de comentário no banco depende do que foi efetivamente retornado pela sessão e pela página naquele momento; não há garantia de acesso a todos os comentários.
 
-## Regras de seleção e processamento
+A configuração de perfil, estado de sessão, timeout e habilitação está em `config/linkedin.php`. Os arquivos de sessão ficam em diretórios locais ignorados pelo Git ou são fornecidos por secrets no workflow. Nunca versione cookies, credenciais ou arquivos de sessão.
 
-1. Pesquisar publicações com indícios de vagas de TI.
-2. Ignorar publicações promovidas/patrocinadas.
-3. Extrair links e e-mails divulgados na publicação e nos comentários públicos disponíveis.
-4. Deduplicar o link contra vagas e candidatos já registrados antes de inspecionar o destino.
-5. Exigir e-mail corporativo como contato de candidatura.
-6. Rejeitar publicações que condicionem o envio do link/informações a comentários, palavras-chave ou contato privado por DM.
-7. Não reproduzir o texto do post como se fosse conteúdo próprio da vaga.
-8. Validar a oportunidade pelas regras de área, senioridade, localização e consistência do TI Vagas.
-9. Não enviar candidaturas automaticamente.
+### Processamento e publicação
 
-Dados ausentes não devem ser presumidos. Publicações sem informação suficiente são descartadas.
+O comando é:
 
-## Coleta pública de LinkedIn Jobs: limitação de requisições (HTTP 429)
+```bash
+php artisan linkedin:collect-posts
+php artisan linkedin:collect-posts --mode=duckduckgo
+php artisan linkedin:collect-posts --mode=bot
+```
 
-A coleta (`scripts/linkedin/jobs.mjs`) espaça as chamadas e reage ao HTTP 429 sem tentar
-contornar o limite: não há rotação de IP, proxies, troca de identidade ou cookies alternativos.
+O fluxo executa as seguintes etapas:
+
+1. Descobre publicações por um ou mais provedores;
+2. Tenta enriquecer cada publicação por meio de `LinkedInPublicPostFetcher`, quando o conteúdo público está acessível;
+3. Processa o texto, links, e-mails e comentários disponíveis;
+4. Aplica regras editoriais e verificações de duplicidade;
+5. Persiste candidatos e resultados de processamento;
+6. Executa `LinkedInPostAutoPublisher` para publicar os candidatos pendentes que forem aprovados pelas regras automáticas.
+
+**A publicação pode ser automática.** Não se deve descrever o fluxo atual como uma fila que exige aprovação manual de cada candidato. A automação não envia candidaturas em nome dos usuários.
+
+### Regras editoriais relevantes
+
+O processador considera, entre outros pontos:
+
+- Indícios de recrutamento e oportunidade de trabalho em tecnologia;
+- Data e janela de publicação;
+- Área e senioridade compatíveis com o escopo do portal;
+- Identificação de cargo sem usar o texto inteiro do post como título quando é possível extrair o cargo;
+- Links e informações de candidatura;
+- Deduplicação contra vagas e candidatos já conhecidos;
+- Rejeição de publicações que condicionem o envio de links ou informações a comentários, palavras-chave ou contato privado por DM;
+- Rejeição de e-mails pessoais quando a regra exige contato corporativo;
+- Rejeição de destinos agregadores ou links que não atendam aos critérios configurados.
+
+A análise de comentários só pode utilizar comentários realmente disponibilizados pela sessão autenticada. A ausência de um dado não deve ser interpretada como confirmação de que ele não existe na publicação original.
+
+### Workflows de publicações
+
+- `linkedin-posts.yml`: coleta regular de publicações, com navegador Chromium e sessão de conta secundária opcional conforme os secrets e variáveis configurados.
+- `linkedin-secondary-search.yml`: execução específica do modo `bot`, com sessão da conta secundária obrigatória no workflow.
+- `linkedin-posts-ci.yml`: valida scripts Node, sintaxe PHP e testes automatizados relacionados.
+
+Os workflows possuem agendamentos próprios em `America/Sao_Paulo` e também podem ser executados manualmente.
+
+## 2. LinkedIn Jobs — anúncios de vagas
+
+O projeto possui um coletor separado para anúncios publicados na área LinkedIn Jobs. Ele consulta páginas públicas de visitantes, sem login, por meio dos endpoints públicos utilizados pelo site. A implementação fica em `scripts/linkedin/jobs.mjs`, integrada ao Laravel por `LinkedInJobsSource`.
+
+Comando:
+
+```bash
+php artisan linkedin:collect-jobs
+php artisan linkedin:collect-jobs --sync
+```
+
+A execução padrão envia um job para a fila `linkedin`; a opção `--sync` executa diretamente. O workflow `linkedin-jobs.yml` despacha e processa a fila.
+
+O coletor pesquisa termos de desenvolvimento, suporte e infraestrutura, com localização configurável (padrão: Brasil), janela de até 168 horas e paginação limitada. Os anúncios extraídos passam pelo importador e pelos critérios editoriais gerais do TI Vagas.
+
+### Tratamento de HTTP 429
+
+O coletor respeita limites do serviço externo e não tenta contorná-los por rotação de IP, proxies ou troca de identidade.
 
 | Variável | Padrão | Função |
 | --- | --- | --- |
-| `LINKEDIN_JOBS_DELAY_MS` | 2500 | Intervalo mínimo entre quaisquer requisições (mínimo 500) |
-| `LINKEDIN_JOBS_JITTER_MS` | 500 | Variação aleatória somada ao intervalo |
-| `LINKEDIN_JOBS_MAX_RETRIES` | 3 | Novas tentativas após 429 |
-| `LINKEDIN_JOBS_BACKOFF_BASE_MS` | 30000 | Primeira espera; dobra a cada tentativa |
-| `LINKEDIN_JOBS_BACKOFF_MAX_MS` | 300000 | Teto do backoff e da espera aceita dentro do processo |
-| `LINKEDIN_JOBS_RESCHEDULE_SECONDS` | 900 | Atraso inicial do reagendamento do job |
-| `LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS` | 14400 | Teto do reagendamento |
+| `LINKEDIN_JOBS_DELAY_MS` | 2500 | Intervalo mínimo entre requisições |
+| `LINKEDIN_JOBS_JITTER_MS` | 500 | Variação adicional do intervalo |
+| `LINKEDIN_JOBS_MAX_RETRIES` | 3 | Tentativas após HTTP 429 |
+| `LINKEDIN_JOBS_BACKOFF_BASE_MS` | 30000 | Espera inicial do backoff |
+| `LINKEDIN_JOBS_BACKOFF_MAX_MS` | 300000 | Limite do backoff no processo |
+| `LINKEDIN_JOBS_RESCHEDULE_SECONDS` | 900 | Atraso inicial para reagendar o job |
+| `LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS` | 14400 | Limite do reagendamento |
 
-- O cabeçalho `Retry-After` (segundos ou data HTTP) é respeitado. Se pedir espera acima do teto,
-  a coleta é interrompida de imediato, sem aguardar dentro do processo.
-- Persistindo o 429 (inclusive na etapa do `geoId`), o script registra o motivo e o progresso
-  (pesquisas concluídas, cartões únicos, detalhes consultados, descrições extraídas) e sai com
-  código 75. O Laravel converte isso em `SourceRateLimitedException`; nada é importado.
-- `FetchLinkedInJobsJob` devolve o job à fila com atraso crescente (`release`) e não conta isso
-  como falha. Esgotados os 5 reagendamentos, termina sem falha e a próxima execução agendada tenta
-  de novo. Erros reais continuam falhando na primeira ocorrência.
-- O job é único (`ShouldBeUnique`): enquanto houver um pendente ou reagendado, um novo despacho é
-  descartado, para não repetir a coleta logo após uma limitação.
-- Em `linkedin:collect-jobs --sync` a limitação é exibida como aviso (código 0), sem importar vagas.
-- No workflow `linkedin-jobs.yml`, o worker usa `--stop-when-empty`: um job reagendado permanece
-  na fila e é processado pelo worker da próxima execução agendada.
+- O cabeçalho `Retry-After` é respeitado.
+- Persistindo o HTTP 429, o script registra o progresso e encerra com código 75, sem importar resultados parciais.
+- O Laravel converte a situação em `SourceRateLimitedException` e reagenda o job com atraso crescente.
+- O job é único (`ShouldBeUnique`) para evitar despachos repetidos enquanto uma execução está pendente ou reagendada.
+- Na execução síncrona, a limitação é apresentada como aviso e nenhuma vaga é importada.
 
-Testes: `npm run test:linkedin` (módulo de ritmo/backoff e execução real do script contra um
-servidor local que responde 429) e `tests/Feature/LinkedInJobsRateLimitTest.php`.
+Os testes do mecanismo Node podem ser executados com:
+
+```bash
+npm run test:linkedin
+```
+
+## 3. Limitações e responsabilidade
+
+Os mecanismos de busca e as páginas públicas não garantem cobertura integral das publicações ou vagas do LinkedIn. Resultados podem estar ausentes, incompletos, atrasados ou indisponíveis. A interface pode mudar e os serviços podem limitar requisições.
+
+A existência de uma oportunidade no portal não garante que a candidatura continue aberta. O usuário deve conferir os detalhes e concluir a candidatura diretamente no canal oficial indicado pela empresa.
+
+Não implementar mecanismos para burlar limites, autenticação, desafios ou controles de acesso. Mudanças nos fluxos devem preservar as condições aplicáveis aos serviços externos e os testes correspondentes.
