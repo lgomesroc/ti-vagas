@@ -8,6 +8,16 @@ return [
 
     'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
 
+    // LinkedIn Jobs usa o endpoint público de visitantes, sem sessão autenticada.
+    'jobs' => [
+        'enabled' => filter_var(env('LINKEDIN_JOBS_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'lookback_hours' => max(1, (int) env('LINKEDIN_JOBS_LOOKBACK_HOURS', 168)),
+        'max_pages' => max(1, (int) env('LINKEDIN_JOBS_MAX_PAGES', 5)),
+        'delay_ms' => max(500, (int) env('LINKEDIN_JOBS_DELAY_MS', 1200)),
+        'location' => env('LINKEDIN_JOBS_LOCATION', 'Brasil'),
+        'timeout' => max(600, (int) env('LINKEDIN_JOBS_TIMEOUT', 1800)),
+    ],
+
     'secondary_account' => [
         'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
         'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
