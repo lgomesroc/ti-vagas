@@ -167,7 +167,7 @@ class VacancyImporterTest extends TestCase
         );
     }
 
-    public function test_linkedin_jobs_are_saved_before_editorial_filtering_for_later_review(): void
+    public function test_linkedin_jobs_are_subject_to_the_editorial_filter(): void
     {
         $vacancy = $this->validVacancy([
             'title' => 'Analista de Marketing Sênior',
@@ -181,15 +181,14 @@ class VacancyImporterTest extends TestCase
         );
 
         $this->assertSame([
-            'created' => 1,
+            'created' => 0,
             'updated' => 0,
-            'skipped' => 0,
+            'skipped' => 1,
         ], $result);
 
-        $this->assertDatabaseHas('vacancies', [
+        $this->assertDatabaseMissing('vacancies', [
             'source' => 'linkedin-jobs',
             'external_id' => 'linkedin-jobs:987654',
-            'title' => 'Analista de Marketing Sênior',
         ]);
     }
 
