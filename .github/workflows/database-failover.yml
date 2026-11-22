@@ -1,0 +1,134 @@
+name: Database failover - Neon <-> Prisma
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-database-failover
+  cancel-in-progress: false
+
+jobs:
+  failover:
+    runs-on: ubuntu-latest
+    container:
+      image: postgres:18
+    timeout-minutes: 20
+    env:
+      NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      PRISMA_DATABASE_URL: ${{ secrets.PRISMA_DATABASE_URL }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+      HEALTH_URL: https://ti-vagas.lucianorocha.dev.br/up
+    steps:
+      - name: Install tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends curl jq ca-certificates
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in NEON_DATABASE_URL PRISMA_DATABASE_URL RENDER_API_KEY RENDER_SERVICE_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub secret $name is not configured."
+              exit 1
+            fi
+          done
+
+      - name: Synchronize standby and fail over when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api="https://api.render.com/v1"
+          auth=(-H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json")
+
+          # Read the URL currently configured in Render without printing credentials.
+          current_json="$(curl --fail --silent --show-error "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" "${auth[@]}")"
+          current_url="$(jq -r '.envVar.value // .value // empty' <<< "$current_json")"
+          if [ -z "$current_url" ]; then
+            echo "::error::Could not read DB_URL from Render. Confirm it is configured directly on the service."
+            exit 1
+          fi
+
+          if [ "$current_url" = "$NEON_DATABASE_URL" ]; then
+            active="neon"
+          elif [ "$current_url" = "$PRISMA_DATABASE_URL" ]; then
+            active="prisma"
+          else
+            echo "::error::Render DB_URL does not match either configured database. No changes were made."
+            exit 1
+          fi
+
+          # Test Neon independently. A failed check is treated as an outage.
+          neon_ok=false
+          if psql "$NEON_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc 'SELECT 1' >/dev/null 2>&1; then
+            neon_ok=true
+          fi
+
+          if [ "$active" = "neon" ] && [ "$neon_ok" = "true" ]; then
+            source_url="$NEON_DATABASE_URL"
+            target_url="$PRISMA_DATABASE_URL"
+            target_name="Prisma"
+            switch_to=""
+            echo "Neon is active and healthy. Refreshing the Prisma standby copy."
+          elif [ "$active" = "neon" ] && [ "$neon_ok" = "false" ]; then
+            if ! psql "$PRISMA_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc 'SELECT 1' >/dev/null 2>&1; then
+              echo "::error::Neon is unavailable and Prisma failed its connection test. No URL change was made."
+              exit 1
+            fi
+            echo "Neon is unavailable. Prisma is reachable; activating the latest synchronized Prisma copy."
+            switch_to="$PRISMA_DATABASE_URL"
+          elif [ "$active" = "prisma" ] && [ "$neon_ok" = "true" ]; then
+            source_url="$PRISMA_DATABASE_URL"
+            target_url="$NEON_DATABASE_URL"
+            target_name="Neon"
+            switch_to="$NEON_DATABASE_URL"
+            echo "Neon recovered. Copying all data from Prisma to Neon before returning traffic."
+          else
+            echo "Neon remains unavailable. Prisma stays active; no reverse copy is possible until Neon recovers."
+            exit 0
+          fi
+
+          # Refresh the inactive database using a consistent PostgreSQL dump.
+          # This replaces the standby schema/data; it never targets the active database.
+          if [ -n "${source_url:-}" ]; then
+            dump_file="$(mktemp)"
+            trap 'rm -f "$dump_file"' EXIT
+            pg_dump "$source_url" --format=custom --no-owner --no-privileges --file="$dump_file"
+            pg_restore --exit-on-error --clean --if-exists --no-owner --no-privileges --dbname="$target_url" "$dump_file"
+            echo "$target_name standby synchronization completed."
+          fi
+
+          # Change only DB_URL through Render's single-variable endpoint.
+          # Then explicitly deploy: Render does not deploy env-var changes automatically.
+          if [ -n "$switch_to" ]; then
+            curl --fail --silent --show-error --request PUT \
+              "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" \
+              "${auth[@]}" -H "Content-Type: application/json" \
+              --data "$(jq -cn --arg value "$switch_to" '{value:$value}')" >/dev/null
+
+            curl --fail --silent --show-error --request POST \
+              "${api}/services/${RENDER_SERVICE_ID}/deploys" \
+              "${auth[@]}" -H "Content-Type: application/json" --data '{}' >/dev/null
+
+            echo "Render deployment requested for the database switch."
+
+            for attempt in $(seq 1 20); do
+              if curl --fail --silent --show-error "$HEALTH_URL" >/dev/null 2>&1; then
+                echo "Application health check passed."
+                exit 0
+              fi
+              sleep 15
+            done
+
+            echo "::error::Database URL was switched, but the application health check did not pass within 5 minutes."
+            exit 1
+          fi
