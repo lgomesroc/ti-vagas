@@ -13,9 +13,22 @@ return [
         'enabled' => filter_var(env('LINKEDIN_JOBS_ENABLED', true), FILTER_VALIDATE_BOOL),
         'lookback_hours' => max(1, (int) env('LINKEDIN_JOBS_LOOKBACK_HOURS', 168)),
         'max_pages' => max(1, (int) env('LINKEDIN_JOBS_MAX_PAGES', 5)),
-        'delay_ms' => max(500, (int) env('LINKEDIN_JOBS_DELAY_MS', 1200)),
+        // Intervalo mínimo entre requisições (mais conservador que o anterior, 1200ms).
+        'delay_ms' => max(500, (int) env('LINKEDIN_JOBS_DELAY_MS', 2500)),
+        'jitter_ms' => max(0, (int) env('LINKEDIN_JOBS_JITTER_MS', 500)),
         'location' => env('LINKEDIN_JOBS_LOCATION', 'Brasil'),
         'timeout' => max(600, (int) env('LINKEDIN_JOBS_TIMEOUT', 1800)),
+
+        // HTTP 429: novas tentativas e backoff exponencial dentro do processo (ms).
+        // Não há rotação de IP, proxy ou troca de identidade: persistindo o 429,
+        // a coleta é interrompida e o job é reagendado.
+        'max_retries' => max(0, (int) env('LINKEDIN_JOBS_MAX_RETRIES', 3)),
+        'backoff_base_ms' => max(0, (int) env('LINKEDIN_JOBS_BACKOFF_BASE_MS', 30000)),
+        'backoff_max_ms' => max(0, (int) env('LINKEDIN_JOBS_BACKOFF_MAX_MS', 300000)),
+
+        // Reagendamento do job após a coleta ser interrompida (segundos).
+        'reschedule_base_seconds' => max(1, (int) env('LINKEDIN_JOBS_RESCHEDULE_SECONDS', 900)),
+        'reschedule_max_seconds' => max(1, (int) env('LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS', 14400)),
     ],
 
     'secondary_account' => [

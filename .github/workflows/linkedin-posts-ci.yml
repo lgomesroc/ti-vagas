@@ -50,6 +50,9 @@ jobs:
           node --check scripts/linkedin/jobs.mjs
           node --check scripts/linkedin/secondary-account.mjs
 
+      - name: Testar limitação de requisições do LinkedIn Jobs
+        run: node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/jobs.e2e.test.mjs
+
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
         with:

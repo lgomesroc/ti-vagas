@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\SourceRateLimitedException;
 use App\Jobs\FetchLinkedInJobsJob;
 use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
@@ -46,6 +47,18 @@ class CollectLinkedInJobs extends Command
                 ['Extraídas', 'Novas', 'Atualizadas', 'Ignoradas'],
                 [[count($vacancies), $result['created'], $result['updated'], $result['skipped']]]
             );
+
+            return self::SUCCESS;
+        } catch (SourceRateLimitedException $exception) {
+            // Limitação temporária, não é erro da aplicação: nada foi importado
+            // e a coleta deve ser repetida mais tarde (de preferência pela fila).
+            $this->warn($exception->getMessage());
+
+            if ($exception->retryAfterSeconds !== null) {
+                $this->warn('Retry-After informado: ' . $exception->retryAfterSeconds . 's.');
+            }
+
+            $this->warn('Nenhuma vaga foi importada nesta execução. Tente novamente mais tarde ou sem --sync.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

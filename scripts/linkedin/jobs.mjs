@@ -1,3 +1,12 @@
+import {
+  RATE_LIMIT_EXIT_CODE,
+  RATE_LIMIT_MARKER,
+  RateLimitError,
+  createThrottle,
+  loadRateLimitConfig,
+  requestWithBackoff,
+} from './rate-limit.mjs';
+
 const SEARCH_TERMS = [
   'desenvolvedor júnior',
   'desenvolvedor backend júnior',
@@ -19,9 +28,20 @@ const SEARCH_TERMS = [
 const LOOKBACK_HOURS = Math.max(1, Number(process.env.LINKEDIN_JOBS_LOOKBACK_HOURS ?? 168));
 const MAX_PAGES = Math.max(1, Number(process.env.LINKEDIN_JOBS_MAX_PAGES ?? 5));
 const PAGE_SIZE = 10;
-const DELAY_MS = Math.max(500, Number(process.env.LINKEDIN_JOBS_DELAY_MS ?? 1200));
 const LOCATION = process.env.LINKEDIN_JOBS_LOCATION ?? 'Brasil';
+// Permite apontar para um servidor local nos testes; em produção é o LinkedIn.
+const BASE_URL = (process.env.LINKEDIN_JOBS_BASE_URL ?? 'https://www.linkedin.com').replace(/\/+$/, '');
+const RATE_LIMIT = loadRateLimitConfig();
+const throttle = createThrottle(RATE_LIMIT);
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
+
+// Contadores para diferenciar o que foi alcançado caso a coleta seja interrompida.
+const progress = {
+  searchesDone: 0,
+  uniqueCards: 0,
+  detailsRequested: 0,
+  withDescription: 0,
+};
 
 function log(message) {
   process.stderr.write('[LinkedIn Jobs público] ' + message + '\n');
@@ -54,18 +74,38 @@ function matchText(html, regex) {
 }
 
 async function request(url) {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36',
-      'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-    signal: AbortSignal.timeout(20000),
-  });
+  const path = new URL(url).pathname;
 
-  if (response.status === 429) {
-    throw new Error('LinkedIn limitou temporariamente o endpoint público (HTTP 429). A coleta foi interrompida sem tentar contornar o limite.');
-  }
+  // Intervalo mínimo entre requisições, backoff exponencial para 429 e
+  // Retry-After respeitado. Esgotadas as tentativas, lança RateLimitError.
+  const response = await requestWithBackoff(
+    async () => {
+      await throttle.wait();
+
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const limited = res.status === 429;
+
+      if (limited) {
+        await res.body?.cancel().catch(() => {});
+      }
+
+      return {
+        limited,
+        retryAfter: res.headers.get('retry-after'),
+        value: res,
+      };
+    },
+    RATE_LIMIT,
+    { log, label: path }
+  );
 
   if (!response.ok) {
     throw new Error('LinkedIn respondeu HTTP ' + response.status + ' em ' + url);
@@ -84,7 +124,7 @@ async function geoId(location) {
     geoTypes: 'POPULATED_PLACE,ADMIN_DIVISION_2,MARKET_AREA,COUNTRY_REGION',
   });
 
-  const raw = await request('https://www.linkedin.com/jobs-guest/api/typeaheadHits?' + params);
+  const raw = await request(BASE_URL + '/jobs-guest/api/typeaheadHits?' + params);
   const hits = JSON.parse(raw);
 
   if (!Array.isArray(hits) || !hits[0]?.id) {
@@ -188,7 +228,7 @@ async function searchJobs(term, geo) {
 
   for (let page = 0; page < MAX_PAGES; page++) {
     params.set('start', String(page * PAGE_SIZE));
-    const url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?' + params;
+    const url = BASE_URL + '/jobs-guest/jobs/api/seeMoreJobPostings/search?' + params;
     const html = await request(url);
     const cards = parseCards(html);
 
@@ -197,7 +237,6 @@ async function searchJobs(term, geo) {
     log('"' + term + '" | página ' + (page + 1) + ' | ' + cards.length + ' cartões únicos');
 
     if (cards.length < PAGE_SIZE) break;
-    await new Promise(resolve => setTimeout(resolve, DELAY_MS));
   }
 
   return [...found.values()];
@@ -208,7 +247,11 @@ async function collectLinkedInJobs() {
   const geo = await geoId(LOCATION);
   const unique = new Map();
 
-  log('Busca pública sem login. Localização: ' + LOCATION + ' | janela: ' + LOOKBACK_HOURS + 'h');
+  log(
+    'Busca pública sem login. Localização: ' + LOCATION + ' | janela: ' + LOOKBACK_HOURS + 'h | ' +
+    'intervalo mínimo: ' + RATE_LIMIT.requestDelayMs + 'ms | até ' +
+    RATE_LIMIT.maxRetries + ' novas tentativas por 429'
+  );
 
   for (const term of SEARCH_TERMS) {
     try {
@@ -216,12 +259,13 @@ async function collectLinkedInJobs() {
         if (!unique.has(job.id)) unique.set(job.id, { ...job, matchedKeywords: [term] });
         else unique.get(job.id).matchedKeywords.push(term);
       }
+
+      progress.searchesDone++;
+      progress.uniqueCards = unique.size;
     } catch (error) {
       log('Pesquisa interrompida para "' + term + '": ' + error.message);
-      if (/HTTP 429/.test(error.message)) throw error;
+      if (error instanceof RateLimitError) throw error;
     }
-
-    await new Promise(resolve => setTimeout(resolve, DELAY_MS));
   }
 
   const results = [];
@@ -229,10 +273,12 @@ async function collectLinkedInJobs() {
 
   log('Vagas únicas nos cartões: ' + jobs.length);
 
-  for (const [index, job] of jobs.entries()) {
+  for (const job of jobs) {
     try {
+      progress.detailsRequested++;
+
       const detailHtml = await request(
-        'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/' + job.id
+        BASE_URL + '/jobs-guest/jobs/api/jobPosting/' + job.id
       );
       const description = extractDescription(detailHtml);
 
@@ -240,6 +286,8 @@ async function collectLinkedInJobs() {
         log('Descrição ausente/curta; mantida fora da importação: ' + job.id);
         continue;
       }
+
+      progress.withDescription++;
 
       const combined = job.location + ' ' + description;
       results.push({
@@ -259,11 +307,7 @@ async function collectLinkedInJobs() {
       });
     } catch (error) {
       log('Falha ao consultar detalhe ' + job.id + ': ' + error.message);
-      if (/HTTP 429/.test(error.message)) throw error;
-    }
-
-    if (index < jobs.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+      if (error instanceof RateLimitError) throw error;
     }
   }
 
@@ -274,6 +318,26 @@ async function collectLinkedInJobs() {
 collectLinkedInJobs()
   .then(vacancies => process.stdout.write(JSON.stringify(vacancies)))
   .catch(error => {
+    if (error instanceof RateLimitError) {
+      // Limitação temporária: encerra de forma controlada, sem insistir.
+      // O código 75 e o marcador permitem ao Laravel reagendar a coleta.
+      log(
+        'COLETA INTERROMPIDA por limitação do LinkedIn (HTTP 429). Motivo: ' + error.message +
+        ' | pesquisas concluídas: ' + progress.searchesDone + '/' + SEARCH_TERMS.length +
+        ' | vagas únicas nos cartões: ' + progress.uniqueCards +
+        ' | detalhes consultados: ' + progress.detailsRequested +
+        ' | com descrição extraída (descartadas nesta execução): ' + progress.withDescription +
+        '. Nova coleta deve ocorrer em execução posterior.'
+      );
+      process.stderr.write(
+        RATE_LIMIT_MARKER + ' retry_after=' + (error.retryAfterSeconds ?? '') +
+        ' attempts=' + error.attempts + '\n'
+      );
+      process.exitCode = RATE_LIMIT_EXIT_CODE;
+
+      return;
+    }
+
     log(error.stack || error.message || String(error));
     process.exitCode = 1;
   });
