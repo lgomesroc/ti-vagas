@@ -161,29 +161,27 @@ async function expandComments(page, card) {
   const labels =
     /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
 
-  for (let i = 0; i < 2; i++) {
-    const buttons = card.getByRole('button');
-    const count = Math.min(await buttons.count(), 60);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    // Lê rótulos em uma única avaliação do DOM. Isso evita esperar 30s por
+    // um nth() que deixou de existir após o LinkedIn atualizar o cartão.
+    const candidates = await card.locator('button').evaluateAll(nodes =>
+      nodes.slice(0, 60).map((node, index) => ({
+        index,
+        label: [
+          node.getAttribute('aria-label') || '',
+          node.innerText || node.textContent || '',
+        ].join(' '),
+      }))
+    ).catch(() => []);
 
-    let clicked = false;
+    const candidate = candidates.find(item => labels.test(item.label));
+    if (!candidate) break;
 
-    for (let j = 0; j < count; j++) {
-      const button = buttons.nth(j);
+    const clicked = await card.locator('button').nth(candidate.index)
+      .click({ timeout: 1200 }).then(() => true).catch(() => false);
 
-      const label =
-        (await button.getAttribute('aria-label')) +
-        ' ' +
-        (await button.innerText({ timeout: 1000 }).catch(() => ''));
-
-      if (labels.test(label)) {
-        await button.click({ timeout: 1500 }).catch(() => {});
-        await page.waitForTimeout(300);
-        clicked = true;
-        break;
-      }
-    }
-
-    if (!clicked) break;
+    if (!clicked) continue;
+    await page.waitForTimeout(250);
   }
 }
 
@@ -502,7 +500,7 @@ async function extractCard(page, card, keyword) {
   ) || postLines[0] || keyword;
 
   return {
-    postId: componentKey || Buffer.from(postUrl).toString('base64url'),
+    postId: canonicalPostUrl(postUrl),
     postUrl,
     title: titleLine.slice(0, 255),
     text: postText,
