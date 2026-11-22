@@ -5,7 +5,6 @@
 Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; em seguida, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Referência Git: `9a78f6aac20e1f59ce4fc20a8827cd839b374ffb`
 - Total: 59 pastas e 310 arquivos.
 
 ```text
