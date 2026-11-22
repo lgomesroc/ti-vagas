@@ -188,13 +188,13 @@ class AblerSource implements VacancySource
 
     private function isTechnologyVacancy(string $title, string $description): bool
     {
-        $text = Str::ascii(mb_strtolower($title . ' ' . mb_substr($description, 0, 5000)));
+        $normalizedTitle = Str::ascii(mb_strtolower($title));
 
-        if (preg_match('/\b(pleno|senior|sênior|staff|principal|lead|lider|líder|coordenador|gerente|director|diretor|head)\b/i', $text)) {
+        if (preg_match('/\b(pleno|senior|staff|principal|lead|lider|coordenador|gerente|director|diretor|head)\b/i', $normalizedTitle)) {
             return false;
         }
 
-        return (bool) preg_match('/\b(desenvolvedor|desenvolvedora|developer|programador|programadora|software engineer|engenheiro de software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte tecnico|suporte de ti|help.?desk|service desk|infraestrutura|infra|redes de computadores|analista de redes|devops|cloud|sysadmin|qa|quality assurance|analista de testes|estagio|estagiario|estagiaria|internship|intern)\b/i', $title);
+        return (bool) preg_match('/\b(desenvolvedor|desenvolvedora|developer|programador|programadora|software engineer|engenheiro de software|backend|back-end|frontend|front-end|full.?stack|analista de sistemas|analista de suporte|suporte tecnico|suporte de ti|help.?desk|service desk|infraestrutura|infra|redes de computadores|analista de redes|devops|cloud|sysadmin|qa|quality assurance|analista de testes|estagio|estagiario|estagiaria|internship|intern)\b/i', $normalizedTitle);
     }
 
     private function normalizeEmploymentType(mixed $value): ?string
