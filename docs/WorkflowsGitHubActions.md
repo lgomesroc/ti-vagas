@@ -56,7 +56,7 @@ A cópia usa `pg_dump --format=custom --no-owner --no-privileges` e `pg_restore 
 
 O token Render precisa conseguir consultar o serviço, ler/escrever variáveis de ambiente e executar deploy. `DB_URL` deve estar definida como variável do próprio serviço Render, pois o workflow procura essa chave na lista de variáveis do serviço.
 
-**Limitação importante identificada na configuração atual:** o grupo de concorrência deste workflow é `ti-vagas-database-operations`, mas `vacancies.yml`, `gupy.yml` e os workflows LinkedIn usam grupos distintos. Portanto, não existe bloqueio global entre failover e todas as coletas. Além disso, os workflows de coleta configuram `DB_URL` diretamente com `NEON_DATABASE_URL`; não consultam a variável `DB_URL` do Render. Assim, mudar o banco usado pela aplicação no Render não redireciona automaticamente os jobs do GitHub Actions. Essa diferença precisa ser considerada na operação do failover.
+**Concorrência varia entre branches:** em `main`, `vacancies.yml` também usa `ti-vagas-database-operations`, compartilhando o bloqueio com o failover. Em `developer`, `vacancies.yml` usa `ti-vagas-vacancies`, portanto não compartilha o bloqueio com o failover. Em ambas as branches, `gupy.yml` e os workflows LinkedIn usam grupos próprios e não compartilham o bloqueio com o failover. Portanto, nem mesmo em `main` existe bloqueio global entre failover e todas as coletas. Além disso, os workflows de coleta configuram `DB_URL` diretamente com `NEON_DATABASE_URL`; não consultam a variável `DB_URL` do Render. Assim, mudar o banco usado pela aplicação no Render não redireciona automaticamente os jobs do GitHub Actions. Essa diferença precisa ser considerada na operação do failover.
 
 ## 3. Coleta global Gupy — `gupy.yml`
 
