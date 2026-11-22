@@ -211,9 +211,9 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 
 A configuração efetiva das integrações está em `config/vacancy_sources.php`. A Gupy usa o bloco `gupy.global` e o comando `vacancies:collect-gupy`; cadastros individuais antigos ainda presentes no arquivo não são executados pelo fluxo atual. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
-### Publicações públicas do LinkedIn
+### LinkedIn: publicações e LinkedIn Jobs
 
-O projeto possui uma rotina experimental de descoberta de publicações públicas por mecanismos de busca. Ela não realiza login no LinkedIn nem garante acesso ao conteúdo integral ou aos comentários. Quando os dados disponíveis são suficientes e passam pelas validações, o sistema cadastra a oportunidade automaticamente; registros incompletos ou inválidos são rejeitados, sem fila de revisão manual.
+O projeto mantém dois fluxos separados: descoberta de publicações de recrutamento por Bing RSS, DuckDuckGo e conta secundária, com análise de conteúdo e comentários visíveis quando disponíveis; e coleta de anúncios do LinkedIn Jobs por páginas públicas, sem login. As publicações que passam pelas regras automáticas podem ser cadastradas pelo publicador automático. O fluxo de LinkedIn Jobs possui tratamento de HTTP 429 com backoff e reagendamento, sem contornar limites externos.
 
 Detalhes, limitações e configuração: [docs/ColetaPublicacoesLinkedIn.md](docs/ColetaPublicacoesLinkedIn.md).
 
