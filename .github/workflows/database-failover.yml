@@ -55,10 +55,14 @@ jobs:
           # Render exposes a dedicated endpoint for reading one service variable.
           current_json="$(curl --fail --silent --show-error --retry 3 \
             "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" "${auth[@]}")"
-          current_url="$(jq -r '.envVar.value // empty' <<< "$current_json")"
+          # Render's single-variable endpoint may return the variable directly
+          # or wrapped in envVar, depending on the response representation.
+          current_url="$(jq -r '.envVar.value // .value // empty' <<< "$current_json")"
 
           if [ -z "$current_url" ]; then
-            echo "::error::Could not read DB_URL from the Render service."
+            response_keys="$(jq -r 'if type == "object" then (keys | join(",")) else "response_type=" + type end' <<< "$current_json")"
+            nested_keys="$(jq -r 'if (.envVar | type) == "object" then (.envVar | keys | join(",")) else "no envVar object" end' <<< "$current_json")"
+            echo "::error::Render returned HTTP 200 but DB_URL value was not present. Top-level fields: $response_keys. envVar fields: $nested_keys. Check whether DB_URL is set directly on the service rather than inherited from an environment group."
             exit 1
           fi
 
