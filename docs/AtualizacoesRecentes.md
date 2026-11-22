@@ -2,67 +2,26 @@
 
 Este documento registra as principais alterações recentes incorporadas à branch `developer`, com foco nas integrações de oportunidades, no fluxo de descoberta de publicações do LinkedIn e na organização da documentação.
 
-## 1. Descoberta de oportunidades no LinkedIn
+## 1. Coleta de oportunidades no LinkedIn
 
-Foi implementado um fluxo para descobrir publicações públicas relacionadas a recrutamento e oportunidades em tecnologia.
+O projeto mantém dois fluxos separados:
 
-### Descoberta
+- **Publicações de recrutamento:** descoberta por Bing RSS e DuckDuckGo, com possibilidade de execução adicional por conta secundária em workflow próprio. Quando habilitada, a conta secundária consulta conteúdo e comentários visíveis. O processador aplica as regras editoriais e o `LinkedInPostAutoPublisher` pode cadastrar automaticamente os candidatos aprovados.
+- **LinkedIn Jobs:** coleta de anúncios por páginas públicas, sem login, usando `scripts/linkedin/jobs.mjs`. O coletor aplica termos de desenvolvimento, suporte e infraestrutura e importa os resultados pelo fluxo comum.
 
-O serviço `LinkedInPostSearchClient` consulta:
+A descoberta pública não garante acesso integral a todas as publicações, datas, links ou comentários. O conteúdo de comentários depende do que a conta secundária consegue visualizar; o workflow regular de publicações está configurado com a conta secundária desabilitada, enquanto `linkedin-secondary-search.yml` executa o modo `bot` com sessão própria.
 
-- DuckDuckGo, pela página pública de resultados;
-- Brave Search, quando a chave da API está configurada;
-- Mojeek, quando a chave da API está configurada.
+A coleta de LinkedIn Jobs passou a tratar HTTP 429 com intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Persistindo a limitação, interrompe a execução sem importar resultados parciais e reagenda o job. Não utiliza rotação de IP, proxies ou troca de identidade para contornar limites externos.
 
-As consultas usam palavras-chave de recrutamento e tecnologia e restringem os resultados a URLs de publicações do LinkedIn. Os resultados são combinados e deduplicados pela URL. A janela padrão de análise é de 72 horas.
+Detalhes: [Coleta de Oportunidades no LinkedIn](ColetaPublicacoesLinkedIn.md).
 
-A coleta é executada pelo comando:
+## 2. Gupy: transição para coleta global
 
-```bash
-php artisan linkedin:collect-posts
-```
+A coleta da Gupy deixou de executar uma consulta individual para cada empresa. O workflow `.github/workflows/gupy.yml` chama `php artisan vacancies:collect-gupy`, que utiliza `GupyGlobalSource` e a API pública global de busca.
 
-O agendamento está configurado quatro vezes ao dia, às 06h, 10h, 14h e 18h, no fuso `America/Sao_Paulo`. A execução depende de `LINKEDIN_POSTS_ENABLED=true`; por padrão, a configuração é desabilitada.
+Os termos, paginação e janela incremental ficam no bloco `vacancy_sources.gupy.global` de `config/vacancy_sources.php`. O resultado é importado sob a identidade `gupy-global`. Os cadastros individuais antigos e a classe `GupySource` permanecem como legado, mas não são usados pelo fluxo atual da fábrica.
 
-### Validação dos candidatos
-
-O processador aplica verificações antes de encaminhar uma publicação para revisão:
-
-- data recuperável dentro da janela configurada;
-- sinais de recrutamento;
-- rejeição de chamadas de engajamento que condicionem informações, links ou candidatura a comentários, palavras-chave ou contato privado por DM;
-- exigência de e-mail corporativo de candidatura, rejeitando provedores pessoais conhecidos;
-- identificação de links repetidos em vagas e candidatos já registrados;
-- inspeção de URLs e bloqueio de agregadores ou destinos considerados inválidos;
-- aplicação das regras editoriais de área, senioridade, experiência e localização.
-
-Os registros são armazenados como candidatos. Mesmo os que passam pelos filtros automáticos permanecem em revisão manual: não há publicação automática de vagas no portal.
-
-### Limitações técnicas importantes
-
-Os buscadores fornecem resultados de descoberta, não uma cópia integral e confiável da publicação original. Snippets podem omitir texto, links, e-mails, data exata, comentários e informações sobre promoção/patrocínio.
-
-Existe a classe `LinkedInPublicPostFetcher`, preparada para tentar enriquecer uma página de post que esteja publicamente acessível sem sessão. Ela não usa login, cookies pessoais, contorno de desafios ou repetição de tentativas após bloqueios. **Entretanto, a execução atual do comando de coleta não injeta esse serviço no fluxo do processador.** Portanto, não se deve afirmar que a coleta agendada atualmente lê o conteúdo integral ou os comentários dos posts.
-
-O processador aceita comentários quando eles são fornecidos no payload, mas o cliente de busca atual inicia os candidatos com uma lista vazia de comentários. A análise de comentários depende de uma fonte de entrada compatível e ainda não está integrada ao comando agendado.
-
-Da mesma forma, o descarte de publicações promovidas ocorre quando a fonte informa explicitamente `isPromoted=true`. Os buscadores atuais não fornecem esse indicador de forma confiável; sua ausência não comprova que a publicação não seja patrocinada.
-
-Não utilizar sessões autenticadas, cookies pessoais, automação de navegador para contornar controles de acesso ou fornecedores que revendam conteúdo obtido por scraping em desacordo com as condições aplicáveis. Uma integração mais completa depende de uma fonte autorizada e de escopo compatível.
-
-## 2. Novas fontes Gupy
-
-Foram incorporadas fontes independentes à configuração do coletor:
-
-- Drogaria Globo;
-- Skill Consultoria;
-- Smart NX;
-- C&A;
-- Viceri.
-
-Os cadastros preservam a identificação de cada empresa e sua respectiva página de carreiras. A Drogaria Globo é uma fonte separada da empresa Globo; não se deve confundir os dois cadastros.
-
-Os detalhes e as particularidades dos filtros dessas fontes estão em [Fontes Gupy Recentes](FontesGupyRecentes.md). A configuração efetiva permanece em `config/vacancy_sources.php`.
+A busca global não garante cobertura integral de todas as vagas da plataforma; depende dos termos configurados, paginação, janela de consulta e dados disponibilizados pela API.
 
 ## 3. Validação de publicações com chamadas a DM
 
