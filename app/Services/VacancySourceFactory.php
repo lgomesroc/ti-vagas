@@ -30,6 +30,8 @@ use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
 use App\Sources\QuickinSource;
 use App\Sources\RjEmpregosSource;
+use App\Sources\RioVagasSource;
+use App\Sources\BneSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
 use App\Sources\TeamtailorSource;
@@ -543,6 +545,17 @@ class VacancySourceFactory
 
         $sources[$rjEmpregosSource->name()] = $rjEmpregosSource;
 
+        $rioVagas = config('vacancy_sources.riovagas', []);
+        $rioVagasSource = new RioVagasSource(
+            baseUrl: $rioVagas['base_url'] ?? 'https://riovagas.com.br',
+            caBundle: $rioVagas['ca_bundle'] ?? null,
+            maxPages: (int) ($rioVagas['max_pages'] ?? 3),
+            maxJobs: (int) ($rioVagas['max_jobs'] ?? 80),
+            initialLookbackDays: (int) ($rioVagas['initial_lookback_days'] ?? 60),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$rioVagasSource->name()] = $rioVagasSource;
+
         $ibm = config('vacancy_sources.ibm', []);
         $ibmSource = new IbmSource(caBundle: $ibm['ca_bundle'] ?? null, maxJobs: (int) ($ibm['max_jobs'] ?? 500), locationFilter: $this->locationFilter);
         $sources[$ibmSource->name()] = $ibmSource;
@@ -566,6 +579,18 @@ class VacancySourceFactory
             locationFilter: $this->locationFilter,
         );
         $sources[$netvagasSource->name()] = $netvagasSource;
+
+        $bne = config('vacancy_sources.bne', []);
+        $bneSource = new BneSource(
+            terms: $bne['terms'] ?? [],
+            maxPages: (int) ($bne['max_pages'] ?? 3),
+            maxJobs: (int) ($bne['max_jobs'] ?? 250),
+            initialLookbackDays: (int) ($bne['initial_lookback_days'] ?? 60),
+            requestDelayMs: (int) ($bne['request_delay_ms'] ?? 200),
+            caBundle: $bne['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$bneSource->name()] = $bneSource;
 
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
