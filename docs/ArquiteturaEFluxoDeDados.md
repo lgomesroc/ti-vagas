@@ -22,8 +22,8 @@ O código segue a organização convencional do Laravel, separando controladores
 - `app/Services/VacancyAvailabilityDetector.php`: identifica sinais de encerramento ou indisponibilidade nos dados recebidos das fontes.
 - `app/Services/VacancyLinkChecker.php`: verifica periodicamente os endereços originais de candidatura, interpreta respostas HTTP e registra o resultado de cada verificação.
 - `app/Services/VacancyLocationFilter.php`: aplica os critérios de localização e modalidade.
-- `app/Services/VacancySourceFactory.php`: instancia as fontes configuradas.
-- `app/Sources`: contém os adaptadores das plataformas de recrutamento.
+- `app/Services/VacancySourceFactory.php`: instancia as fontes configuradas e registra coletores globais, como InHire. A Gupy global é construída sob demanda pelo método `make('gupy-global')`.
+- `app/Sources`: contém os adaptadores das plataformas de recrutamento, incluindo `GupyGlobalSource` e `InhireGlobalSource`.
 - `app/Jobs/FetchVacancySourceJob.php`: executa a consulta de uma fonte em fila.
 
 ## Persistência
@@ -32,13 +32,14 @@ As migrations em `database/migrations` definem a estrutura do banco. A migration
 
 ## Fluxo resumido de coleta
 
-1. O comando `vacancies:collect` identifica as fontes habilitadas.
+1. O comando `vacancies:collect` identifica as fontes habilitadas pela fábrica; a Gupy global é executada separadamente por `vacancies:collect-gupy`.
 2. A fábrica cria os adaptadores correspondentes.
 3. Jobs consultam as fontes e entregam os resultados ao importador.
 4. O importador normaliza os campos, verifica duplicidade, elegibilidade e disponibilidade.
 5. Os registros válidos são inseridos ou atualizados no banco, preservando a data original de publicação quando aplicável.
-6. A listagem consulta os registros e aplica os critérios de exibição.
-7. A rotina `vacancies:check-links` verifica em lotes os links de candidatura de vagas ativas ou suspeitas e grava o resultado no histórico de disponibilidade.
+6. A coleta global da Gupy consulta a API pública de busca, aplica os termos e a janela incremental configurados e importa sob a identidade `gupy-global`. O coletor global da InHire descobre tenants conhecidos e os consulta sob a identidade `inhire-global`.
+7. A listagem consulta os registros e aplica os critérios de exibição.
+8. A rotina `vacancies:check-links` verifica em lotes os links de candidatura de vagas ativas ou suspeitas e grava o resultado no histórico de disponibilidade.
 
 ## Atribuição de campanhas
 

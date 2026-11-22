@@ -1,27 +1,34 @@
 # Estrutura do Projeto
 
-Árvore completa dos diretórios e arquivos versionados na branch `developer`, gerada a partir da árvore atual do GitHub.
+Árvore dos diretórios e arquivos versionados na branch `developer`, gerada a partir da árvore do Git.
 
-Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois aparecem os arquivos, também em ordem alfabética**. A regra é aplicada recursivamente.
+Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; em seguida, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Total: 317 entradas (53 pastas e 264 arquivos).
-- Referência da árvore antes desta atualização: `4c0b380b6f97a74a3f4582ff10395a7cded89e9f`
+- Total: 59 pastas e 310 arquivos.
 
 ```text
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
+│       ├── gupy.yml
+│       ├── linkedin-jobs.yml
 │       ├── linkedin-posts-ci.yml
 │       ├── linkedin-posts.yml
+│       ├── linkedin-secondary-search.yml
 │       └── vacancies.yml
 ├── app/
 │   ├── Console/
 │   │   └── Commands/
 │   │       ├── CheckNetwork.php
 │   │       ├── CheckVacancyLinks.php
+│   │       ├── CollectGupyVacancies.php
+│   │       ├── CollectLinkedInJobs.php
 │   │       ├── CollectLinkedInPosts.php
+│   │       ├── CollectLinkedInSecondary.php
+│   │       ├── CollectSingleVacancySource.php
 │   │       ├── CollectVacancies.php
+│   │       ├── DiagnoseLinkedInSearch.php
 │   │       ├── ImportIbgeGeography.php
 │   │       ├── PruneExpiredVacancies.php
 │   │       ├── ResolveVacancyMunicipalities.php
@@ -32,6 +39,8 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   ├── Contracts/
 │   │   ├── NetworkDetector.php
 │   │   └── VacancySource.php
+│   ├── Exceptions/
+│   │   └── SourceRateLimitedException.php
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Controller.php
@@ -42,8 +51,10 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │       ├── CaptureUtmParameters.php
 │   │       ├── EnsureWelcomeAccepted.php
 │   │       ├── EvaluateNetworkReputation.php
+│   │       ├── ForceHttps.php
 │   │       └── RejectLocationOverrides.php
 │   ├── Jobs/
+│   │   ├── FetchLinkedInJobsJob.php
 │   │   └── FetchVacancySourceJob.php
 │   ├── Models/
 │   │   ├── Job.php
@@ -85,11 +96,14 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │   │   ├── NetworkSignal.php
 │   │   │   └── SignalConfidence.php
 │   │   ├── GeoLocationNormalizer.php
+│   │   ├── LinkedInPostAutoPublisher.php
 │   │   ├── LinkedInPostCandidateProcessor.php
 │   │   ├── LinkedInPostSearchClient.php
 │   │   ├── LinkedInPublicPostFetcher.php
 │   │   ├── LinkedInUrlInspector.php
 │   │   ├── VacancyAvailabilityDetector.php
+│   │   ├── VacancyDuplicateDetector.php
+│   │   ├── VacancyEditorialFilter.php
 │   │   ├── VacancyImporter.php
 │   │   ├── VacancyLinkChecker.php
 │   │   ├── VacancyLocationFilter.php
@@ -105,15 +119,20 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │       ├── FactorialSource.php
 │       ├── GeekHunterSource.php
 │       ├── GreenhouseSource.php
+│       ├── GupyGlobalSource.php
 │       ├── GupySource.php
 │       ├── IbmSource.php
+│       ├── InhireGlobalSource.php
 │       ├── InhireSource.php
 │       ├── JobConvoSource.php
 │       ├── JobylonSource.php
 │       ├── LeverSource.php
 │       ├── LevtySource.php
+│       ├── LinkedInJobsSource.php
 │       ├── MicrosoftSource.php
 │       ├── MindsightSource.php
+│       ├── NerdinSource.php
+│       ├── NetVagasSource.php
 │       ├── OracleHcmSource.php
 │       ├── OwnCareerPageSource.php
 │       ├── OzySource.php
@@ -169,7 +188,9 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │   ├── 2026_11_10_000001_create_municipalities_table.php
 │   │   ├── 2026_11_10_000002_create_geography_import_status_table.php
 │   │   ├── 2026_11_14_220000_add_vacancy_availability_monitoring.php
-│   │   └── 2026_11_15_000001_create_linkedin_post_candidates_table.php
+│   │   ├── 2026_11_15_000001_create_linkedin_post_candidates_table.php
+│   │   ├── 2026_11_19_000001_expand_municipality_region_codes.php
+│   │   └── 2026_11_19_000001_move_linkedin_candidates_to_automatic_publication.php
 │   ├── seeders/
 │   │   ├── DatabaseSeeder.php
 │   │   └── VacancySeeder.php
@@ -188,6 +209,17 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   ├── RegrasDeElegibilidade.md
 │   ├── SegurancaDeRedeELocalizacao.md
 │   └── VisaoGeralDaAplicacao.md
+├── ibge/
+│   ├── extraido/
+│   │   ├── DISTRITOS-SUBDISTRITOS_NOVOS_E_EXTINTOS_2025.ods
+│   │   ├── DISTRITOS-SUBDISTRITOS_NOVOS_E_EXTINTOS_2025.xls
+│   │   ├── RELATORIO_DTB_BRASIL_2025_DISTRITOS.ods
+│   │   ├── RELATORIO_DTB_BRASIL_2025_DISTRITOS.xls
+│   │   ├── RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.ods
+│   │   ├── RELATORIO_DTB_BRASIL_2025_MUNICIPIOS.xls
+│   │   ├── RELATORIO_DTB_BRASIL_2025_SUBDISTRITOS.ods
+│   │   └── RELATORIO_DTB_BRASIL_2025_SUBDISTRITOS.xls
+│   └── DTB_2025.zip
 ├── public/
 │   ├── .htaccess
 │   ├── favicon.ico
@@ -213,6 +245,15 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 ├── routes/
 │   ├── console.php
 │   └── web.php
+├── scripts/
+│   ├── ibge/
+│   │   └── import-dtb-2025.ps1
+│   └── linkedin/
+│       ├── jobs.e2e.test.mjs
+│       ├── jobs.mjs
+│       ├── rate-limit.mjs
+│       ├── rate-limit.test.mjs
+│       └── secondary-account.mjs
 ├── storage/
 │   ├── app/
 │   │   ├── private/
@@ -252,8 +293,10 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │   ├── DerevoSourceTest.php
 │   │   ├── ExampleTest.php
 │   │   ├── FactorialSourceTest.php
+│   │   ├── ForceHttpsTest.php
 │   │   ├── GeekHunterSourceTest.php
 │   │   ├── GreenhouseSourceTest.php
+│   │   ├── GupyGlobalSourceTest.php
 │   │   ├── GupySourceTest.php
 │   │   ├── IbmSourceTest.php
 │   │   ├── InhireSourceTest.php
@@ -262,12 +305,16 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │   ├── JobylonSourceTest.php
 │   │   ├── LeverSourceTest.php
 │   │   ├── LevtySourceTest.php
+│   │   ├── LinkedInJobsRateLimitTest.php
+│   │   ├── LinkedInJobsSourceTest.php
 │   │   ├── LinkedInPostCandidateProcessorTest.php
 │   │   ├── LinkedInPostSearchClientTest.php
+│   │   ├── LocationPermissionFlowTest.php
 │   │   ├── LocationRefreshTest.php
 │   │   ├── LocationSpoofingProtectionTest.php
 │   │   ├── MicrosoftSourceTest.php
 │   │   ├── MindsightSourceTest.php
+│   │   ├── NetVagasSourceTest.php
 │   │   ├── NetworkListsCommandTest.php
 │   │   ├── NetworkReputationMiddlewareTest.php
 │   │   ├── OracleHcmSourceTest.php
@@ -305,8 +352,11 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 │   │   ├── LocationProofTest.php
 │   │   ├── LocationSpoofingDetectorTest.php
 │   │   ├── NetworkPolicyTest.php
+│   │   ├── PandapeSourceFilterTest.php
 │   │   ├── VacancyAvailabilityDetectorCoverageTest.php
 │   │   ├── VacancyAvailabilityDetectorTest.php
+│   │   ├── VacancyDuplicateDetectorTest.php
+│   │   ├── VacancyEditorialFilterTest.php
 │   │   └── VacancyLocationFilterTest.php
 │   └── TestCase.php
 ├── .editorconfig
@@ -321,6 +371,7 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 ├── composer.json
 ├── composer.lock
 ├── Dockerfile
+├── package-lock.json
 ├── package.json
 ├── phpunit.xml
 ├── README.md
@@ -328,4 +379,4 @@ Em cada nível, **as pastas aparecem primeiro, em ordem alfabética; depois apar
 └── vite.config.js
 ```
 
-> Observação: diretórios de dependências e arquivos gerados ignorados pelo Git não aparecem nesta árvore. O arquivo `docs/EstruturaDoProjeto.md` está incluído.
+> Diretórios e arquivos ignorados pelo Git, dependências instaladas e artefatos gerados não aparecem nesta árvore. Atualize este documento sempre que pastas ou arquivos versionados forem adicionados, removidos ou renomeados.

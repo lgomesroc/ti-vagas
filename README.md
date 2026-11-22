@@ -15,19 +15,22 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
-| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Resumo das mudanças recentes, descoberta e validação de publicações do LinkedIn, limites técnicos e organização documental. |
-| [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) | Empresas Gupy adicionadas recentemente e particularidades de seus cadastros. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Histórico de mudanças em coletores, filtros, aceite dos termos, localização e documentação. |
+| [Histórico de Fontes Gupy por Empresa](docs/FontesGupyRecentes.md) | Contexto dos cadastros individuais antigos; não representa a coleta operacional atual. |
 
 O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) complementa o tópico de segurança.
 
 ## Resumo das atualizações recentes
 
-- **LinkedIn:** descoberta de publicações públicas por DuckDuckGo, Brave Search e Mojeek, com deduplicação, validações editoriais e encaminhamento de candidatos para revisão manual. A descoberta por buscadores não garante acesso ao conteúdo integral, comentários ou identificação de publicações patrocinadas.
+- **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e possibilidade de leitura de comentários visíveis; anúncios do LinkedIn Jobs são coletados por fluxo público separado. O acesso ao conteúdo integral não é garantido.
 - **Validação de recrutamento:** regras ampliadas para rejeitar chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM; exigência de e-mail corporativo e verificação de duplicidade de links.
-- **Fontes Gupy:** inclusão de Drogaria Globo, Skill Consultoria, Smart NX, C&A e Viceri, preservando as configurações específicas de cada fonte.
-- **Documentação:** criação de documentos de atualizações recentes e fontes Gupy, além da atualização da árvore completa do projeto com ordenação alfabética de pastas e arquivos.
+- **Gupy:** substituição da coleta individual por empresa por um coletor global baseado na API pública de busca, com termos e janela incremental configurados.
+- **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
+- **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
+- **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
+- **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
 
-Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o contexto e as limitações de implementação, e [Fontes Gupy Recentes](docs/FontesGupyRecentes.md) para os detalhes dos novos cadastros.
+Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
@@ -192,8 +195,8 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Workday | PwC e ABC Fitness |
 | Workable | RecargaPay |
 | Teamtailor | ABGi Consulting e Amanco Wavin |
-| InHire | Orizon e Brivia |
-| Gupy | Itaú, Montreal, Claro, Global Hitss, Brasil Center (BCC), AZZAS 2154, CEPEL, E-Deploy / 3S Checkout, Alpargatas (somente TI), Quality Digital e NEXDOM Healthtech |
+| InHire | Coletor global com descoberta de tenants conhecidos e identificados em dados já armazenados e publicações do LinkedIn |
+| Gupy | API pública de busca global; coleta centralizada por termos, sem execução individual por empresa |
 | Oracle HCM | Uber |
 | Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
 | Recrut.ai | Grupo Bamaq e TPF Engenharia |
@@ -206,11 +209,11 @@ Entre as plataformas ATS e integrações configuradas na branch `developer` est�
 | Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
 | Mindsight | Guidance |
 
-A configuração efetiva de cada empresa e plataforma está em `config/vacancy_sources.php`. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
+A configuração efetiva das integrações está em `config/vacancy_sources.php`. A Gupy usa o bloco `gupy.global` e o comando `vacancies:collect-gupy`; cadastros individuais antigos ainda presentes no arquivo não são executados pelo fluxo atual. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
 
-### Publicações públicas do LinkedIn
+### LinkedIn: publicações e LinkedIn Jobs
 
-O projeto possui uma rotina experimental de descoberta de publicações públicas por mecanismos de busca. Ela não realiza login no LinkedIn nem garante acesso ao conteúdo integral ou aos comentários. Quando os dados disponíveis são suficientes e passam pelas validações, o sistema cadastra a oportunidade automaticamente; registros incompletos ou inválidos são rejeitados, sem fila de revisão manual.
+O projeto mantém dois fluxos separados: descoberta de publicações de recrutamento por Bing RSS, DuckDuckGo e conta secundária, com análise de conteúdo e comentários visíveis quando disponíveis; e coleta de anúncios do LinkedIn Jobs por páginas públicas, sem login. As publicações que passam pelas regras automáticas podem ser cadastradas pelo publicador automático. O fluxo de LinkedIn Jobs possui tratamento de HTTP 429 com backoff e reagendamento, sem contornar limites externos.
 
 Detalhes, limitações e configuração: [docs/ColetaPublicacoesLinkedIn.md](docs/ColetaPublicacoesLinkedIn.md).
 

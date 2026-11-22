@@ -41,6 +41,32 @@ A coleta utiliza jobs para distribuir consultas por fonte. O processamento em fi
 
 Plataformas podem alterar APIs, páginas, autenticação, limites ou formatos de resposta. Quando uma integração falhar, verifique os logs, a configuração da fonte e os testes correspondentes antes de alterar o fluxo comum do importador.
 
+## Coletores globais
+
+Algumas plataformas são consultadas por um único coletor global, em vez de criar e executar um adaptador independente para cada empresa.
+
+### Gupy
+
+A coleta atual da Gupy utiliza a API pública global `https://portal.gupy.io/api/job-search/jobs`, implementada em `GupyGlobalSource`. O comando dedicado é:
+
+```bash
+php artisan vacancies:collect-gupy
+```
+
+O coletor pesquisa termos configurados em `config/vacancy_sources.php` no bloco `vacancy_sources.gupy.global.terms`, percorre páginas da API, normaliza os anúncios e importa todos pela mesma fonte lógica (`gupy-global`). A configuração atual usa página de até 50 resultados, até cinco páginas por termo, janela inicial de 60 dias, sobreposição de 60 minutos entre execuções e intervalo de 250 ms entre páginas.
+
+A data da última coleta bem-sucedida é mantida no cache. Essa janela só avança depois que a importação termina sem exceção. A rotina possui lock para impedir duas coletas globais simultâneas e tenta novamente respostas HTTP 429; se o limite persistir, a execução falha e não avança a janela.
+
+**Não há mais coleta individual agendada por empresa Gupy.** O comando geral `vacancies:collect` não instancia fontes por empresa Gupy. O workflow `.github/workflows/gupy.yml` executa o comando global separadamente, quatro vezes ao dia. O bloco legado `vacancy_sources.gupy.companies` e a classe antiga `GupySource` permanecem no repositório, mas não são usados pelo fluxo atual da fábrica. A configuração operacional da coleta está no bloco `global`.
+
+A busca global não garante cobertura integral de todas as vagas publicadas na plataforma: os resultados dependem dos termos, paginação, janela consultada e resposta disponibilizada pela API.
+
+### InHire
+
+A InHire também utiliza um coletor global (`InhireGlobalSource`), registrado uma única vez pela fábrica e executado junto às demais fontes de `vacancies:collect`. A descoberta de tenants combina uma lista inicial conhecida com identificadores recuperados de vagas InHire já armazenadas, fontes antigas e candidatos de publicações do LinkedIn — incluindo links presentes em comentários armazenados.
+
+Os tenants são consultados individualmente por meio do adaptador InHire, mas a orquestração e a identidade de importação são globais (`inhire-global`). IDs já conhecidos são agrupados por tenant para evitar consultas desnecessárias aos detalhes de vagas previamente importadas. Uma falha isolada em um tenant é registrada e não interrompe a consulta dos demais.
+
 ## Fontes
 
 A lista efetivamente habilitada deve ser consultada em `config/vacancy_sources.php`. A documentação não replica essa lista para evitar divergência quando novas fontes forem adicionadas ou removidas.
