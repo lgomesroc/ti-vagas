@@ -10,7 +10,7 @@ use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
 use App\Sources\GupyGlobalSource;
-use App\Sources\InhireSource;
+use App\Sources\InhireGlobalSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
 use App\Sources\NerdinSource;
@@ -188,17 +188,14 @@ class VacancySourceFactory
 
         $inhire = config('vacancy_sources.inhire', []);
 
-        foreach ($inhire['companies'] ?? [] as $tenant => $company) {
-            $source = new InhireSource(
-                tenant: $tenant,
-                companyName: $company['name'] ?? $tenant,
-                caBundle: $inhire['ca_bundle'] ?? null,
-                maxJobs: (int) ($inhire['max_jobs'] ?? 200),
-                locationFilter: $this->locationFilter,
-            );
+        $inhireSource = new InhireGlobalSource(
+            caBundle: $inhire['ca_bundle'] ?? null,
+            maxJobsPerTenant: (int) ($inhire['max_jobs_per_tenant'] ?? 200),
+            locationFilter: $this->locationFilter,
+            delayMs: (int) ($inhire['request_delay_ms'] ?? 150),
+        );
 
-            $sources[$source->name()] = $source;
-        }
+        $sources[$inhireSource->name()] = $inhireSource;
 
         $mindsight = config('vacancy_sources.mindsight', []);
 
