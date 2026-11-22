@@ -744,15 +744,22 @@ class LinkedInPostCandidateProcessor
 
     private function extractTitle(string $text): ?string
     {
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $text) ?: [])));
+        // Em posts de uma linha, captura apenas o cargo anunciado.
+        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
+
+        if (preg_match($rolePattern, $text, $matches)) {
+            return mb_substr(trim($matches[1]), 0, 255);
+        }
+
+        $lines = array_values(array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])));
 
         foreach ($lines as $line) {
-            if (preg_match('/\b(j[uú]nior|jr\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\b/i', $line)) {
-                return mb_substr(trim(preg_replace('/^[#\-\s]+/', '', $line)), 0, 255);
+            if (preg_match('/\\b(j[uú]nior|jr\\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\\b/i', $line)) {
+                return mb_substr(trim(preg_replace('/^[#\\-\\s]+/', '', $line)), 0, 255);
             }
         }
 
-        if (preg_match('/(?:vaga|oportunidade)\s+(?:para|de|em)?\s*([^\n.!]{5,100})/iu', $text, $matches)) {
+        if (preg_match('/(?:vaga|oportunidade)\\s+(?:para|de|em)?\\s*([^\\n.!]{5,100})/iu', $text, $matches)) {
             return mb_substr(trim($matches[1]), 0, 255);
         }
 
