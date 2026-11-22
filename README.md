@@ -13,7 +13,8 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Resolução de município, regras regionais e base territorial. |
 | [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
-| [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
+| [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos Laravel, filas, testes e visão operacional das automações. |
+| [Workflows do GitHub Actions](docs/WorkflowsGitHubActions.md) | Inventário completo dos workflows, branches de checkout, agendas, secrets, jobs e concorrência. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
 | [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Histórico de mudanças em coletores, filtros, aceite dos termos, localização e documentação. |
 | [Histórico de Fontes Gupy por Empresa](docs/FontesGupyRecentes.md) | Contexto dos cadastros individuais antigos; não representa a coleta operacional atual. |
@@ -28,6 +29,7 @@ O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md)
 - **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
 - **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
 - **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
+- **Automação:** inventário dos workflows do GitHub Actions: sete arquivos em `developer` e oito em `main`, com branch de checkout, agenda, secrets, jobs e grupos de concorrência. O failover PostgreSQL existe somente em `main`.
 - **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
 
 Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais.

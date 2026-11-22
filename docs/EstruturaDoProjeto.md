@@ -1,11 +1,11 @@
 # Estrutura do Projeto
 
-Árvore dos diretórios e arquivos versionados na branch `developer`, gerada a partir da árvore do Git.
+Árvore dos diretórios e arquivos versionados na branch `developer`, gerada diretamente da árvore Git.
 
-Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; em seguida, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
+Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Total: 59 pastas e 310 arquivos.
+- Total: 59 pastas e 311 arquivos.
 
 ```text
 ├── .github/
@@ -208,7 +208,8 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; em seg
 │   ├── LocalizacaoERegionalizacao.md
 │   ├── RegrasDeElegibilidade.md
 │   ├── SegurancaDeRedeELocalizacao.md
-│   └── VisaoGeralDaAplicacao.md
+│   ├── VisaoGeralDaAplicacao.md
+│   └── WorkflowsGitHubActions.md
 ├── ibge/
 │   ├── extraido/
 │   │   ├── DISTRITOS-SUBDISTRITOS_NOVOS_E_EXTINTOS_2025.ods
@@ -379,4 +380,4 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; em seg
 └── vite.config.js
 ```
 
-> Diretórios e arquivos ignorados pelo Git, dependências instaladas e artefatos gerados não aparecem nesta árvore. Atualize este documento sempre que pastas ou arquivos versionados forem adicionados, removidos ou renomeados.
+> A árvore inclui somente conteúdo versionado nessa branch. Arquivos ignorados pelo Git, dependências instaladas e artefatos locais não aparecem. A branch `main` pode conter arquivos adicionais; por exemplo, `.github/workflows/database-failover.yml` existe em `main`, mas não em `developer`. Atualize esta árvore sempre que arquivos ou diretórios versionados forem adicionados, removidos ou renomeados.
