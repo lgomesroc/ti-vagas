@@ -20,6 +20,7 @@ class InhireSource implements VacancySource
         private readonly ?string $caBundle = null,
         private readonly int $maxJobs = 200,
         private readonly ?VacancyLocationFilter $locationFilter = null,
+        private readonly array $knownJobIds = [],
     ) {
     }
 
@@ -208,7 +209,8 @@ class InhireSource implements VacancySource
             'employment_type' => $this->extractEmploymentType($details),
             'salary' => $this->extractSalary($details),
             'application_url' => $applicationUrl,
-            'external_id' => $jobId,
+            'external_id' => $this->tenant . ':' . $jobId,
+            '_legacy_source' => 'inhire-' . $this->tenant,
             'original_published_at' => $originalPublishedAt,
 
             'city' => $geographicFields['city'],
