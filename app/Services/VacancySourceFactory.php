@@ -597,7 +597,7 @@ class VacancySourceFactory
         $ablerSource = new AblerSource(
             caBundle: $abler['ca_bundle'] ?? null,
             maxPages: (int) ($abler['max_pages'] ?? 30),
-            pageSize: (int) ($abler['page_size'] ?? 100),
+            pageSize: (int) ($abler['page_size'] ?? 12),
             maxJobs: (int) ($abler['max_jobs'] ?? 1500),
             initialLookbackDays: (int) ($abler['initial_lookback_days'] ?? 60),
             locationFilter: $this->locationFilter,
