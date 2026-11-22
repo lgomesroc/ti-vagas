@@ -27,11 +27,8 @@ class LinkedInJobsSource implements VacancySource
             ? $configuredState
             : base_path($configuredState);
 
-        if (!is_file($storageState)) {
-            throw new RuntimeException(
-                'Estado de sessão do LinkedIn não encontrado: ' . $storageState
-            );
-        }
+        // O script usa storage state quando disponível; caso contrário,
+        // reutiliza o perfil persistente do Chromium configurado acima.
 
         $result = Process::path(base_path())
             ->env([
