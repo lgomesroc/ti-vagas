@@ -103,6 +103,44 @@ class LinkedInPostSearchClientTest extends TestCase
         );
     }
 
+    public function test_it_normalizes_tracking_parameters_before_deduplicating_posts(): void
+    {
+        config([
+            'linkedin.lookback_hours' => 72,
+            'linkedin.keywords' => ['vaga desenvolvedor junior'],
+        ]);
+
+        Http::preventStrayRequests();
+        Http::fake([
+            'www.bing.com/*' => Http::response($this->bingRss([
+                [
+                    'url' => 'https://www.linkedin.com/posts/author_post-shared?trk=public_jobs&originalSubdomain=br',
+                    'title' => 'Estamos contratando Desenvolvedor Júnior',
+                    'description' => 'Vaga remota Brasil.',
+                ],
+            ]), 200),
+            'html.duckduckgo.com/*' => Http::response($this->duckDuckGoHtml([
+                [
+                    'url' => 'https://www.linkedin.com/posts/author_post-shared/',
+                    'title' => 'Estamos contratando Desenvolvedor Júnior',
+                    'snippet' => 'Vaga remota Brasil. 2 days ago',
+                ],
+            ]), 200),
+        ]);
+
+        $posts = app(LinkedInPostSearchClient::class)->search();
+
+        $this->assertCount(1, $posts);
+        $this->assertSame(
+            'https://www.linkedin.com/posts/author_post-shared',
+            $posts[0]['postUrl']
+        );
+        $this->assertSame(
+            ['bing-rss', 'duckduckgo-html'],
+            $posts[0]['searchProviders']
+        );
+    }
+
     private function bingRss(array $results): string
     {
         $items = '';

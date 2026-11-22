@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\LinkedInPostCandidate;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -129,19 +130,39 @@ class LinkedInPostSearchClient
             return [];
         }
 
-        $result = Process::path(base_path())
-            ->env([
-                'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
-                'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
-                'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
-                'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
+        $knownPosts = LinkedInPostCandidate::query()
+            ->get(['post_id', 'post_url'])
+            ->map(fn (LinkedInPostCandidate $candidate): array => [
+                'postId' => $candidate->post_id,
+                'postUrl' => $candidate->post_url,
             ])
-            ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
-            ->run([
-                'node',
-                'scripts/linkedin/secondary-account.mjs',
-                'search',
-            ]);
+            ->all();
+
+        $knownPostsFile = tempnam(sys_get_temp_dir(), 'ti-vagas-linkedin-posts-');
+        if ($knownPostsFile === false) {
+            throw new RuntimeException('Não foi possível preparar a lista de publicações já consultadas.');
+        }
+
+        file_put_contents($knownPostsFile, json_encode($knownPosts, JSON_THROW_ON_ERROR));
+
+        try {
+            $result = Process::path(base_path())
+                ->env([
+                    'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
+                    'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
+                    'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
+                    'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
+                    'LINKEDIN_POSTS_KNOWN_POSTS_FILE' => $knownPostsFile,
+                ])
+                ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
+                ->run([
+                    'node',
+                    'scripts/linkedin/secondary-account.mjs',
+                    'search',
+                ]);
+        } finally {
+            @unlink($knownPostsFile);
+        }
 
         if (!$result->successful()) {
             throw new RuntimeException(
@@ -334,6 +355,7 @@ class LinkedInPostSearchClient
             return null;
         }
 
+        $url = $this->canonicalPostUrl($url);
         $publishedAt ??= $this->extractPublishedAt($title . "\n" . $snippet);
         if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
             return null;
@@ -355,6 +377,18 @@ class LinkedInPostSearchClient
             'searchProvider' => $provider,
             'searchSnippet' => $snippet,
         ];
+    }
+
+    private function canonicalPostUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return $url;
+        }
+
+        $path = rtrim((string) ($parts['path'] ?? ''), '/');
+
+        return 'https://www.linkedin.com' . $path;
     }
 
     private function isWithinLookback(Carbon $publishedAt): bool

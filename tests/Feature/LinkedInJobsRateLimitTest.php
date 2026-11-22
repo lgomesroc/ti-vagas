@@ -8,6 +8,7 @@ use App\Services\VacancyImporter;
 use App\Sources\LinkedInJobsSource;
 use Illuminate\Contracts\Queue\Job as QueueJob;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -16,6 +17,7 @@ use Tests\TestCase;
 
 class LinkedInJobsRateLimitTest extends TestCase
 {
+    use RefreshDatabase;
     protected function setUp(): void
     {
         parent::setUp();

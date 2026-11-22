@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { collectLinkedInJobs } from './jobs.mjs';
 
 const profile = path.resolve(
@@ -36,6 +36,35 @@ const storageStatePath = process.env.LINKEDIN_STORAGE_STATE_PATH
   : null;
 
 const mode = process.argv[2] ?? 'search';
+
+function normalizePostUrl(value) {
+  try {
+    const url = new URL(value);
+    url.search = '';
+    url.hash = '';
+    return url.href.replace(/\/$/, '').toLowerCase();
+  } catch {
+    return String(value).split(/[?#]/, 1)[0].replace(/\/$/, '').toLowerCase();
+  }
+}
+
+function loadKnownPosts() {
+  const file = process.env.LINKEDIN_POSTS_KNOWN_POSTS_FILE;
+  if (!file) return { ids: new Set(), urls: new Set() };
+
+  try {
+    const records = JSON.parse(readFileSync(file, 'utf8'));
+    const posts = Array.isArray(records) ? records : [];
+    return {
+      ids: new Set(posts.map(post => String(post.postId ?? '')).filter(Boolean)),
+      urls: new Set(posts.map(post => normalizePostUrl(String(post.postUrl ?? ''))).filter(Boolean)),
+    };
+  } catch (error) {
+    throw new Error('Não foi possível ler a lista de publicações já consultadas: ' + error.message);
+  }
+}
+
+const knownPosts = loadKnownPosts();
 
 const headless = process.env.LINKEDIN_HEADLESS === 'true';
 
@@ -375,6 +404,15 @@ async function extractCard(page, card, keyword) {
 
   if (!postUrl) return null;
 
+  if (
+    knownPosts.ids.has(canonicalPostUrl(postUrl)) ||
+    knownPosts.urls.has(normalizePostUrl(postUrl))
+  ) {
+    return null;
+  }
+
+  await expandComments(page, card);
+
   const lines = text
     .split('\n')
     .map(line => line.replace(/\s+/g, ' ').trim())
@@ -669,8 +707,6 @@ async function main() {
 
         for (let i = 0; i < count; i++) {
           const card = cards.nth(i);
-
-          await expandComments(page, card);
 
           const post = await extractCard(page, card, keyword);
 

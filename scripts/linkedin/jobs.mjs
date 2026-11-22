@@ -1,3 +1,6 @@
+import { appendFileSync, readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+
 import {
   RATE_LIMIT_EXIT_CODE,
   RATE_LIMIT_MARKER,
@@ -33,6 +36,29 @@ const LOCATION = process.env.LINKEDIN_JOBS_LOCATION ?? 'Brasil';
 const BASE_URL = (process.env.LINKEDIN_JOBS_BASE_URL ?? 'https://www.linkedin.com').replace(/\/+$/, '');
 const RATE_LIMIT = loadRateLimitConfig();
 const throttle = createThrottle(RATE_LIMIT);
+const KNOWN_IDS_FILE = process.env.LINKEDIN_JOBS_KNOWN_IDS_FILE;
+const SCAN_LOG_FILE = process.env.LINKEDIN_JOBS_SCAN_LOG_FILE;
+
+function loadKnownJobIds() {
+  if (!KNOWN_IDS_FILE) return new Set();
+  try {
+    const values = JSON.parse(readFileSync(KNOWN_IDS_FILE, 'utf8'));
+    return new Set(Array.isArray(values) ? values.map(String) : []);
+  } catch (error) {
+    throw new Error('Não foi possível ler a lista de anúncios já consultados: ' + error.message);
+  }
+}
+
+const knownJobIds = loadKnownJobIds();
+
+function recordConsultedJob(id, httpStatus) {
+  if (!SCAN_LOG_FILE) return;
+  appendFileSync(
+    SCAN_LOG_FILE,
+    JSON.stringify({ jobId: String(id), httpStatus, consultedAt: new Date().toISOString() }) + '\n',
+    'utf8'
+  );
+}
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
 
 // Contadores para diferenciar o que foi alcançado caso a coleta seja interrompida.
@@ -73,7 +99,7 @@ function matchText(html, regex) {
   return match ? htmlText(match[1]) : '';
 }
 
-async function request(url) {
+async function request(url, { onResponse = null } = {}) {
   const path = new URL(url).pathname;
 
   // Intervalo mínimo entre requisições, backoff exponencial para 429 e
@@ -106,6 +132,8 @@ async function request(url) {
     RATE_LIMIT,
     { log, label: path }
   );
+
+  onResponse?.(response.status);
 
   if (!response.ok) {
     throw new Error('LinkedIn respondeu HTTP ' + response.status + ' em ' + url);
@@ -242,7 +270,7 @@ async function searchJobs(term, geo) {
   return [...found.values()];
 }
 
-async function collectLinkedInJobs() {
+export async function collectLinkedInJobs() {
   const scrapedAt = new Date();
   const geo = await geoId(LOCATION);
   const unique = new Map();
@@ -269,16 +297,20 @@ async function collectLinkedInJobs() {
   }
 
   const results = [];
-  const jobs = [...unique.values()];
+  const discoveredJobs = [...unique.values()];
+  const jobs = discoveredJobs.filter(job => !knownJobIds.has(String(job.id)));
 
-  log('Vagas únicas nos cartões: ' + jobs.length);
+  log('Vagas únicas nos cartões: ' + discoveredJobs.length);
+  log('Detalhes já consultados e ignorados: ' + (discoveredJobs.length - jobs.length));
+  log('Novos detalhes que serão consultados: ' + jobs.length);
 
   for (const job of jobs) {
     try {
       progress.detailsRequested++;
 
       const detailHtml = await request(
-        BASE_URL + '/jobs-guest/jobs/api/jobPosting/' + job.id
+        BASE_URL + '/jobs-guest/jobs/api/jobPosting/' + job.id,
+        { onResponse: status => recordConsultedJob(job.id, status) }
       );
       const description = extractDescription(detailHtml);
 
@@ -315,29 +347,28 @@ async function collectLinkedInJobs() {
   return results;
 }
 
-collectLinkedInJobs()
-  .then(vacancies => process.stdout.write(JSON.stringify(vacancies)))
-  .catch(error => {
-    if (error instanceof RateLimitError) {
-      // Limitação temporária: encerra de forma controlada, sem insistir.
-      // O código 75 e o marcador permitem ao Laravel reagendar a coleta.
-      log(
-        'COLETA INTERROMPIDA por limitação do LinkedIn (HTTP 429). Motivo: ' + error.message +
-        ' | pesquisas concluídas: ' + progress.searchesDone + '/' + SEARCH_TERMS.length +
-        ' | vagas únicas nos cartões: ' + progress.uniqueCards +
-        ' | detalhes consultados: ' + progress.detailsRequested +
-        ' | com descrição extraída (descartadas nesta execução): ' + progress.withDescription +
-        '. Nova coleta deve ocorrer em execução posterior.'
-      );
-      process.stderr.write(
-        RATE_LIMIT_MARKER + ' retry_after=' + (error.retryAfterSeconds ?? '') +
-        ' attempts=' + error.attempts + '\n'
-      );
-      process.exitCode = RATE_LIMIT_EXIT_CODE;
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  collectLinkedInJobs()
+    .then(vacancies => process.stdout.write(JSON.stringify(vacancies)))
+    .catch(error => {
+      if (error instanceof RateLimitError) {
+        log(
+          'COLETA INTERROMPIDA por limitação do LinkedIn (HTTP 429). Motivo: ' + error.message +
+          ' | pesquisas concluídas: ' + progress.searchesDone + '/' + SEARCH_TERMS.length +
+          ' | vagas únicas nos cartões: ' + progress.uniqueCards +
+          ' | detalhes consultados: ' + progress.detailsRequested +
+          ' | com descrição extraída: ' + progress.withDescription +
+          '. Nova coleta deve ocorrer em execução posterior.'
+        );
+        process.stderr.write(
+          RATE_LIMIT_MARKER + ' retry_after=' + (error.retryAfterSeconds ?? '') +
+          ' attempts=' + error.attempts + '\n'
+        );
+        process.exitCode = RATE_LIMIT_EXIT_CODE;
+        return;
+      }
 
-      return;
-    }
-
-    log(error.stack || error.message || String(error));
-    process.exitCode = 1;
-  });
+      log(error.stack || error.message || String(error));
+      process.exitCode = 1;
+    });
+}

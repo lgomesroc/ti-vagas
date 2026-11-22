@@ -29,7 +29,7 @@ As regras de validação foram ampliadas para rejeitar publicações que direcio
 
 A validação considera expressões relacionadas a chamar, enviar mensagem ou entrar em contato por DM, Direct, inbox ou mensagem privada. O objetivo é evitar anúncios em que o link ou os detalhes da candidatura dependam de contato privado.
 
-A regra é aplicada ao texto do próprio post. Uma frase isolada em comentário não deve, por si só, invalidar a publicação. Comentários podem conter informações públicas úteis, mas só podem ser avaliados quando forem efetivamente fornecidos por uma fonte compatível.
+A regra de engajamento artificial é aplicada ao texto do post e também a cada comentário público disponível. Comentários comuns, sem exigência de palavra-chave, link por DM ou contato privado, não são rejeitados apenas por existirem. A coleta utiliza o conteúdo efetivamente fornecido por uma fonte compatível.
 
 ## 4. Organização e documentação do repositório
 
@@ -94,3 +94,29 @@ A revisão identificou uma diferença importante entre branches: `database-failo
 A documentação agora distingue os grupos de concorrência independentes. O grupo do failover não é compartilhado com todos os workflows de coleta, e as rotinas de coleta usam diretamente o secret `NEON_DATABASE_URL`, não a variável dinâmica `DB_URL` do Render. Isso é uma limitação operacional relevante durante a troca de banco e não deve ser descrita como sincronização global automática.
 
 O documento [Automação e Testes](AutomacaoETestes.md) foi reescrito para refletir o scheduler Laravel, as filas, os comandos e a relação com os workflows. O README passou a apontar para o novo inventário.
+
+
+## 9. Consulta única de publicações e anúncios do LinkedIn — 22/11/2026
+
+### Publicações de recrutamento
+
+- A publicação é reservada em `linkedin_post_candidates` antes de abrir a página pública para enriquecimento.
+- IDs e URLs já registrados são ignorados em execuções posteriores, independentemente do status final, inclusive quando rejeitados ou duplicados.
+- A conta secundária recebe a lista de posts conhecidos e pula a expansão dos comentários antes de coletar detalhes.
+- Falhas durante a consulta são registradas como rejeitadas, evitando uma nova tentativa automática da mesma publicação. Um processo interrompido abruptamente pode deixar o status `processing`; esse estado também não é reconsultado automaticamente.
+
+### LinkedIn Jobs
+
+- O coletor reúne os cartões e deduplica os IDs antes de iniciar as consultas detalhadas.
+- IDs presentes no histórico `linkedin_job_scans` ou já importados como `linkedin-jobs:*` são ignorados antes da requisição da descrição.
+- A descrição completa continua sendo consultada para cada ID novo. Nenhum filtro editorial de senioridade, experiência ou área foi antecipado para o cartão.
+- Uma resposta HTTP de detalhe é registrada mesmo se a descrição estiver ausente ou a resposta for HTTP 4xx/5xx. HTTP 429 e falhas sem resposta não são registrados como consulta concluída.
+
+### Validação de e-mails e comentários
+
+- Provedores pessoais/gratuitos (por exemplo, Gmail, Outlook, Hotmail, Yahoo e Proton) não são considerados canais de candidatura e não são armazenados como e-mails válidos.
+- Se houver link de candidatura, ele continua sendo avaliado mesmo que a publicação também contenha e-mail pessoal.
+- Se o e-mail pessoal for o único canal disponível, o post é rejeitado.
+- A verificação de chamadas de engajamento artificial também analisa comentários públicos; comentários comuns permanecem permitidos.
+
+Os filtros editoriais das vagas e os critérios de elegibilidade existentes não foram antecipados nem afrouxados.
