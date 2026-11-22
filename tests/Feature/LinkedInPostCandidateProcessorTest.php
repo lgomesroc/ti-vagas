@@ -30,7 +30,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
             ]);
 
         $post = $this->makePost([
-            'text' => "Estamos contratando!\\nDesenvolvedor PHP Júnior\\nEmpresa: Acme Tecnologia\\nRemoto Brasil\\nCandidatura: https://acme.example/jobs/123\\ncontato@gmail.com",
+            'text' => "Estamos contratando!\nDesenvolvedor PHP Júnior\nEmpresa: Acme Tecnologia\nRemoto Brasil\nCandidatura: https://acme.example/jobs/123\ncontato@gmail.com",
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
