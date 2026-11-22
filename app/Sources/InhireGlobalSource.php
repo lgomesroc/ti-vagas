@@ -11,6 +11,13 @@ use Throwable;
 
 class InhireGlobalSource implements VacancySource
 {
+    private int $lastTenantCount = 0;
+
+    public function tenantCount(): int
+    {
+        return $this->lastTenantCount;
+    }
+
     private const DEFAULT_TENANTS = [
         'tqi', 'atlastechnol', 'clinicaexperts', 'objective', 'sympla',
         'db1', 'zappts', 'lyncas', 'bixtecnologia', 'programmers',
@@ -37,6 +44,7 @@ class InhireGlobalSource implements VacancySource
     public function fetch(): iterable
     {
         $tenants = $this->discoverTenants();
+        $this->lastTenantCount = count($tenants);
         $knownIdsByTenant = $this->knownJobIdsByTenant($tenants);
         $vacancies = [];
 
