@@ -26,6 +26,7 @@ class InhireSourceTest extends TestCase
         $vacancies = iterator_to_array($this->makeSource()->fetch());
 
         $this->assertCount(1, $vacancies);
+        $this->assertSame('empresa-teste:12345', $vacancies[0]['external_id']);
 
         $vacancy = $vacancies[0];
 
@@ -100,12 +101,39 @@ class InhireSourceTest extends TestCase
         Http::assertSent(fn (Request $request) =>
             $request->url() === 'https://api.inhire.app/job-posts/public/pages'
             && $request->hasHeader('X-Tenant', 'empresa-teste')
+            && $request->hasHeader('X-Inhire-Client', 'web-inhire')
         );
 
         Http::assertSent(fn (Request $request) =>
             $request->url() === 'https://api.inhire.app/job-posts/public/pages/12345'
             && $request->hasHeader('X-Tenant', 'empresa-teste')
+            && $request->hasHeader('X-Inhire-Client', 'web-inhire')
         );
+    }
+
+
+    public function test_it_does_not_fetch_details_for_already_known_job_ids(): void
+    {
+        Http::fake([
+            'api.inhire.app/job-posts/public/pages' => Http::response([
+                'jobsPage' => [[
+                    'jobId' => '12345',
+                    'status' => 'published',
+                    'displayName' => 'Desenvolvedor de Software Junior',
+                ]],
+            ], 200),
+        ]);
+
+        $source = new InhireSource(
+            tenant: 'empresa-teste',
+            companyName: 'Empresa Teste',
+            maxJobs: 10,
+            knownJobIds: ['12345'],
+        );
+
+        $this->assertSame([], iterator_to_array($source->fetch()));
+
+        Http::assertSentCount(1);
     }
 
     private function makeSource(): InhireSource
