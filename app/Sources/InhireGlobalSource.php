@@ -188,4 +188,5 @@ class InhireGlobalSource implements VacancySource
         }
 
         return $known;
-    }}
+    }
+}
