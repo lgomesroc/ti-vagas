@@ -27,10 +27,8 @@ jobs:
       CACHE_STORE: database
       QUEUE_CONNECTION: database
       DB_QUEUE_RETRY_AFTER: "1900"
-      LINKEDIN_HEADLESS: "true"
-      LINKEDIN_POSTS_LOOKBACK_HOURS: "168"
-      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "true"
-      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
+      LINKEDIN_JOBS_ENABLED: "true"
+      LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
 
     steps:
       - name: Checkout
@@ -49,28 +47,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Instalar dependências Node
-        run: npm ci --ignore-scripts
-
-      - name: Instalar Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Restaurar sessão do LinkedIn
-        env:
-          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
-        run: |
-          test -n "$LINKEDIN_STORAGE_STATE_B64" || {
-            echo "::error::Secret LINKEDIN_STORAGE_STATE_B64 não configurada."
-            exit 1
-          }
-          mkdir -p .local
-          printf '%s' "$LINKEDIN_STORAGE_STATE_B64" | base64 --decode > "$LINKEDIN_STORAGE_STATE_PATH"
-          chmod 600 "$LINKEDIN_STORAGE_STATE_PATH"
 
       - name: Aplicar migrações
         run: php artisan migrate --force
