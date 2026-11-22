@@ -14,14 +14,14 @@ class CollectLinkedInJobs extends Command
 {
     protected $signature = 'linkedin:collect-jobs {--sync : Executa a coleta imediatamente, sem fila}';
 
-    protected $description = 'Enfileira ou executa a coleta autenticada de vagas do LinkedIn Jobs';
+    protected $description = 'Enfileira ou executa a coleta pública de vagas do LinkedIn Jobs';
 
     public function handle(
         VacancyImporter $importer,
         VacancyLocationFilter $locationFilter
     ): int {
-        if (!config('linkedin.secondary_account.enabled')) {
-            $this->warn('A coleta autenticada do LinkedIn está desabilitada.');
+        if (!config('linkedin.jobs.enabled')) {
+            $this->warn('A coleta pública de LinkedIn Jobs está desabilitada.');
             return self::SUCCESS;
         }
 
