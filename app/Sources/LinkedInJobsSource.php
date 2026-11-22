@@ -21,28 +21,20 @@ class LinkedInJobsSource implements VacancySource
 
     public function fetch(): iterable
     {
-        $configuredState = (string) config('linkedin.secondary_account.storage_state');
-
-        $storageState = str_starts_with($configuredState, DIRECTORY_SEPARATOR)
-            ? $configuredState
-            : base_path($configuredState);
-
-        // O script usa storage state quando disponível; caso contrário,
-        // reutiliza o perfil persistente do Chromium configurado acima.
-
         $result = Process::path(base_path())
             ->env([
-                'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
-                'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
-                'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
-                'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
+                'LINKEDIN_JOBS_LOOKBACK_HOURS' => (string) config('linkedin.jobs.lookback_hours', 168),
+                'LINKEDIN_JOBS_MAX_PAGES' => (string) config('linkedin.jobs.max_pages', 5),
+                'LINKEDIN_JOBS_DELAY_MS' => (string) config('linkedin.jobs.delay_ms', 1200),
+                'LINKEDIN_JOBS_LOCATION' => (string) config('linkedin.jobs.location', 'Brasil'),
             ])
-            ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
-            ->run(['node', 'scripts/linkedin/secondary-account.mjs', 'jobs']);
+            ->timeout(max(600, (int) config('linkedin.jobs.timeout', 1800)))
+            ->run(['node', 'scripts/linkedin/jobs.mjs']);
 
         if (!$result->successful()) {
             throw new RuntimeException(
-                'Falha na coleta de LinkedIn Jobs: ' . trim($result->errorOutput())
+                'Falha na coleta pública de LinkedIn Jobs: '
+                . trim($result->errorOutput() ?: $result->output())
             );
         }
 
@@ -57,9 +49,8 @@ class LinkedInJobsSource implements VacancySource
 
     public function filterFetched(array $vacancies): array
     {
-        // Não reaplica filtros editoriais nesta fonte. O coletor entrega ao
-        // VacancyImporter tudo que conseguiu extrair; o filtro central decide.
-        // Isso reduz falsos negativos causados por títulos e descrições incompletos.
+        // A captura pública é ampla. Os filtros editoriais, geográficos e
+        // de senioridade permanecem centralizados no VacancyImporter.
         return array_values(array_filter($vacancies, function (array $vacancy): bool {
             $title = trim((string) ($vacancy['title'] ?? ''));
             $company = trim((string) ($vacancy['company'] ?? ''));
@@ -67,124 +58,12 @@ class LinkedInJobsSource implements VacancySource
             $applicationUrl = trim((string) ($vacancy['application_url'] ?? ''));
             $publishedAt = trim((string) ($vacancy['original_published_at'] ?? ''));
 
-            if (
-                $title === ''
-                || $company === ''
-                || mb_strlen($description) < 30
-                || $applicationUrl === ''
-                || $publishedAt === ''
-                || trim((string) ($vacancy['external_id'] ?? '')) === ''
-            ) {
-                return false;
-            }
-
-            return true;
+            return $title !== ''
+                && $company !== ''
+                && mb_strlen($description) >= 30
+                && filter_var($applicationUrl, FILTER_VALIDATE_URL) !== false
+                && $publishedAt !== ''
+                && trim((string) ($vacancy['external_id'] ?? '')) !== '';
         }));
-    }
-
-    private function normalize(string $value): string
-    {
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
-
-        return mb_strtolower($ascii === false ? $value : $ascii);
-    }
-
-    private function isStrictJuniorTitle(string $title): bool
-    {
-        // WordPress foi excluído do escopo da coleta.
-        if (preg_match('/\bwordpress\b/', $title)) {
-            return false;
-        }
-
-        // Rejeita títulos que misturam júnior com pleno ou nível intermediário.
-        if (preg_match(
-            '/\b(jr|junior)\s*(\/|&|-|\|)\s*(pl|pleno|mid|mid-level)\b/',
-            $title
-        )) {
-            return false;
-        }
-
-        // Rejeita senioridades incompatíveis.
-        if (preg_match(
-            '/\b(pleno|mid.level|midlevel|senior|sr|staff|principal|lead|manager|gerente|diretor|head|especialista|coordenador|supervisor)\b/',
-            $title
-        )) {
-            return false;
-        }
-
-        // Estágio, trainee e posições de aprendizagem não fazem parte do escopo.
-        if (preg_match(
-            '/\b(estagio|trainee|intern|internship|apprentice)\b/',
-            $title
-        )) {
-            return false;
-        }
-
-        // Júnior precisa estar explícito no título.
-        return preg_match('/\b(junior|jr)\b/', $title) === 1;
-    }
-
-    private function isTechnologyTitle(string $title): bool
-    {
-        $terms = [
-            'desenvolvedor',
-            'developer',
-            'programador',
-            'software engineer',
-            'engenheiro de software',
-            'backend',
-            'back-end',
-            'frontend',
-            'front-end',
-            'full stack',
-            'fullstack',
-            'php',
-            '.net',
-            'java',
-            'python',
-            'javascript',
-            'typescript',
-            'analista de sistemas',
-            'analista de desenvolvimento',
-            'suporte',
-            'help desk',
-            'helpdesk',
-            'service desk',
-            'infraestrutura',
-            'infrastructure',
-            'redes',
-            'network',
-            'devops',
-            'sysadmin',
-            'qa',
-            'quality assurance',
-            'analista de testes',
-            'technical support',
-            'it support',
-        ];
-
-        foreach ($terms as $term) {
-            if (str_contains($title, $this->normalize($term))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function hasIncompatibleRequirements(string $description): bool
-    {
-        return preg_match(
-            '/\b(?:minimum of |at least |minimum |minimo de |pelo menos )?(?:3|4|5|6|7|8|9|10)\s*\+?\s*(?:years?|anos?)\b/',
-            $description
-        ) === 1
-            || preg_match(
-                '/\b(?:3|4|5|6|7|8|9|10)\s*(?:or more|ou mais)\s*(?:years?|anos?)\b/',
-                $description
-            ) === 1
-            || preg_match(
-                '/\b(?:senior|mid.level|midlevel|pleno)\s+(?:experience|position|role|level|experiencia|nivel|posicao)\b/',
-                $description
-            ) === 1;
     }
 }
