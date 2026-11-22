@@ -5,7 +5,7 @@
 Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Total: 59 pastas e 317 arquivos.
+- Total: 59 pastas e 318 arquivos.
 
 ```text
 ├── .github/
@@ -111,6 +111,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── VacancyLocationFilter.php
 │   │   └── VacancySourceFactory.php
 │   └── Sources/
+│       ├── AblerSource.php
 │       ├── AshbySource.php
 │       ├── BizneoSource.php
 │       ├── BneSource.php
@@ -207,7 +208,6 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   ├── ColetaEIntegracaoDeVagas.md
 │   ├── ColetaPublicacoesLinkedIn.md
 │   ├── deteccao-de-redes-suspeitas.md
-│   ├── EstruturaDoProjeto.md
 │   ├── FontesGupyRecentes.md
 │   ├── InstalacaoEConfiguracao.md
 │   ├── LocalizacaoERegionalizacao.md
@@ -289,6 +289,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── ConfiguresNetworkSecurity.php
 │   │   └── SeedsGeography.php
 │   ├── Feature/
+│   │   ├── AblerSourceTest.php
 │   │   ├── AbuseIpDbDetectorTest.php
 │   │   ├── AshbySourceTest.php
 │   │   ├── BizneoSourceTest.php
