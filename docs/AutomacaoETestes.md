@@ -81,7 +81,7 @@ Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`. Consulte [C
 
 O workflow de failover Neon ↔ Prisma está em `main`, não em `developer`. Ele copia o banco ativo para o standby e, quando necessário, atualiza `DB_URL` do serviço Render, solicita deploy e verifica `/up`. A restauração substitui o conteúdo do banco de destino.
 
-**Atenção:** os grupos de concorrência do failover e das coletas são diferentes. Além disso, os workflows de coleta configuram sua própria `DB_URL` com o secret `NEON_DATABASE_URL`, em vez de ler a variável atual do Render. Portanto, a configuração existente não assegura, por si só, que todas as coletas parem de acessar Neon durante um failover. Não interpretar a concorrência configurada como uma trava global. Os detalhes e as condições estão documentados em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
+**Atenção:** em `main`, `vacancies.yml` compartilha o grupo `ti-vagas-database-operations` com o failover; em `developer`, esse workflow usa `ti-vagas-vacancies` e não compartilha o bloqueio. Gupy e LinkedIn usam grupos independentes nas duas branches. Além disso, os workflows de coleta configuram sua própria `DB_URL` com o secret `NEON_DATABASE_URL`, em vez de ler a variável atual do Render. Portanto, a configuração existente não assegura que todas as coletas parem de acessar Neon durante um failover. Não interpretar a concorrência configurada como uma trava global. Os detalhes e as condições estão documentados em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
 
 ## Organização dos testes
 
