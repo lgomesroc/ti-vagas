@@ -5,12 +5,13 @@
 Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Total: 59 pastas e 311 arquivos.
+- Total: 59 pastas e 315 arquivos.
 
 ```text
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
+│       ├── database-failover.yml
 │       ├── gupy.yml
 │       ├── linkedin-jobs.yml
 │       ├── linkedin-posts-ci.yml
@@ -58,6 +59,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   └── FetchVacancySourceJob.php
 │   ├── Models/
 │   │   ├── Job.php
+│   │   ├── LinkedInJobScan.php
 │   │   ├── LinkedInPostCandidate.php
 │   │   ├── Municipality.php
 │   │   ├── User.php
@@ -190,7 +192,8 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── 2026_11_14_220000_add_vacancy_availability_monitoring.php
 │   │   ├── 2026_11_15_000001_create_linkedin_post_candidates_table.php
 │   │   ├── 2026_11_19_000001_expand_municipality_region_codes.php
-│   │   └── 2026_11_19_000001_move_linkedin_candidates_to_automatic_publication.php
+│   │   ├── 2026_11_19_000001_move_linkedin_candidates_to_automatic_publication.php
+│   │   └── 2026_11_22_110000_create_linkedin_job_scans_table.php
 │   ├── seeders/
 │   │   ├── DatabaseSeeder.php
 │   │   └── VacancySeeder.php
@@ -289,6 +292,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── BizneoSourceTest.php
 │   │   ├── BradescoCsodSourceTest.php
 │   │   ├── BtgPactualSourceTest.php
+│   │   ├── CollectLinkedInPostsTest.php
 │   │   ├── CompleoSourceTest.php
 │   │   ├── CwiSourceTest.php
 │   │   ├── DerevoSourceTest.php
@@ -379,5 +383,3 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 ├── render.yaml
 └── vite.config.js
 ```
-
-> A árvore inclui somente conteúdo versionado nessa branch. Arquivos ignorados pelo Git, dependências instaladas e artefatos locais não aparecem. A branch `main` pode conter arquivos adicionais; por exemplo, `.github/workflows/database-failover.yml` existe em `main`, mas não em `developer`. Atualize esta árvore sempre que arquivos ou diretórios versionados forem adicionados, removidos ou renomeados.

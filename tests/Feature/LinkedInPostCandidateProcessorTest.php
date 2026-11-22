@@ -12,27 +12,53 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_email_provider_keeps_the_original_linkedin_post_as_application_source(): void
+    public function test_personal_email_is_ignored_when_a_valid_application_link_is_available(): void
     {
+        $this->mock(LinkedInUrlInspector::class)
+            ->shouldReceive('inspect')
+            ->once()
+            ->with('https://acme.example/jobs/123')
+            ->andReturn([
+                'valid' => true,
+                'verified' => true,
+                'blocked' => false,
+                'final_url' => 'https://acme.example/jobs/123',
+                'reason' => null,
+                'page_title' => 'Desenvolvedor PHP Júnior',
+                'page_description' => 'Vaga para Desenvolvedor PHP Júnior.',
+                'page_text' => 'Candidate-se pelo canal oficial.',
+            ]);
+
         $post = $this->makePost([
-            'isPromoted' => false,
-            'text' => "Estamos contratando!\nDesenvolvedor PHP Júnior\nEmpresa: Acme Tecnologia\nRemoto Brasil\nCandidatura: https://acme.example/jobs/123\ncontato@gmail.com",
+            'text' => "Estamos contratando!\\nDesenvolvedor PHP Júnior\\nEmpresa: Acme Tecnologia\\nRemoto Brasil\\nCandidatura: https://acme.example/jobs/123\\ncontato@gmail.com",
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
         $this->assertSame(0, $result['rejected']);
-        $this->assertDatabaseHas('linkedin_post_candidates', [
-            'post_id' => 'urn:li:activity:1001',
-            'status' => 'pending_publication',
-            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
+        $candidate = LinkedInPostCandidate::query()->where('post_id', 'urn:li:activity:1001')->firstOrFail();
+        $this->assertSame('pending_publication', $candidate->status);
+        $this->assertSame('https://acme.example/jobs/123', $candidate->application_url);
+        $this->assertSame([], $candidate->emails);
+    }
+
+    public function test_personal_email_without_an_application_link_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. contato@gmail.com',
         ]);
 
-        $candidate = LinkedInPostCandidate::query()
-            ->where('post_id', 'urn:li:activity:1001')
-            ->firstOrFail();
+        $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $this->assertContains('contato@gmail.com', $candidate->emails);
+        $this->assertSame(1, $result['rejected']);
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'E-mail de provedor pessoal/gratuito não é aceito como canal de candidatura.',
+        ]);
+
+        $candidate = LinkedInPostCandidate::query()->where('post_id', 'urn:li:activity:1001')->firstOrFail();
+        $this->assertSame([], $candidate->emails);
     }
 
     public function test_seniority_mismatch_is_preserved_for_later_editorial_review(): void
@@ -64,6 +90,41 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'rejected',
+        ]);
+    }
+
+    public function test_engagement_bait_in_a_public_comment_is_rejected(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Envie currículo para talentos@acme.com.',
+            'topComments' => [
+                ['text' => 'Comenta aqui que mando o link na DM.'],
+            ],
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'rejected',
+            'decision_reason' => 'Publicação ou comentário condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
+        ]);
+    }
+
+    public function test_ordinary_public_comment_does_not_trigger_engagement_bait_rejection(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Envie currículo para talentos@acme.com.',
+            'topComments' => [
+                ['text' => 'Tenho interesse e vou me candidatar pelo canal informado.'],
+            ],
+        ]);
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'pending_publication',
         ]);
     }
 

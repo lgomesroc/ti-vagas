@@ -23,8 +23,8 @@ O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md)
 
 ## Resumo das atualizações recentes
 
-- **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e possibilidade de leitura de comentários visíveis; anúncios do LinkedIn Jobs são coletados por fluxo público separado. O acesso ao conteúdo integral não é garantido.
-- **Validação de recrutamento:** regras ampliadas para rejeitar chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM; exigência de e-mail corporativo e verificação de duplicidade de links.
+- **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e leitura de comentários visíveis quando disponíveis. Publicações já reservadas não são enriquecidas novamente, mesmo se rejeitadas. No LinkedIn Jobs, IDs com consulta detalhada concluída são ignorados antes de novas requisições; novos anúncios continuam tendo a descrição completa consultada antes dos filtros editoriais.
+- **Validação de recrutamento:** chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM são rejeitadas tanto no texto da publicação quanto nos comentários públicos disponíveis. E-mails pessoais/gratuitos não são aceitos como canal de candidatura; um link válido continua sendo analisado normalmente.
 - **Gupy:** substituição da coleta individual por empresa por um coletor global baseado na API pública de busca, com termos e janela incremental configurados.
 - **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
 - **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.

@@ -355,6 +355,7 @@ class LinkedInPostSearchClient
             return null;
         }
 
+        $url = $this->canonicalPostUrl($url);
         $publishedAt ??= $this->extractPublishedAt($title . "\n" . $snippet);
         if ($publishedAt === null || !$this->isWithinLookback($publishedAt)) {
             return null;
@@ -376,6 +377,18 @@ class LinkedInPostSearchClient
             'searchProvider' => $provider,
             'searchSnippet' => $snippet,
         ];
+    }
+
+    private function canonicalPostUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return $url;
+        }
+
+        $path = rtrim((string) ($parts['path'] ?? ''), '/');
+
+        return 'https://www.linkedin.com' . $path . '/';
     }
 
     private function isWithinLookback(Carbon $publishedAt): bool

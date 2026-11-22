@@ -38,6 +38,8 @@ O workflow `database-failover.yml` está **somente na branch `main`**. Ele sincr
 
 - A fila `vacancies` processa jobs `FetchVacancySourceJob`, com três tentativas e backoff de 30 e 120 segundos.
 - A fila `linkedin` processa `FetchLinkedInJobsJob`. O job tem unicidade, middleware contra sobreposição e tratamento específico de HTTP 429.
+- O LinkedIn Jobs mantém histórico em `linkedin_job_scans`; IDs com consulta detalhada concluída não são consultados novamente. A lista de IDs já conhecidos é enviada ao script Node antes da etapa de detalhes.
+- Publicações do LinkedIn são reservadas em `linkedin_post_candidates` antes do enriquecimento. A chave única por ID/URL impede reprocessamento, inclusive de publicações rejeitadas.
 - A coleta global da Gupy é executada pelo comando dedicado e não é despachada como uma fonte individual na fila geral.
 
 No workflow `vacancies.yml`, o worker processa a fila `vacancies` em ciclos, consultando `vacancies:queue-size` entre os ciclos para continuar quando há jobs pendentes ou em backoff. No workflow `linkedin-jobs.yml`, a fila `linkedin` é processada após o despacho do comando.
@@ -73,7 +75,7 @@ A opção `--sync` de `linkedin:collect-jobs` executa a consulta imediatamente, 
 
 ## Tratamento de HTTP 429 no LinkedIn Jobs
 
-O coletor aplica intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Se a limitação persistir, interrompe a execução sem importar resultados parciais. O Laravel reagenda o job com atraso crescente; esgotados os reagendamentos, a próxima execução agendada tentará novamente. Não há rotação de IP, proxy ou troca de identidade para contornar limites.
+O coletor aplica intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Antes de consultar detalhes, remove IDs já registrados em `linkedin_job_scans` e IDs já importados em `vacancies`; isso não filtra o cartão por cargo ou senioridade, pois a descrição completa continua sendo consultada para novos IDs. Cada resposta HTTP de detalhe é registrada para impedir nova consulta, mesmo quando a descrição está ausente ou o status é de erro. HTTP 429 e falhas sem resposta não entram no histórico de consultas concluídas. Se a limitação persistir, interrompe a execução sem importar resultados parciais. O Laravel reagenda o job com atraso crescente; esgotados os reagendamentos, a próxima execução agendada tentará novamente. Não há rotação de IP, proxy ou troca de identidade para contornar limites.
 
 Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`. Consulte [Coleta de Oportunidades no LinkedIn](ColetaPublicacoesLinkedIn.md).
 
