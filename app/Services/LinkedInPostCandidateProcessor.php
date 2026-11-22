@@ -41,7 +41,7 @@ class LinkedInPostCandidateProcessor
             'post_id' => $postId,
         ]);
 
-        $isNew = !$candidate->exists;
+        $isNew = !$candidate->exists || $candidate->status === 'processing';
 
         $base = [
             'post_url' => $postUrl,
@@ -79,10 +79,18 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($this->isEngagementBait($text)) {
+        $commentHasEngagementBait = false;
+        foreach ($comments as $comment) {
+            if ($this->isEngagementBait($comment['text'])) {
+                $commentHasEngagementBait = true;
+                break;
+            }
+        }
+
+        if ($this->isEngagementBait($text) || $commentHasEngagementBait) {
             $candidate->fill($base + [
                 'status' => 'rejected',
-                'decision_reason' => 'Publicação condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
+                'decision_reason' => 'Publicação ou comentário condiciona link ou informações a comentários, palavra-chave ou contato por DM.',
             ])->save();
 
             return $this->emptyResult('rejected');
@@ -108,12 +116,21 @@ class LinkedInPostCandidateProcessor
         }
 
         $links = $this->extractUrls($combinedText, $post);
-        $emails = array_values(array_unique(array_merge(
+        $detectedEmails = array_values(array_unique(array_merge(
             $this->extractEmails($combinedText),
-            is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
+            is_array($post['emails'] ?? null)
+                ? array_map('strtolower', array_filter($post['emails'], 'is_string'))
+                : []
         )));
 
-        $hasApplicationEmail = $emails !== [];
+        // Endereços pessoais/gratuitos nunca são considerados contato de candidatura.
+        // Um link válido continua sendo avaliado normalmente, mesmo se houver e-mail pessoal no texto.
+        $emails = array_values(array_filter(
+            $detectedEmails,
+            fn (string $email): bool => $this->isCorporateEmail($email)
+        ));
+        $hasPersonalEmails = count($emails) < count($detectedEmails);
+        $hasApplicationEmail = $this->hasCorporateEmail($emails);
 
         if (
             (
@@ -137,9 +154,9 @@ class LinkedInPostCandidateProcessor
                 'embedded_links' => [],
                 'emails' => $emails,
                 'status' => 'rejected',
-                'decision_reason' => $emails === []
-                    ? 'Publicação sem link de candidatura ou e-mail corporativo.'
-                    : 'E-mail de provedor público/gratuito não é aceito como canal de candidatura.',
+                'decision_reason' => $hasPersonalEmails
+                    ? 'E-mail de provedor pessoal/gratuito não é aceito como canal de candidatura.'
+                    : 'Publicação sem link de candidatura ou e-mail corporativo.',
             ])->save();
 
             return $this->emptyResult('rejected');
@@ -866,17 +883,8 @@ class LinkedInPostCandidateProcessor
      */
     private function hasCorporateEmail(array $emails): bool
     {
-        $personalDomains = [
-            'gmail.com', 'googlemail.com', 'hotmail.com', 'outlook.com',
-            'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
-            'yahoo.com', 'yahoo.com.br', 'icloud.com', 'me.com',
-            'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
-            'gmx.com', 'mail.com', 'uol.com.br', 'bol.com.br',
-            'terra.com.br', 'ig.com.br', 'yandex.com', 'yandex.ru',
-        ];
-
         foreach ($emails as $email) {
-            if ($this->isCorporateEmail($email)) {
+            if (is_string($email) && $this->isCorporateEmail($email)) {
                 return true;
             }
         }
@@ -887,11 +895,11 @@ class LinkedInPostCandidateProcessor
     private function isCorporateEmail(string $email): bool
     {
         $personalDomains = [
-            'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.com.br',
+            'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.com.br', 'hotmail.co.uk',
             'outlook.com', 'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
-            'yahoo.com', 'yahoo.com.br', 'yahoo.co.uk', 'icloud.com', 'me.com',
-            'mac.com', 'aol.com', 'proton.me', 'protonmail.com', 'tutanota.com',
-            'tuta.io', 'gmx.com', 'gmx.net', 'mail.com', 'yandex.com', 'yandex.ru',
+            'yahoo.com', 'yahoo.com.br', 'yahoo.co.uk', 'icloud.com', 'me.com', 'mac.com',
+            'aol.com', 'proton.me', 'protonmail.com', 'tutanota.com', 'tuta.io',
+            'gmx.com', 'gmx.net', 'mail.com', 'yandex.com', 'yandex.ru',
             'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br',
             'r7.com', 'zipmail.com.br', 'fastmail.com', 'hey.com',
         ];
