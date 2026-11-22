@@ -8,8 +8,9 @@ on:
 permissions:
   contents: read
 
+# Serialize database copies, failover, and vacancy collection.
 concurrency:
-  group: ti-vagas-database-failover
+  group: ti-vagas-database-operations
   cancel-in-progress: false
 
 jobs:
@@ -17,13 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: postgres:18
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
       PRISMA_DATABASE_URL: ${{ secrets.PRISMA_DATABASE_URL }}
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       HEALTH_URL: https://ti-vagas.lucianorocha.dev.br/up
+
     steps:
       - name: Install tools
         run: |
@@ -50,11 +52,13 @@ jobs:
           api="https://api.render.com/v1"
           auth=(-H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json")
 
-          # Read the URL currently configured in Render without printing credentials.
-          current_json="$(curl --fail --silent --show-error "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" "${auth[@]}")"
-          current_url="$(jq -r '.envVar.value // .value // empty' <<< "$current_json")"
+          # Render exposes a dedicated endpoint for reading one service variable.
+          current_json="$(curl --fail --silent --show-error --retry 3 \
+            "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" "${auth[@]}")"
+          current_url="$(jq -r '.envVar.value // empty' <<< "$current_json")"
+
           if [ -z "$current_url" ]; then
-            echo "::error::Could not read DB_URL from Render. Confirm it is configured directly on the service."
+            echo "::error::Could not read DB_URL from the Render service."
             exit 1
           fi
 
@@ -67,7 +71,6 @@ jobs:
             exit 1
           fi
 
-          # Test Neon independently. A failed check is treated as an outage.
           neon_ok=false
           if psql "$NEON_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc 'SELECT 1' >/dev/null 2>&1; then
             neon_ok=true
@@ -78,37 +81,46 @@ jobs:
             target_url="$PRISMA_DATABASE_URL"
             target_name="Prisma"
             switch_to=""
-            echo "Neon is active and healthy. Refreshing the Prisma standby copy."
+            echo "Neon is active and healthy. Refreshing the Prisma standby."
           elif [ "$active" = "neon" ] && [ "$neon_ok" = "false" ]; then
             if ! psql "$PRISMA_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc 'SELECT 1' >/dev/null 2>&1; then
               echo "::error::Neon is unavailable and Prisma failed its connection test. No URL change was made."
               exit 1
             fi
-            echo "Neon is unavailable. Prisma is reachable; activating the latest synchronized Prisma copy."
+            echo "Neon is unavailable. Activating the last synchronized Prisma copy."
             switch_to="$PRISMA_DATABASE_URL"
           elif [ "$active" = "prisma" ] && [ "$neon_ok" = "true" ]; then
             source_url="$PRISMA_DATABASE_URL"
             target_url="$NEON_DATABASE_URL"
             target_name="Neon"
             switch_to="$NEON_DATABASE_URL"
-            echo "Neon recovered. Copying all data from Prisma to Neon before returning traffic."
+            echo "Neon recovered. Copying Prisma to Neon before switching traffic back."
           else
-            echo "Neon remains unavailable. Prisma stays active; no reverse copy is possible until Neon recovers."
+            echo "Neon remains unavailable. Prisma stays active."
             exit 0
           fi
 
-          # Refresh the inactive database using a consistent PostgreSQL dump.
-          # This replaces the standby schema/data; it never targets the active database.
+          # The destination is always the inactive database. A single-transaction
+          # restore prevents a failed restore from leaving a partially replaced database.
           if [ -n "${source_url:-}" ]; then
             dump_file="$(mktemp)"
             trap 'rm -f "$dump_file"' EXIT
+
             pg_dump "$source_url" --format=custom --no-owner --no-privileges --file="$dump_file"
-            pg_restore --exit-on-error --clean --if-exists --no-owner --no-privileges --dbname="$target_url" "$dump_file"
-            echo "$target_name standby synchronization completed."
+            pg_restore --exit-on-error --single-transaction --clean --if-exists \
+              --no-owner --no-privileges --dbname="$target_url" "$dump_file"
+
+            if ! psql "$target_url" -X -v ON_ERROR_STOP=1 -Atqc \
+              'SELECT 1 FROM public.migrations LIMIT 1' >/dev/null; then
+              echo "::error::The restored database did not pass the migrations-table check."
+              exit 1
+            fi
+
+            echo "$target_name synchronization completed."
           fi
 
-          # Change only DB_URL through Render's single-variable endpoint.
-          # Then explicitly deploy: Render does not deploy env-var changes automatically.
+          # This endpoint changes only DB_URL; unlike the collection endpoint,
+          # it preserves every other service variable.
           if [ -n "$switch_to" ]; then
             curl --fail --silent --show-error --request PUT \
               "${api}/services/${RENDER_SERVICE_ID}/env-vars/DB_URL" \
@@ -120,19 +132,19 @@ jobs:
               "${auth[@]}" -H "Content-Type: application/json" --data '{}')"
             deploy_id="$(jq -r '.id // empty' <<< "$deploy_json")"
             if [ -z "$deploy_id" ]; then
-              echo "::error::Render did not return a deploy ID. Check the service deploy state."
+              echo "::error::Render did not return a deploy ID."
               exit 1
             fi
 
-            echo "Waiting for the Render deployment to finish."
+            echo "Waiting for the Render deployment."
             live=false
             for attempt in $(seq 1 40); do
               deploy_status="$(curl --fail --silent --show-error \
                 "${api}/services/${RENDER_SERVICE_ID}/deploys/${deploy_id}" \
-                "${auth[@]}" | jq -r '.status')"
+                "${auth[@]}" | jq -r '.status // empty')"
               case "$deploy_status" in
                 live) live=true; break ;;
-                build_failed|update_failed|canceled|pre_deploy_failed)
+                build_failed|update_failed|canceled|pre_deploy_failed|deactivated)
                   echo "::error::Render deployment ended with status: $deploy_status"
                   exit 1
                   ;;
@@ -153,6 +165,6 @@ jobs:
               sleep 6
             done
 
-            echo "::error::Render deploy is Live, but the application health check failed."
+            echo "::error::Render is Live, but the application health check failed."
             exit 1
           fi
