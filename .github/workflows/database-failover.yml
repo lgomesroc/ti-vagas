@@ -115,20 +115,44 @@ jobs:
               "${auth[@]}" -H "Content-Type: application/json" \
               --data "$(jq -cn --arg value "$switch_to" '{value:$value}')" >/dev/null
 
-            curl --fail --silent --show-error --request POST \
+            deploy_json="$(curl --fail --silent --show-error --request POST \
               "${api}/services/${RENDER_SERVICE_ID}/deploys" \
-              "${auth[@]}" -H "Content-Type: application/json" --data '{}' >/dev/null
+              "${auth[@]}" -H "Content-Type: application/json" --data '{}')"
+            deploy_id="$(jq -r '.id // empty' <<< "$deploy_json")"
+            if [ -z "$deploy_id" ]; then
+              echo "::error::Render did not return a deploy ID. Check the service deploy state."
+              exit 1
+            fi
 
-            echo "Render deployment requested for the database switch."
+            echo "Waiting for the Render deployment to finish."
+            live=false
+            for attempt in $(seq 1 40); do
+              deploy_status="$(curl --fail --silent --show-error \
+                "${api}/services/${RENDER_SERVICE_ID}/deploys/${deploy_id}" \
+                "${auth[@]}" | jq -r '.status')"
+              case "$deploy_status" in
+                live) live=true; break ;;
+                build_failed|update_failed|canceled|pre_deploy_failed)
+                  echo "::error::Render deployment ended with status: $deploy_status"
+                  exit 1
+                  ;;
+              esac
+              sleep 15
+            done
 
-            for attempt in $(seq 1 20); do
+            if [ "$live" != "true" ]; then
+              echo "::error::Render deployment did not reach Live within 10 minutes."
+              exit 1
+            fi
+
+            for attempt in $(seq 1 10); do
               if curl --fail --silent --show-error "$HEALTH_URL" >/dev/null 2>&1; then
                 echo "Application health check passed."
                 exit 0
               fi
-              sleep 15
+              sleep 6
             done
 
-            echo "::error::Database URL was switched, but the application health check did not pass within 5 minutes."
+            echo "::error::Render deploy is Live, but the application health check failed."
             exit 1
           fi
