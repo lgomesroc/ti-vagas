@@ -25,8 +25,8 @@ class CollectLinkedInPostsTest extends TestCase
     public function test_previously_seen_post_is_not_fetched_or_processed_again(): void
     {
         LinkedInPostCandidate::query()->create([
-            'post_id' => 'urn:li:activity:already-seen',
-            'post_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:already-seen/',
+            'post_id' => 'urn:li:activity:legacy-id',
+            'post_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:already-seen/?trk=public_profile',
             'post_text' => 'Publicação já consultada anteriormente.',
             'status' => 'rejected',
             'decision_reason' => 'Não atende aos critérios.',
