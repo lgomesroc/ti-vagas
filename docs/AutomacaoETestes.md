@@ -1,50 +1,60 @@
 # Automação e Testes
 
+A automação do projeto é dividida entre o agendador Laravel, jobs de fila e GitHub Actions. Os workflows possuem checkouts explícitos: algumas rotinas usam `main`, enquanto outras executam o código de `developer`. Essa distinção é operacionalmente importante e está detalhada em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
+
 ## Agendamento Laravel
 
-As rotinas agendadas são declaradas em `routes/console.php`:
+As tarefas abaixo estão declaradas em `routes/console.php` e são disparadas pelo workflow `vacancies.yml`, que faz checkout de `main` e executa `php artisan schedule:run`.
 
-- `vacancies:collect`: consulta as fontes registradas na fábrica a cada seis horas, no fuso `America/Sao_Paulo`. A Gupy global não faz parte desse comando.
-- `linkedin:collect-posts --mode=bot`: executa diariamente às 00h e 12h.
-- `linkedin:collect-posts --mode=duckduckgo`: executa diariamente às 06h e 18h.
-- `network:update-lists`: atualiza as listas de reputação de rede a cada seis horas.
-- `vacancies:check-links --limit=500`: verifica até 500 links de candidatura a cada seis horas.
-- `vacancies:prune-expired`: executa às segundas-feiras às 03h, em semanas ISO pares.
+| Comando | Frequência | Responsabilidade |
+|---|---|---|
+| `vacancies:collect` | A cada 6 horas | Despacha a coleta das fontes registradas na fábrica, exceto Gupy global |
+| `linkedin:collect-posts --mode=bot` | Diariamente às 00h e 12h | Pesquisa via conta secundária |
+| `linkedin:collect-posts --mode=duckduckgo` | Diariamente às 06h e 18h | Pesquisa pública via DuckDuckGo |
+| `network:update-lists` | A cada 6 horas | Atualiza listas de reputação de rede |
+| `vacancies:check-links --limit=500` | A cada 6 horas | Verifica links de candidatura |
+| `vacancies:prune-expired` | Segunda-feira às 03h, semanas ISO pares | Remove vagas expiradas conforme a política de retenção |
 
-As tarefas usam `withoutOverlapping()` para evitar execuções simultâneas da mesma rotina.
+As tarefas usam `withoutOverlapping()`. Isso evita sobreposição da mesma tarefa Laravel, mas não equivale a um bloqueio global entre todos os workflows do GitHub Actions.
 
-## GitHub Actions
+A Gupy global é executada separadamente por `vacancies:collect-gupy`, no workflow dedicado `gupy.yml`.
 
-Os workflows versionados em `.github/workflows` na branch `developer` são:
+## Workflows do GitHub Actions
 
-| Workflow | Responsabilidade |
-|---|---|
-| `ci.yml` | Valida Composer, sintaxe PHP, testes automatizados e compilação do frontend em push e pull request para `developer` e `main`. |
-| `gupy.yml` | Executa exclusivamente `php artisan vacancies:collect-gupy`, a coleta global da Gupy, às 00h, 06h, 12h e 18h. |
-| `vacancies.yml` | Executa o agendador Laravel, permite disparo manual da coleta geral e processa a fila `vacancies`. |
-| `linkedin-jobs.yml` | Coleta vagas públicas do LinkedIn Jobs e processa a fila `linkedin`; possui execução agendada e manual. |
-| `linkedin-posts.yml` | Executa a coleta e validação de publicações de recrutamento do LinkedIn. |
-| `linkedin-secondary-search.yml` | Executa a pesquisa da conta secundária do LinkedIn, com sessão própria fornecida por secret. |
-| `linkedin-posts-ci.yml` | Valida sintaxe, testes Node dos coletores LinkedIn, sintaxe PHP e testes de integração. |
+A lista completa, com branch de checkout, cron, secrets, jobs, concorrência, serviços externos e comandos executados, está em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
 
-Os workflows de coleta utilizam secrets para credenciais e conexão ao PostgreSQL. Não coloque URLs de banco, chaves ou estado de sessão em arquivos versionados.
+Na branch `developer` estão os seguintes arquivos:
+- `ci.yml`: CI geral PHP, PostgreSQL de teste e build frontend;
+- `gupy.yml`: coleta global Gupy, fazendo checkout de `main`;
+- `linkedin-jobs.yml`: coleta LinkedIn Jobs, fazendo checkout de `developer`;
+- `linkedin-posts-ci.yml`: testes de integração LinkedIn;
+- `linkedin-posts.yml`: coleta pública de publicações, usando a referência do evento;
+- `linkedin-secondary-search.yml`: coleta via conta secundária, fazendo checkout de `developer`;
+- `vacancies.yml`: scheduler e coleta geral, fazendo checkout de `main`.
 
-### Concorrência de operações no banco
+O workflow `database-failover.yml` está **somente na branch `main`**. Ele sincroniza Neon e Prisma e altera a variável `DB_URL` no Render. Não aparece na árvore de `developer`.
 
-O workflow `vacancies.yml` usa o grupo de concorrência `ti-vagas-database-operations`, com `cancel-in-progress: false`. Operações que compartilham esse grupo aguardam umas pelas outras em vez de executar simultaneamente. Workflows com grupos independentes não são automaticamente serializados por essa configuração.
+## Filas
+
+- A fila `vacancies` processa jobs `FetchVacancySourceJob`, com três tentativas e backoff de 30 e 120 segundos.
+- A fila `linkedin` processa `FetchLinkedInJobsJob`. O job tem unicidade, middleware contra sobreposição e tratamento específico de HTTP 429.
+- A coleta global da Gupy é executada pelo comando dedicado e não é despachada como uma fonte individual na fila geral.
+
+No workflow `vacancies.yml`, o worker processa a fila `vacancies` em ciclos, consultando `vacancies:queue-size` entre os ciclos para continuar quando há jobs pendentes ou em backoff. No workflow `linkedin-jobs.yml`, a fila `linkedin` é processada após o despacho do comando.
 
 ## Banco de testes
 
 Os testes automatizados não utilizam o banco de produção:
 
-- **Execução local:** o `phpunit.xml` força a conexão PostgreSQL e o banco exclusivo `ti_vagas_test`. As credenciais locais ficam em `.env.testing`, criado a partir de `.env.testing.example`.
-- **GitHub Actions:** os jobs de teste iniciam um serviço PostgreSQL descartável (`postgres:18`) com banco `ti_vagas_test`. A execução não depende do Neon nem dos dados reais.
+- **Local:** o `phpunit.xml` configura PostgreSQL e o banco exclusivo `ti_vagas_test`. As credenciais ficam no arquivo local `.env.testing`, criado a partir de `.env.testing.example`.
+- **GitHub Actions:** os jobs de CI iniciam um serviço PostgreSQL 18 descartável com o banco `ti_vagas_test`.
 
 ## Comandos úteis
 
 ```bash
 php artisan test
 php artisan vacancies:collect
+php artisan vacancies:collect --sync
 php artisan vacancies:collect-gupy
 php artisan vacancies:check-links --limit=500
 php artisan vacancies:prune-expired
@@ -53,48 +63,31 @@ php artisan network:check <ip>
 php artisan linkedin:collect-jobs
 php artisan linkedin:collect-jobs --sync
 php artisan linkedin:collect-posts
+php artisan linkedin:collect-posts --mode=duckduckgo
+php artisan linkedin:collect-posts --mode=bot
+npm run test:linkedin
+npm run build
 ```
 
-A opção `--sync` executa a coleta de LinkedIn Jobs imediatamente, sem fila. Na coleta normal, o comando despacha um job para a fila `linkedin`.
+A opção `--sync` de `linkedin:collect-jobs` executa a consulta imediatamente, sem despachar job para a fila. Sem essa opção, o comando despacha o job para `linkedin`. O comando geral `vacancies:collect --sync` também permite executar as fontes da fábrica diretamente, sem fila.
 
 ## Tratamento de HTTP 429 no LinkedIn Jobs
 
-O coletor de LinkedIn Jobs respeita o limite informado pelo serviço externo. As requisições são espaçadas; quando recebe HTTP 429, aplica backoff exponencial e respeita `Retry-After`. Se a limitação persistir, o script encerra com um código específico, sem importar os resultados daquela execução. O Laravel converte a situação em `SourceRateLimitedException` e o job é reagendado com atraso crescente. Não há rotação de IP, proxy ou troca de identidade para contornar o limite.
+O coletor aplica intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Se a limitação persistir, interrompe a execução sem importar resultados parciais. O Laravel reagenda o job com atraso crescente; esgotados os reagendamentos, a próxima execução agendada tentará novamente. Não há rotação de IP, proxy ou troca de identidade para contornar limites.
 
-Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`; consulte `docs/ColetaPublicacoesLinkedIn.md` e `scripts/linkedin/jobs.mjs`.
+Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`. Consulte [Coleta de Oportunidades no LinkedIn](ColetaPublicacoesLinkedIn.md).
 
-## Failover PostgreSQL — workflow da branch main
+## Failover PostgreSQL
 
-Na branch `main` está versionado o workflow `.github/workflows/database-failover.yml`, separado da coleta de vagas. Ele monitora a conexão da aplicação e coordena o banco principal Neon e a cópia de contingência Prisma.
+O workflow de failover Neon ↔ Prisma está em `main`, não em `developer`. Ele copia o banco ativo para o standby e, quando necessário, atualiza `DB_URL` do serviço Render, solicita deploy e verifica `/up`. A restauração substitui o conteúdo do banco de destino.
 
-Comportamento implementado:
-
-- **Neon ativo e saudável:** copia Neon → Prisma para atualizar a contingência.
-- **Neon indisponível e Prisma acessível:** altera o `DB_URL` do serviço Render para Prisma e solicita um novo deploy.
-- **Prisma ativo e Neon recuperado:** copia Prisma → Neon antes de apontar o Render novamente para Neon.
-- **Ambos indisponíveis:** não altera a conexão ativa.
-- Após a mudança, aguarda o deploy do Render e verifica o endpoint `/up`.
-
-A sincronização usa `pg_dump` e `pg_restore` em transação única, substituindo o conteúdo do banco de destino (que deve ser o banco inativo). O workflow identifica o banco ativo comparando a variável `DB_URL` do serviço Render com as URLs cadastradas nos secrets. A rotina é agendada a cada cinco minutos e também aceita execução manual.
-
-Secrets necessários no GitHub Actions:
-
-- `NEON_DATABASE_URL`;
-- `PRISMA_DATABASE_URL`;
-- `RENDER_API_KEY`;
-- `RENDER_SERVICE_ID`.
-
-O serviço Render precisa ter `DB_URL` configurada diretamente como variável do serviço, e o token deve possuir permissões de leitura do serviço, leitura/escrita de variáveis de ambiente e execução de deploy. Não registre os valores desses secrets na documentação ou nos logs.
-
-**Atenção operacional:** a restauração substitui os dados do banco de destino. A identificação correta do banco ativo, a integridade dos secrets e a exclusividade do destino são condições essenciais. O workflow compartilha o grupo de concorrência `ti-vagas-database-operations` com a coleta geral em `main`, evitando que essas duas rotinas executem ao mesmo tempo. Este workflow deve ser mantido sincronizado com a documentação quando houver alteração nos provedores, no Render ou na estratégia de cópia.
+**Atenção:** os grupos de concorrência do failover e das coletas são diferentes. Além disso, os workflows de coleta configuram sua própria `DB_URL` com o secret `NEON_DATABASE_URL`, em vez de ler a variável atual do Render. Portanto, a configuração existente não assegura, por si só, que todas as coletas parem de acessar Neon durante um failover. Não interpretar a concorrência configurada como uma trava global. Os detalhes e as condições estão documentados em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
 
 ## Organização dos testes
 
 - `tests/Feature`: testes de integração e comportamento HTTP, fontes, importação, regionalização, localização, reputação de rede, atribuição UTM e verificação de links.
 - `tests/Unit`: testes unitários de regras e serviços.
 - `tests/Concerns`: recursos compartilhados pelos testes.
-- `scripts/linkedin`: testes Node e scripts auxiliares dos coletores LinkedIn.
+- `scripts/linkedin`: scripts Node e testes dos coletores LinkedIn.
 
-## Critério de manutenção
-
-Ao alterar uma regra de negócio, atualize ou acrescente testes que cubram o comportamento esperado e os casos-limite. A documentação descreve o comportamento observado no código; a execução mais recente do CI e a suíte local são as referências para validar regressões.
+Ao alterar regras de negócio, atualizar os testes correspondentes e conferir o resultado do CI da branch e do commit que serão publicados.
