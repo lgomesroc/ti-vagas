@@ -6,6 +6,7 @@ Referência dos workflows versionados em `.github/workflows`. A branch que cont�
 
 | Arquivo | Presença | Checkout | Agenda / evento | Função |
 |---|---|---|---|---|
+| `abler.yml` | developer | developer | Manual (`workflow_dispatch`) | Coleta exclusivamente a fonte `abler-global` |
 | `ci.yml` | main e developer | Branch do evento | Push e pull request para main/developer | CI PHP, testes PostgreSQL e build frontend |
 | `database-failover.yml` | **Somente main** | Não faz checkout | A cada 5 min e manual | Sincroniza Neon/Prisma e altera DB_URL do Render |
 | `gupy.yml` | main e developer | main | 00h, 06h, 12h, 18h e manual | Coleta global Gupy |
@@ -17,7 +18,19 @@ Referência dos workflows versionados em `.github/workflows`. A branch que cont�
 
 Os agendamentos usam `America/Sao_Paulo`. O GitHub pode iniciar execuções com pequeno atraso em relação ao horário configurado.
 
-## 1. CI principal — `ci.yml`
+## 1. Coleta isolada Abler — `abler.yml`
+
+Disponível somente em `developer`, com disparo manual e checkout explícito da própria branch `developer`. O workflow configura PHP 8.3, instala as dependências Composer e executa exclusivamente:
+
+```bash
+php artisan vacancies:collect-source abler-global
+```
+
+Não chama `vacancies:collect`, scheduler, atualização de listas de rede nem workers de fila. Usa `APP_KEY` e `NEON_DATABASE_URL` como secrets, com `DB_CONNECTION=pgsql` e `DB_SSLMODE=require`. A execução grava os resultados importáveis no banco Neon; não é um dry run. O grupo `ti-vagas-database-operations` serializa essa gravação com o workflow de failover que utiliza o mesmo grupo.
+
+O workflow não corrige bloqueios impostos pela própria API da Abler. Um HTTP 403 como `API_PROXY_DIRECT_ACCESS_BLOCKED` significa que a chamada direta foi recusada pelo proxy da plataforma; a execução manual serve para confirmar o comportamento no runner do GitHub, não para contornar a política de acesso.
+
+## 2. CI principal — `ci.yml`
 
 Dispara em push e pull request direcionados a `developer` ou `main`. Possui dois jobs:
 
@@ -36,7 +49,7 @@ Dispara em push e pull request direcionados a `developer` ou `main`. Possui dois
 
 O banco é efêmero e isolado. O CI não utiliza Neon, Prisma ou dados de produção.
 
-## 2. Failover PostgreSQL — `database-failover.yml`
+## 3. Failover PostgreSQL — `database-failover.yml`
 
 Este workflow está **somente na branch main**. É agendado a cada cinco minutos e também aceita execução manual. Roda em container `postgres:18`, com timeout de 30 minutos, e usa a API Render.
 
@@ -58,7 +71,7 @@ O token Render precisa conseguir consultar o serviço, ler/escrever variáveis d
 
 **Concorrência varia entre branches:** em `main`, `vacancies.yml` também usa `ti-vagas-database-operations`, compartilhando o bloqueio com o failover. Em `developer`, `vacancies.yml` usa `ti-vagas-vacancies`, portanto não compartilha o bloqueio com o failover. Em ambas as branches, `gupy.yml` e os workflows LinkedIn usam grupos próprios e não compartilham o bloqueio com o failover. Portanto, nem mesmo em `main` existe bloqueio global entre failover e todas as coletas. Além disso, os workflows de coleta configuram `DB_URL` diretamente com `NEON_DATABASE_URL`; não consultam a variável `DB_URL` do Render. Assim, mudar o banco usado pela aplicação no Render não redireciona automaticamente os jobs do GitHub Actions. Essa diferença precisa ser considerada na operação do failover.
 
-## 3. Coleta global Gupy — `gupy.yml`
+## 4. Coleta global Gupy — `gupy.yml`
 
 Agenda quatro execuções diárias (00h, 06h, 12h e 18h) e aceita disparo manual. Faz checkout explícito de `main`, configura PHP 8.3, instala Composer e executa:
 
@@ -75,7 +88,7 @@ Arquivos relacionados:
 - `app/Services/VacancyImporter.php`
 - `app/Services/VacancySourceFactory.php`
 
-## 4. Automação geral — `vacancies.yml`
+## 5. Automação geral — `vacancies.yml`
 
 Agenda o Laravel quatro vezes ao dia e às segundas-feiras às 03h; também aceita execução manual. Faz checkout de `main`, instala PHP 8.3 e Composer, e executa `php artisan schedule:run`.
 
@@ -93,7 +106,7 @@ Arquivos relacionados:
 - comando `vacancies:queue-size`;
 - `config/vacancy_sources.php`.
 
-## 5. LinkedIn Jobs — `linkedin-jobs.yml`
+## 6. LinkedIn Jobs — `linkedin-jobs.yml`
 
 Agenda 00h30, 06h30, 12h30 e 18h30, além de execução manual. Faz checkout explícito de `developer`, configura PHP 8.3 e Node.js 22, instala Composer, aplica migrações, executa `php artisan linkedin:collect-jobs` e processa a fila `linkedin` com `--stop-when-empty --timeout=1800 --tries=1`.
 
@@ -109,7 +122,7 @@ Arquivos relacionados:
 
 O tratamento de HTTP 429, variáveis de backoff e reagendamento está detalhado em [Coleta de Oportunidades no LinkedIn](ColetaPublicacoesLinkedIn.md).
 
-## 6. Publicações de recrutamento — `linkedin-posts.yml`
+## 7. Publicações de recrutamento — `linkedin-posts.yml`
 
 Agenda 00h e 12h, além de execução manual. Faz checkout de `github.ref`, configura PHP 8.3 e Node.js 22, instala Composer e npm, instala Chromium pelo Playwright, aplica migrações e executa `php artisan linkedin:collect-posts` (modo padrão `all`).
 
@@ -123,7 +136,7 @@ Arquivos relacionados:
 - `app/Services/LinkedInPostAutoPublisher.php`;
 - `config/linkedin.php`.
 
-## 7. Conta secundária LinkedIn — `linkedin-secondary-search.yml`
+## 8. Conta secundária LinkedIn — `linkedin-secondary-search.yml`
 
 Agenda 06h e 18h, além de execução manual. Faz checkout de `developer`, configura PHP 8.3, Node.js 22 e Chromium, instala dependências e exige o secret `LINKEDIN_STORAGE_STATE_B64`. O conteúdo é decodificado para `.local/linkedin-storage-state.json`, com permissão restrita, e não deve ser versionado.
 
@@ -143,7 +156,7 @@ Arquivos relacionados:
 - `app/Services/LinkedInPostAutoPublisher.php`;
 - `config/linkedin.php`.
 
-## 8. CI específico LinkedIn — `linkedin-posts-ci.yml`
+## 9. CI específico LinkedIn — `linkedin-posts-ci.yml`
 
 Dispara em push nas branches `feature/linkedin-recruiter-posts`, `developer` e `main`; não declara evento `pull_request`. Executa:
 - Node.js 22 e `node --check` em `jobs.mjs` e `secondary-account.mjs`;
@@ -157,7 +170,7 @@ Dispara em push nas branches `feature/linkedin-recruiter-posts`, `developer` e `
 
 | Grupo | Workflow |
 |---|---|
-| `ti-vagas-database-operations` | Failover PostgreSQL; também `vacancies.yml` em `main` |
+| `ti-vagas-database-operations` | Failover PostgreSQL; também `vacancies.yml` em `main` e `abler.yml` em `developer` |
 | `ti-vagas-vacancies` | `vacancies.yml` em `developer` |
 | `ti-vagas-gupy-global` | Gupy global |
 | `ti-vagas-linkedin-jobs` | LinkedIn Jobs |
@@ -173,6 +186,7 @@ Os workflows referenciam secrets do GitHub Actions; os valores não devem aparec
 | Secret | Uso |
 |---|---|
 | `APP_KEY` | Inicialização da aplicação Laravel nos jobs |
+| `NEON_DATABASE_URL` | Banco usado pela coleta isolada Abler e demais coletas que apontam diretamente para Neon |
 | `NEON_DATABASE_URL` | Banco acessado diretamente pelas coletas |
 | `PRISMA_DATABASE_URL` | Banco standby no failover |
 | `RENDER_API_KEY` | Autorização na API Render |
