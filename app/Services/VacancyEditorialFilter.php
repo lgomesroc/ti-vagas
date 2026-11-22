@@ -66,6 +66,10 @@ class VacancyEditorialFilter
     ];
 
     private const IRRELEVANT_TERMS = [
+        'programador(a) de operacao', 'programador de operacao',
+        'programadora de operacao', 'programador operacional',
+        'programadora operacional', 'programador de servicos',
+        'programadora de servicos',
         'marketing', 'vendas', 'sales', 'juridico', 'legal', 'financeiro',
         'financial', 'recruiter', 'recrutamento', 'recursos humanos',
         'human resources', 'engenheiro de planejamento', 'engenheiro de pocos',
