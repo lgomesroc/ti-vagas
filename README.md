@@ -15,20 +15,20 @@ A documentação técnica está organizada por assunto na pasta [docs/](docs/).
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos, GitHub Actions, comandos e suíte de testes. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
-| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Resumo das mudanças recentes, descoberta e validação de publicações do LinkedIn, limites técnicos e organização documental. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Histórico de mudanças em coletores, filtros, aceite dos termos, localização e documentação. |
 | [Histórico de Fontes Gupy por Empresa](docs/FontesGupyRecentes.md) | Contexto dos cadastros individuais antigos; não representa a coleta operacional atual. |
 
 O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) complementa o tópico de segurança.
 
 ## Resumo das atualizações recentes
 
-- **LinkedIn:** descoberta de publicações públicas por DuckDuckGo, Brave Search e Mojeek, com deduplicação, validações editoriais e encaminhamento de candidatos para revisão manual. A descoberta por buscadores não garante acesso ao conteúdo integral, comentários ou identificação de publicações patrocinadas.
+- **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e possibilidade de leitura de comentários visíveis; anúncios do LinkedIn Jobs são coletados por fluxo público separado. O acesso ao conteúdo integral não é garantido.
 - **Validação de recrutamento:** regras ampliadas para rejeitar chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM; exigência de e-mail corporativo e verificação de duplicidade de links.
 - **Gupy:** substituição da coleta individual por empresa por um coletor global baseado na API pública de busca, com termos e janela incremental configurados.
 - **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
 - **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
 - **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
-- **Documentação:** criação de documentos de atualizações recentes e fontes Gupy, além da atualização da árvore completa do projeto com ordenação alfabética de pastas e arquivos.
+- **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
 
 Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais.
 
