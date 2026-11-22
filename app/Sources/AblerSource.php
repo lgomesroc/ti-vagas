@@ -26,7 +26,7 @@ class AblerSource implements VacancySource
     public function __construct(
         private readonly ?string $caBundle = null,
         private readonly int $maxPages = 30,
-        private readonly int $pageSize = 100,
+        private readonly int $pageSize = 12,
         private readonly int $maxJobs = 1500,
         private readonly int $initialLookbackDays = 60,
         ?VacancyLocationFilter $locationFilter = null,
