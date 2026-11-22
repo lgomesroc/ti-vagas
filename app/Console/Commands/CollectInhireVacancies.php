@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Sources\\InhireGlobalSource;
-use App\\Services\\VacancyImporter;
-use App\\Services\\VacancySourceFactory;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\Cache;
-use Illuminate\\Support\\Facades\\Log;
+use App\Sources\InhireGlobalSource;
+use App\Services\VacancyImporter;
+use App\Services\VacancySourceFactory;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class CollectInhireVacancies extends Command
@@ -30,11 +30,11 @@ class CollectInhireVacancies extends Command
             $source = $factory->make('inhire-global');
 
             if (!$source instanceof InhireGlobalSource) {
-                throw new \\RuntimeException('A fonte inhire-global possui uma implementação inesperada.');
+                throw new \RuntimeException('A fonte inhire-global possui uma implementação inesperada.');
             }
 
             $vacancies = $source->fetch();
-            if ($vacancies instanceof \\Traversable) {
+            if ($vacancies instanceof \Traversable) {
                 $vacancies = iterator_to_array($vacancies, false);
             }
 
