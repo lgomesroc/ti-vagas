@@ -30,6 +30,8 @@ use App\Sources\RecrutAiSource;
 use App\Sources\SensediaSource;
 use App\Sources\QuickinSource;
 use App\Sources\RjEmpregosSource;
+use App\Sources\RioVagasSource;
+use App\Sources\BneSource;
 use App\Sources\SuccessFactorsSource;
 use App\Sources\TalentbrandSource;
 use App\Sources\TeamtailorSource;
