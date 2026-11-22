@@ -13,8 +13,10 @@ on:
 permissions:
   contents: read
 
+# Shared lock: do not collect/write vacancies while the database failover
+# workflow is copying or switching the active PostgreSQL database.
 concurrency:
-  group: ti-vagas-vacancies
+  group: ti-vagas-database-operations
   cancel-in-progress: false
 
 jobs:
