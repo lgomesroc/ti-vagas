@@ -87,8 +87,10 @@ function canonicalPostUrl(value) {
   try {
     const url = new URL(value);
 
+    // O LinkedIn usa URNs no /feed/update e IDs embutidos no slug
+    // de /posts. Ambos precisam produzir a mesma chave persistente.
     const activity = url.pathname.match(
-      /urn:li:(?:activity|share):(\d+)/i
+      /(?:urn:li:)?(?:activity|share|ugcPost)[-:](\d{10,})/i
     );
 
     if (activity) {
