@@ -1,0 +1,43 @@
+name: TI Vagas - Coleta isolada Abler
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-database-operations
+  cancel-in-progress: false
+
+jobs:
+  abler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+      DB_SSLMODE: require
+
+    steps:
+      - name: Checkout developer
+        uses: actions/checkout@v4
+        with:
+          ref: developer
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip
+          coverage: none
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Coletar somente Abler
+        run: php artisan vacancies:collect-source abler-global

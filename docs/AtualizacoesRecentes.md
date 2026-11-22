@@ -133,3 +133,10 @@ Foi incluído o coletor `AblerSource`, que consulta a listagem pública JSON do 
 - Foram adicionados testes com respostas HTTP simuladas em `tests/Feature/AblerSourceTest.php`.
 
 A implementação foi registrada na branch `developer`. Os testes automatizados e uma coleta real ainda precisam ser executados para confirmar compatibilidade contínua com a resposta atual da API. A existência do coletor não comprova, por si só, que anúncios estejam sendo importados em produção.
+
+
+## 11. Execução isolada da Abler — 22/11/2026
+
+Foi criado `.github/workflows/abler.yml`, disponível na branch `developer`, para disparar manualmente a coleta real da fonte `abler-global` sem executar as demais fontes, o scheduler ou workers. O workflow utiliza o comando `vacancies:collect-source abler-global`, instala as dependências, usa os secrets `APP_KEY` e `NEON_DATABASE_URL` e compartilha o grupo de concorrência `ti-vagas-database-operations`.
+
+A primeira execução local da integração respondeu HTTP 403 com `API_PROXY_DIRECT_ACCESS_BLOCKED`. Isso indica bloqueio da chamada direta pelo proxy da Abler; os testes automatizados com respostas simuladas não comprovam acesso à API real. A execução no GitHub Actions deve ser usada para verificar se a restrição também ocorre no runner hospedado.
