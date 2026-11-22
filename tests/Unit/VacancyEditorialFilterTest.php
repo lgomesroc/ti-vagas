@@ -40,6 +40,25 @@ class VacancyEditorialFilterTest extends TestCase
         ));
     }
 
+    public function test_rejects_mid_vacancy_in_title(): void
+    {
+        $this->assertFalse($this->filter->isEligible(
+            $this->vacancy(['title' => 'Angular Front-End Developer Mid']),
+            'greenhouse'
+        ));
+    }
+
+    public function test_rejects_intermediate_vacancy_mentioned_in_description(): void
+    {
+        $this->assertFalse($this->filter->isEligible(
+            $this->vacancy([
+                'title' => 'Angular Front-End Developer',
+                'description' => 'We are looking for an intermediate-level developer with Angular experience.',
+            ]),
+            'greenhouse'
+        ));
+    }
+
     public function test_rejects_vacancy_requiring_three_or_more_years(): void
     {
         $this->assertFalse($this->filter->isEligible(
