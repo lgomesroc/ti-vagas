@@ -153,20 +153,10 @@ class VacancyImporter
                 continue;
             }
 
-            // LinkedIn é uma fonte de descoberta ampla: não descartar oportunidades
-            // por senioridade, cargo ou classificação editorial nesta etapa.
-            // Os demais coletores continuam sujeitos ao filtro editorial central.
-            // Assim, os registros extraídos do LinkedIn podem ser revisados e os
-            // critérios ajustados sem perder a oportunidade na coleta.
-            $isLinkedInSource = in_array($sourceName, [
-                'linkedin-jobs',
-                'linkedin-posts',
-            ], true);
-
-            if (
-                !$isLinkedInSource
-                && !$this->editorialFilter->isEligible($data, $sourceName)
-            ) {
+            // LinkedIn Jobs também passa pelos filtros editoriais e geográficos
+            // centrais. A coleta pública altera apenas a descoberta dos cartões;
+            // não amplia os critérios de elegibilidade do TI Vagas.
+            if (!$this->editorialFilter->isEligible($data, $sourceName)) {
                 $this->skip($result, $sourceName, $data, 'editorial_filter');
                 continue;
             }
