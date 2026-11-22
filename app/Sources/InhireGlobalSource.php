@@ -37,6 +37,7 @@ class InhireGlobalSource implements VacancySource
     public function fetch(): iterable
     {
         $tenants = $this->discoverTenants();
+        $knownIdsByTenant = $this->knownJobIdsByTenant($tenants);
         $vacancies = [];
 
         Log::info('InHire: tenants descobertos para coleta global.', [
@@ -45,8 +46,6 @@ class InhireGlobalSource implements VacancySource
         ]);
 
         foreach ($tenants as $tenant) {
-            $knownIds = $this->knownJobIds($tenant);
-
             try {
                 $source = new InhireSource(
                     tenant: $tenant,
@@ -54,7 +53,7 @@ class InhireGlobalSource implements VacancySource
                     caBundle: $this->caBundle,
                     maxJobs: $this->maxJobsPerTenant,
                     locationFilter: $this->locationFilter,
-                    knownJobIds: $knownIds,
+                    knownJobIds: $knownIdsByTenant[$tenant] ?? [],
                 );
 
                 foreach ($source->fetch() as $vacancy) {
@@ -146,21 +145,47 @@ class InhireGlobalSource implements VacancySource
         return array_map('strtolower', $matches[1] ?? []);
     }
 
-    private function knownJobIds(string $tenant): array
+    private function knownJobIdsByTenant(array $tenants): array
     {
-        $legacy = Vacancy::query()
-            ->where('source', 'inhire-' . $tenant)
-            ->pluck('external_id')
-            ->map(static fn ($id) => (string) $id)
-            ->all();
+        $known = array_fill_keys($tenants, []);
 
-        $global = Vacancy::query()
+        // Duas leituras compartilhadas substituem duas consultas por tenant.
+        $legacyRows = Vacancy::query()
+            ->whereIn('source', array_map(
+                static fn ($tenant) => 'inhire-' . $tenant,
+                $tenants
+            ))
+            ->get(['source', 'external_id']);
+
+        foreach ($legacyRows as $row) {
+            $tenant = substr((string) $row->source, strlen('inhire-'));
+            if (isset($known[$tenant])) {
+                $known[$tenant][] = (string) $row->external_id;
+            }
+        }
+
+        $globalIds = Vacancy::query()
             ->where('source', $this->name())
-            ->where('external_id', 'like', $tenant . ':%')
-            ->pluck('external_id')
-            ->map(static fn ($id) => substr((string) $id, strlen($tenant) + 1))
-            ->all();
+            ->pluck('external_id');
 
-        return array_values(array_unique(array_merge($legacy, $global)));
-    }
-}
+        foreach ($globalIds as $externalId) {
+            $externalId = (string) $externalId;
+            $separator = strpos($externalId, ':');
+            if ($separator === false) {
+                continue;
+            }
+
+            $tenant = substr($externalId, 0, $separator);
+            $jobId = substr($externalId, $separator + 1);
+
+            if (isset($known[$tenant])) {
+                $known[$tenant][] = $jobId;
+            }
+        }
+
+        foreach ($known as $tenant => $ids) {
+            $known[$tenant] = array_values(array_unique($ids));
+        }
+
+        return $known;
+    }}
