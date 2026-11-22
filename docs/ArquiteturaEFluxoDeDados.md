@@ -24,7 +24,7 @@ O código segue a organização convencional do Laravel, separando controladores
 - `app/Services/VacancyLinkChecker.php`: verifica periodicamente os endereços originais de candidatura, interpreta respostas HTTP e registra o resultado de cada verificação.
 - `app/Services/VacancyLocationFilter.php`: aplica os critérios de localização e modalidade.
 - `app/Services/VacancySourceFactory.php`: instancia as fontes configuradas e registra coletores globais, como InHire. A Gupy global é construída sob demanda pelo método `make('gupy-global')`.
-- `app/Sources`: contém os adaptadores das plataformas de recrutamento, incluindo `GupyGlobalSource` e `InhireGlobalSource`.
+- `app/Sources`: contém os adaptadores das plataformas de recrutamento, incluindo `GupyGlobalSource`, `InhireGlobalSource` e `AblerSource`.
 - `app/Jobs/FetchVacancySourceJob.php`: executa a consulta de uma fonte em fila.
 
 ## Persistência
@@ -38,7 +38,7 @@ As migrations em `database/migrations` definem a estrutura do banco. A migration
 3. Jobs consultam as fontes e entregam os resultados ao importador.
 4. O importador normaliza os campos, verifica duplicidade, elegibilidade e disponibilidade.
 5. Os registros válidos são inseridos ou atualizados no banco, preservando a data original de publicação quando aplicável.
-6. A coleta global da Gupy consulta a API pública de busca, aplica os termos e a janela incremental configurados e importa sob a identidade `gupy-global`. O coletor global da InHire descobre tenants conhecidos e os consulta sob a identidade `inhire-global`.
+6. A coleta global da Gupy consulta a API pública de busca, aplica os termos e a janela incremental configurados e importa sob a identidade `gupy-global`. O coletor global da InHire descobre tenants conhecidos e os consulta sob a identidade `inhire-global`. A Abler é consultada por `AblerSource`, que percorre a listagem pública paginada e importa sob a identidade `abler-global`.
 7. Os coletores LinkedIn mantêm histórico de consulta para não repetir o enriquecimento de posts e detalhes de anúncios já processados; a descrição completa de cada novo anúncio continua sendo consultada antes da aplicação dos filtros editoriais.
 8. A listagem consulta os registros e aplica os critérios de exibição.
 8. A rotina `vacancies:check-links` verifica em lotes os links de candidatura de vagas ativas ou suspeitas e grava o resultado no histórico de disponibilidade.
