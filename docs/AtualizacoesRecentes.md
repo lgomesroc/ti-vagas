@@ -120,3 +120,16 @@ O documento [Automação e Testes](AutomacaoETestes.md) foi reescrito para refle
 - A verificação de chamadas de engajamento artificial também analisa comentários públicos; comentários comuns permanecem permitidos.
 
 Os filtros editoriais das vagas e os critérios de elegibilidade existentes não foram antecipados nem afrouxados.
+
+
+## 10. Integração global da Abler — 22/11/2026
+
+Foi incluído o coletor `AblerSource`, que consulta a listagem pública JSON do portal de candidatos em `/api/candidate/v2/vacancies`. A integração é global: não exige cadastro individual de empresas ou credenciais por empresa.
+
+- A fonte é registrada na `VacancySourceFactory` com a identidade `abler-global`.
+- A paginação usa os metadados `meta.next` e `meta.last`.
+- Os campos recebidos são normalizados para o contrato comum de vagas, incluindo empresa, descrição, localização, modalidade, URL e data original.
+- A configuração fica em `vacancy_sources.abler`, com janela inicial de 60 dias e limites de páginas/registros por execução.
+- Foram adicionados testes com respostas HTTP simuladas em `tests/Feature/AblerSourceTest.php`.
+
+A implementação foi registrada na branch `developer`. Os testes automatizados e uma coleta real ainda precisam ser executados para confirmar compatibilidade contínua com a resposta atual da API. A existência do coletor não comprova, por si só, que anúncios estejam sendo importados em produção.
