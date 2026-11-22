@@ -1126,7 +1126,7 @@ return [
     'abler' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_pages' => 30,
-        'page_size' => 100,
+        'page_size' => 12,
         'max_jobs' => 1500,
         'initial_lookback_days' => 60,
     ],
