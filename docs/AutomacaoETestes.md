@@ -63,6 +63,31 @@ O coletor de LinkedIn Jobs respeita o limite informado pelo serviço externo. As
 
 Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`; consulte `docs/ColetaPublicacoesLinkedIn.md` e `scripts/linkedin/jobs.mjs`.
 
+## Failover PostgreSQL — workflow da branch main
+
+Na branch `main` está versionado o workflow `.github/workflows/database-failover.yml`, separado da coleta de vagas. Ele monitora a conexão da aplicação e coordena o banco principal Neon e a cópia de contingência Prisma.
+
+Comportamento implementado:
+
+- **Neon ativo e saudável:** copia Neon → Prisma para atualizar a contingência.
+- **Neon indisponível e Prisma acessível:** altera o `DB_URL` do serviço Render para Prisma e solicita um novo deploy.
+- **Prisma ativo e Neon recuperado:** copia Prisma → Neon antes de apontar o Render novamente para Neon.
+- **Ambos indisponíveis:** não altera a conexão ativa.
+- Após a mudança, aguarda o deploy do Render e verifica o endpoint `/up`.
+
+A sincronização usa `pg_dump` e `pg_restore` em transação única, substituindo o conteúdo do banco de destino (que deve ser o banco inativo). O workflow identifica o banco ativo comparando a variável `DB_URL` do serviço Render com as URLs cadastradas nos secrets. A rotina é agendada a cada cinco minutos e também aceita execução manual.
+
+Secrets necessários no GitHub Actions:
+
+- `NEON_DATABASE_URL`;
+- `PRISMA_DATABASE_URL`;
+- `RENDER_API_KEY`;
+- `RENDER_SERVICE_ID`.
+
+O serviço Render precisa ter `DB_URL` configurada diretamente como variável do serviço, e o token deve possuir permissões de leitura do serviço, leitura/escrita de variáveis de ambiente e execução de deploy. Não registre os valores desses secrets na documentação ou nos logs.
+
+**Atenção operacional:** a restauração substitui os dados do banco de destino. A identificação correta do banco ativo, a integridade dos secrets e a exclusividade do destino são condições essenciais. O workflow compartilha o grupo de concorrência `ti-vagas-database-operations` com a coleta geral em `main`, evitando que essas duas rotinas executem ao mesmo tempo. Este workflow deve ser mantido sincronizado com a documentação quando houver alteração nos provedores, no Render ou na estratégia de cópia.
+
 ## Organização dos testes
 
 - `tests/Feature`: testes de integração e comportamento HTTP, fontes, importação, regionalização, localização, reputação de rede, atribuição UTM e verificação de links.
