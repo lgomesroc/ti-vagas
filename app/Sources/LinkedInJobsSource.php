@@ -3,12 +3,19 @@
 namespace App\Sources;
 
 use App\Contracts\VacancySource;
+use App\Exceptions\SourceRateLimitedException;
 use App\Services\VacancyLocationFilter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
 
 class LinkedInJobsSource implements VacancySource
 {
+    /**
+     * Código de saída do script Node para limitação temporária (EX_TEMPFAIL).
+     */
+    public const RATE_LIMIT_EXIT_CODE = 75;
+
     public function __construct(
         private readonly VacancyLocationFilter $locationFilter
     ) {
@@ -39,9 +46,25 @@ class LinkedInJobsSource implements VacancySource
                 'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
                 'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
                 'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
-            ])
-            ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
+            ] + self::rateLimitEnvironment())
+            ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 1800)))
             ->run(['node', 'scripts/linkedin/secondary-account.mjs', 'jobs']);
+
+        if ($result->exitCode() === self::RATE_LIMIT_EXIT_CODE) {
+            $retryAfter = self::parseRetryAfter($result->errorOutput());
+
+            Log::warning('LinkedIn Jobs limitou as requisições (HTTP 429); coleta interrompida.', [
+                'source' => $this->name(),
+                'retry_after_seconds' => $retryAfter,
+                'detail' => trim($result->errorOutput()),
+            ]);
+
+            throw new SourceRateLimitedException(
+                'LinkedIn Jobs limitou as requisições (HTTP 429); a coleta foi interrompida e deve ser reagendada.',
+                $retryAfter,
+                $this->name()
+            );
+        }
 
         if (!$result->successful()) {
             throw new RuntimeException(
@@ -56,6 +79,47 @@ class LinkedInJobsSource implements VacancySource
         }
 
         return $this->filterFetched($vacancies);
+    }
+
+    /**
+     * Variáveis de ambiente de ritmo e backoff repassadas ao script Node.
+     *
+     * @return array<string, string>
+     */
+    public static function rateLimitEnvironment(): array
+    {
+        $settings = (array) config('linkedin.rate_limit', []);
+
+        $map = [
+            'LINKEDIN_REQUEST_DELAY_MS' => 'request_delay_ms',
+            'LINKEDIN_PANEL_DELAY_MS' => 'panel_delay_ms',
+            'LINKEDIN_REQUEST_JITTER_MS' => 'jitter_ms',
+            'LINKEDIN_RATE_LIMIT_MAX_RETRIES' => 'max_retries',
+            'LINKEDIN_RATE_LIMIT_BASE_BACKOFF_MS' => 'base_backoff_ms',
+            'LINKEDIN_RATE_LIMIT_MAX_BACKOFF_MS' => 'max_backoff_ms',
+        ];
+
+        $environment = [];
+
+        foreach ($map as $variable => $key) {
+            if (isset($settings[$key])) {
+                $environment[$variable] = (string) $settings[$key];
+            }
+        }
+
+        return $environment;
+    }
+
+    /**
+     * Extrai o Retry-After (segundos) informado pelo script, quando houver.
+     */
+    public static function parseRetryAfter(string $errorOutput): ?int
+    {
+        if (preg_match('/LINKEDIN_RATE_LIMITED[^\n]*?retry_after=(\d+)/', $errorOutput, $matches) === 1) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     public function filterFetched(array $vacancies): array

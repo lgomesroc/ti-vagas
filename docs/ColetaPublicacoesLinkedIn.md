@@ -29,3 +29,27 @@ A conta secundária pesquisa exclusivamente vagas de suporte técnico, help desk
 9. Não enviar candidaturas automaticamente.
 
 Dados ausentes não devem ser presumidos. Publicações sem informação suficiente são descartadas.
+
+## Limitação de requisições (HTTP 429) na coleta de LinkedIn Jobs
+
+A coleta espaça as chamadas e reage a HTTP 429 sem tentar contornar o limite
+(sem rotação de IP, proxies, troca de identidade ou cookies alternativos).
+
+| Variável | Padrão | Função |
+| --- | --- | --- |
+| `LINKEDIN_REQUEST_DELAY_MS` | 5000 | Intervalo mínimo entre buscas |
+| `LINKEDIN_PANEL_DELAY_MS` | 1500 | Intervalo mínimo entre aberturas de painel |
+| `LINKEDIN_REQUEST_JITTER_MS` | 1000 | Variação aleatória somada aos intervalos |
+| `LINKEDIN_RATE_LIMIT_MAX_RETRIES` | 3 | Novas tentativas após 429 |
+| `LINKEDIN_RATE_LIMIT_BASE_BACKOFF_MS` | 30000 | Primeira espera; dobra a cada tentativa |
+| `LINKEDIN_RATE_LIMIT_MAX_BACKOFF_MS` | 300000 | Teto do backoff e da espera aceita dentro do processo |
+| `LINKEDIN_RATE_LIMIT_RESCHEDULE_SECONDS` | 900 | Atraso inicial do reagendamento do job |
+| `LINKEDIN_RATE_LIMIT_RESCHEDULE_MAX_SECONDS` | 21600 | Teto do reagendamento |
+
+- `Retry-After` (segundos ou data HTTP) é respeitado. Se pedir espera acima do teto, a coleta
+  é interrompida de imediato e a espera fica a cargo do reagendamento do job.
+- Persistindo o 429, o script sai com código 75; o Laravel lança `SourceRateLimitedException`.
+- `FetchLinkedInJobsJob` (`php artisan linkedin:collect-jobs --queue`) devolve o job à fila com
+  atraso crescente e não conta isso como falha; esgotados os reagendamentos, termina sem falha e
+  a próxima execução agendada tenta de novo.
+- Com o driver `database`, `DB_QUEUE_RETRY_AFTER` deve ser maior que o timeout do job (2100s).

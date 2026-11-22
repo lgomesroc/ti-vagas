@@ -12,7 +12,8 @@ return [
         'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
         'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
         'storage_state' => env('LINKEDIN_STORAGE_STATE_PATH', '.local/linkedin-storage-state.json'),
-        'timeout' => max(600, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 600)),
+        // Com intervalos entre chamadas e backoff para HTTP 429, a coleta leva mais tempo.
+        'timeout' => max(600, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 1800)),
         'keywords' => [
             'vaga suporte técnico',
             'vaga suporte TI',
@@ -45,6 +46,28 @@ return [
             'vaga React Angular júnior',
             'estágio desenvolvimento software',
         ],
+    ],
+
+    /*
+     * Ritmo conservador de requisições e tratamento de HTTP 429.
+     * Os valores são repassados ao script Node por variáveis de ambiente.
+     * Não há rotação de IP, proxy ou troca de identidade: se o LinkedIn
+     * continuar limitando, a coleta é interrompida e reagendada.
+     */
+    'rate_limit' => [
+        // Intervalo mínimo entre buscas e entre aberturas de painel (ms).
+        'request_delay_ms' => (int) env('LINKEDIN_REQUEST_DELAY_MS', 5000),
+        'panel_delay_ms' => (int) env('LINKEDIN_PANEL_DELAY_MS', 1500),
+        'jitter_ms' => (int) env('LINKEDIN_REQUEST_JITTER_MS', 1000),
+
+        // Novas tentativas após 429 e backoff exponencial dentro do processo (ms).
+        'max_retries' => (int) env('LINKEDIN_RATE_LIMIT_MAX_RETRIES', 3),
+        'base_backoff_ms' => (int) env('LINKEDIN_RATE_LIMIT_BASE_BACKOFF_MS', 30000),
+        'max_backoff_ms' => (int) env('LINKEDIN_RATE_LIMIT_MAX_BACKOFF_MS', 300000),
+
+        // Reagendamento do job após a coleta ser interrompida (segundos).
+        'reschedule_base_seconds' => (int) env('LINKEDIN_RATE_LIMIT_RESCHEDULE_SECONDS', 900),
+        'reschedule_max_seconds' => (int) env('LINKEDIN_RATE_LIMIT_RESCHEDULE_MAX_SECONDS', 21600),
     ],
 
     // Certificado raiz da rede, quando há inspeção TLS corporativa.

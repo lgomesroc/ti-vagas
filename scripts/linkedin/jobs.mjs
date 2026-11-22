@@ -1,3 +1,10 @@
+import {
+  RateLimitError,
+  createThrottle,
+  loadRateLimitConfig,
+  parseRetryAfter,
+  requestWithBackoff,
+} from './rate-limit.mjs';
 
 const SEARCH_TERMS = [
   'desenvolvedor júnior',
@@ -25,6 +32,48 @@ function normalize(value) {
 
 function log(message) {
   process.stderr.write('[LinkedIn Jobs] ' + message + '\n');
+}
+
+const RATE_LIMIT = loadRateLimitConfig();
+const throttle = createThrottle(RATE_LIMIT);
+
+/**
+ * Observa respostas 429 das chamadas internas do LinkedIn (abertura de painel).
+ * Nesses casos não há nova tentativa: a coleta é interrompida de forma controlada.
+ */
+function watchForRateLimit(page) {
+  let hit = null;
+
+  const onResponse = response => {
+    if (hit || response.status() !== 429) return;
+
+    const url = response.url();
+
+    if (!url.includes('linkedin.com') || url.includes('/li/track')) return;
+
+    const retryAfterMs = parseRetryAfter(response.headers()['retry-after']);
+
+    hit = {
+      url,
+      retryAfterSeconds: retryAfterMs === null ? null : Math.ceil(retryAfterMs / 1000),
+    };
+  };
+
+  page.on('response', onResponse);
+
+  return {
+    assertClear() {
+      if (!hit) return;
+
+      throw new RateLimitError(
+        'HTTP 429 recebido em chamada interna do LinkedIn ao abrir vaga.',
+        { retryAfterSeconds: hit.retryAfterSeconds, attempts: 1, url: hit.url }
+      );
+    },
+    dispose() {
+      page.off('response', onResponse);
+    },
+  };
 }
 
 function startOfLocalDay(date) {
@@ -288,10 +337,27 @@ async function openSearchPage(page, term, pageNo) {
 
   log('Pesquisa "' + term + '" | página ' + pageNo);
 
-  await page.goto(url.toString(), {
-    waitUntil: 'domcontentloaded',
-    timeout: 45000,
-  });
+  await requestWithBackoff(
+    async () => {
+      await throttle.wait(RATE_LIMIT.requestDelayMs);
+
+      const response = await page.goto(url.toString(), {
+        waitUntil: 'domcontentloaded',
+        timeout: 45000,
+      });
+
+      return {
+        limited: response?.status() === 429,
+        retryAfter: response?.headers()['retry-after'] ?? null,
+        value: response,
+      };
+    },
+    RATE_LIMIT,
+    {
+      log,
+      label: 'pesquisa "' + term + '" página ' + pageNo,
+    }
+  );
 
   await page.locator(CARD_SELECTOR)
     .first()
@@ -607,13 +673,41 @@ async function extractFromOpenPanel(page, job) {
 }
 
 export async function collectLinkedInJobs(page) {
+  const watcher = watchForRateLimit(page);
+
+  try {
+    return await collectJobs(page, watcher);
+  } finally {
+    watcher.dispose();
+  }
+}
+
+async function collectJobs(page, watcher) {
   const scrapedAt = new Date();
   const processedIds = new Set();
   const results = [];
 
+  // Registra o estado parcial e repassa a interrupção ao chamador.
+  const interrupt = error => {
+    log(
+      'COLETA INTERROMPIDA por limitação do LinkedIn (HTTP 429). ' +
+      'Motivo: ' + error.message + ' ' +
+      'Vagas únicas processadas até aqui: ' + processedIds.size + '. ' +
+      'Aprovadas até aqui (descartadas nesta execução): ' + results.length + '. ' +
+      'Nova coleta deve ocorrer em execução posterior.'
+    );
+
+    return error;
+  };
+
   log('Início da raspagem: ' + scrapedAt.toString());
   log('Janela de publicação: últimas 72 horas.');
   log('Máximo de páginas por pesquisa: ' + MAX_PAGES_PER_SEARCH);
+  log(
+    'Ritmo: ' + RATE_LIMIT.requestDelayMs + 'ms entre buscas, ' +
+    RATE_LIMIT.panelDelayMs + 'ms entre painéis, até ' +
+    RATE_LIMIT.maxRetries + ' novas tentativas em caso de 429.'
+  );
 
   for (const term of SEARCH_TERMS) {
     log('\nIniciando pesquisa: ' + term);
@@ -630,6 +724,10 @@ export async function collectLinkedInJobs(page) {
       try {
         cards = await openSearchPage(page, term, pageNo);
       } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw interrupt(error);
+        }
+
         log(
           'Falha na pesquisa "' +
           term +
@@ -705,6 +803,8 @@ export async function collectLinkedInJobs(page) {
 
         log('Abrindo painel para validar: ' + job.title);
 
+        await throttle.wait(RATE_LIMIT.panelDelayMs);
+
         try {
           const vacancy = await extractFromOpenPanel(page, job);
 
@@ -721,6 +821,13 @@ export async function collectLinkedInJobs(page) {
             ': ' +
             (error?.message ?? error)
           );
+        }
+
+        // Um 429 nas chamadas internas encerra a coleta, sem nova tentativa.
+        try {
+          watcher.assertClear();
+        } catch (error) {
+          throw interrupt(error);
         }
       }
 

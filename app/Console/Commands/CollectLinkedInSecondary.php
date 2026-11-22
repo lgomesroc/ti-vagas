@@ -45,8 +45,8 @@ class CollectLinkedInSecondary extends Command
                     'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
                     'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
                     'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
-                ])
-                ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
+                ] + LinkedInJobsSource::rateLimitEnvironment())
+                ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 1800)))
                 ->run(['node', 'scripts/linkedin/secondary-account.mjs', 'all']);
 
             if (!$result->successful()) {
@@ -56,6 +56,14 @@ class CollectLinkedInSecondary extends Command
             $payload = json_decode($result->output(), true);
             if (!is_array($payload) || !is_array($payload['posts'] ?? null) || !is_array($payload['vacancies'] ?? null)) {
                 throw new \RuntimeException('O coletor do LinkedIn retornou JSON inválido.');
+            }
+
+            if (is_array($payload['vacancies_rate_limited'] ?? null)) {
+                Log::warning('Coleta de vagas do LinkedIn adiada por limitação (HTTP 429); publicações foram preservadas.', [
+                    'reason' => $payload['vacancies_rate_limited']['reason'] ?? null,
+                    'retry_after_seconds' => $payload['vacancies_rate_limited']['retry_after_seconds'] ?? null,
+                ]);
+                $this->warn('Vagas do LinkedIn adiadas por limitação (HTTP 429); as publicações foram processadas normalmente.');
             }
 
             $postTotals = ['received' => count($payload['posts']), 'created' => 0, 'updated' => 0, 'rejected' => 0, 'duplicates' => 0, 'failed' => 0];

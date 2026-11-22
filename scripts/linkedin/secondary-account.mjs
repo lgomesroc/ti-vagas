@@ -4,6 +4,11 @@ import { stdin, stdout } from 'node:process';
 import path from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { collectLinkedInJobs } from './jobs.mjs';
+import {
+  RATE_LIMIT_EXIT_CODE,
+  RATE_LIMIT_MARKER,
+  RateLimitError,
+} from './rate-limit.mjs';
 
 const profile = path.resolve(
   process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ??
@@ -833,12 +838,34 @@ async function main() {
         '\n[LinkedIn] Iniciando também a coleta de vagas.\n'
       );
 
-      const vacancies = await collectLinkedInJobs(page);
+      let vacancies = [];
+      let vacanciesRateLimited = null;
+
+      try {
+        vacancies = await collectLinkedInJobs(page);
+      } catch (error) {
+        if (!(error instanceof RateLimitError)) {
+          throw error;
+        }
+
+        // Preserva as publicações já coletadas; as vagas ficam para depois.
+        vacanciesRateLimited = {
+          reason: error.message,
+          retry_after_seconds: error.retryAfterSeconds,
+        };
+
+        process.stderr.write(
+          `[LinkedIn] ${RATE_LIMIT_MARKER}: coleta de vagas adiada. ${error.message}\n`
+        );
+      }
 
       process.stdout.write(
         JSON.stringify({
           posts: enriched,
           vacancies,
+          ...(vacanciesRateLimited
+            ? { vacancies_rate_limited: vacanciesRateLimited }
+            : {}),
         })
       );
     } else {
@@ -854,6 +881,17 @@ async function main() {
 }
 
 main().catch(error => {
+  if (error instanceof RateLimitError) {
+    // Limitação temporária: sai com código próprio para o Laravel reagendar.
+    console.error(
+      `${RATE_LIMIT_MARKER} retry_after=${error.retryAfterSeconds ?? ''} ` +
+      `attempts=${error.attempts} reason=${error.message}`
+    );
+    process.exitCode = RATE_LIMIT_EXIT_CODE;
+
+    return;
+  }
+
   console.error(error?.message ?? String(error));
   process.exitCode = 1;
 });
