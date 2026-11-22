@@ -871,9 +871,14 @@ class LinkedInPostCandidateProcessor
         preg_match_all('~https?://[^\s<>"\']+~iu', $text, $matches);
         $urls = array_merge($urls, $matches[0] ?? []);
 
-        return array_values(array_unique(array_map(
-            fn ($url) => rtrim($url, ".,);]}>"),
-            array_filter($urls, fn ($url) => filter_var($url, FILTER_VALIDATE_URL))
+        $normalizedUrls = array_map(
+            fn ($url) => rtrim(trim(preg_split('/\\s+/', (string) $url, 2)[0]), ".,);]}>"),
+            $urls
+        );
+
+        return array_values(array_unique(array_filter(
+            $normalizedUrls,
+            fn ($url) => filter_var($url, FILTER_VALIDATE_URL)
         )));
     }
 

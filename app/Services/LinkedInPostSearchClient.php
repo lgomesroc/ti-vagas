@@ -388,7 +388,7 @@ class LinkedInPostSearchClient
 
         $path = rtrim((string) ($parts['path'] ?? ''), '/');
 
-        return 'https://www.linkedin.com' . $path . '/';
+        return 'https://www.linkedin.com' . $path;
     }
 
     private function isWithinLookback(Carbon $publishedAt): bool

@@ -132,7 +132,7 @@ class LinkedInPostSearchClientTest extends TestCase
 
         $this->assertCount(1, $posts);
         $this->assertSame(
-            'https://www.linkedin.com/posts/author_post-shared/',
+            'https://www.linkedin.com/posts/author_post-shared',
             $posts[0]['postUrl']
         );
         $this->assertSame(

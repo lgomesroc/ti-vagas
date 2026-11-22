@@ -114,7 +114,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     public function test_ordinary_public_comment_does_not_trigger_engagement_bait_rejection(): void
     {
         $post = $this->makePost([
-            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Envie currículo para talentos@acme.com.',
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Remoto Brasil. Envie currículo para talentos@acme.com.',
             'topComments' => [
                 ['text' => 'Tenho interesse e vou me candidatar pelo canal informado.'],
             ],
