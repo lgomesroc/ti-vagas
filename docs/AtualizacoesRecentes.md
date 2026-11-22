@@ -87,7 +87,7 @@ As duas Issues foram encerradas após as correções. A documentação não fixa
 
 ## 8. Revisão da automação GitHub Actions — 22/11/2026
 
-Foi criado o documento [Workflows do GitHub Actions](WorkflowsGitHubActions.md), com inventário de todos os workflows, gatilhos, agendamentos, timezone, branch usada no checkout, secrets, jobs, filas e grupos de concorrência.
+Foi criado o documento [Workflows do GitHub Actions](WorkflowsGitHubActions.md), com inventário de todos os workflows, gatilhos, agendamentos, timezone, branch usada no checkout, secrets, jobs, filas e grupos de concorrência. A auditoria confirmou sete arquivos de workflow em `developer` e oito em `main`.
 
 A revisão identificou uma diferença importante entre branches: `database-failover.yml` existe somente em `main`, enquanto os outros sete workflows estão presentes em `developer`. Também foram registrados os checkouts explícitos: Gupy e automação geral executam código de `main`; LinkedIn Jobs e conta secundária usam `developer`; publicações regulares usam a referência do evento.
 
