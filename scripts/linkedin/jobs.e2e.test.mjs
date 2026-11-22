@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -171,7 +171,7 @@ test('anúncio cujo detalhe já foi consultado não gera nova requisição detal
       assert.equal(requests.filter(url => url.includes('/jobPosting/')).length, 0);
       assert.match(result.stderr, /Detalhes já consultados e ignorados: 1/);
     });
-    assert.equal(readFileSync(scanFile, 'utf8'), '');
+    assert.equal(existsSync(scanFile), false, 'IDs conhecidos não devem gerar registro de nova consulta.');
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
