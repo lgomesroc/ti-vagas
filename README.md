@@ -29,7 +29,7 @@ O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md)
 - **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
 - **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
 - **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
-- **Automação:** inventário detalhado dos oito workflows do GitHub Actions, com branch de checkout, agenda, secrets, jobs e grupos de concorrência. O failover PostgreSQL existe somente em `main`.
+- **Automação:** inventário dos workflows do GitHub Actions: sete arquivos em `developer` e oito em `main`, com branch de checkout, agenda, secrets, jobs e grupos de concorrência. O failover PostgreSQL existe somente em `main`.
 - **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
 
 Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais.
