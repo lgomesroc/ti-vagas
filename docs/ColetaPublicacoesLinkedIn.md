@@ -62,8 +62,8 @@ A análise de comentários só pode utilizar comentários realmente disponibiliz
 
 ### Workflows de publicações
 
-- `linkedin-posts.yml`: coleta regular de publicações, com navegador Chromium e sessão de conta secundária opcional conforme os secrets e variáveis configurados.
-- `linkedin-secondary-search.yml`: execução específica do modo `bot`, com sessão da conta secundária obrigatória no workflow.
+- `linkedin-posts.yml`: coleta regular no modo `all`; no workflow versionado, `LINKEDIN_SECONDARY_ACCOUNT_ENABLED=false`, portanto a execução agendada utiliza os buscadores públicos.
+- `linkedin-secondary-search.yml`: execução específica do modo `bot`, com a conta secundária habilitada e o estado de sessão fornecido por secret.
 - `linkedin-posts-ci.yml`: valida scripts Node, sintaxe PHP e testes automatizados relacionados.
 
 Os workflows possuem agendamentos próprios em `America/Sao_Paulo` e também podem ser executados manualmente.
