@@ -7,7 +7,7 @@
 2. Arquivos em ordem alfabética.
 
 - Branch: `developer`
-- Total: 59 pastas e 318 arquivos.
+- Total: 59 pastas e 319 arquivos.
 
 ```text
 ├── .github/
@@ -210,6 +210,7 @@
 │   ├── ColetaEIntegracaoDeVagas.md
 │   ├── ColetaPublicacoesLinkedIn.md
 │   ├── deteccao-de-redes-suspeitas.md
+│   ├── EstruturaDoProjeto.md
 │   ├── FontesGupyRecentes.md
 │   ├── InstalacaoEConfiguracao.md
 │   ├── LocalizacaoERegionalizacao.md
