@@ -80,6 +80,16 @@ class InhireGlobalSource implements VacancySource
     {
         $tenants = self::DEFAULT_TENANTS;
 
+        // Mantém descoberta retrocompatível pelos nomes das fontes antigas
+        // (inhire-{tenant}), mesmo quando a URL de candidatura é externa.
+        $legacySources = Vacancy::query()
+            ->where('source', 'like', 'inhire-%')
+            ->pluck('source');
+
+        foreach ($legacySources as $sourceName) {
+            $tenants[] = substr((string) $sourceName, strlen('inhire-'));
+        }
+
         // Reaproveita tenants já conhecidos pelos links das vagas importadas.
         $vacancyUrls = Vacancy::query()
             ->where('application_url', 'like', '%.inhire.app%')
@@ -95,15 +105,17 @@ class InhireGlobalSource implements VacancySource
             ->where(function ($query) {
                 $query->where('post_text', 'like', '%.inhire.app%')
                     ->orWhere('post_url', 'like', '%.inhire.app%')
-                    ->orWhere('embedded_links', 'like', '%inhire.app%');
+                    ->orWhereRaw('CAST(embedded_links AS TEXT) LIKE ?', ['%inhire.app%'])
+                    ->orWhereRaw('CAST(comments AS TEXT) LIKE ?', ['%inhire.app%']);
             })
-            ->get(['post_text', 'post_url', 'embedded_links']);
+            ->get(['post_text', 'post_url', 'embedded_links', 'comments']);
 
         foreach ($candidates as $candidate) {
             $texts = [
                 (string) $candidate->post_text,
                 (string) $candidate->post_url,
                 json_encode($candidate->embedded_links, JSON_UNESCAPED_SLASHES) ?: '',
+                json_encode($candidate->comments, JSON_UNESCAPED_SLASHES) ?: '',
             ];
 
             foreach ($texts as $text) {
