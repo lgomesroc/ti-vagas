@@ -5,7 +5,7 @@
 Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
 
 - Branch: `developer`
-- Total: 59 pastas e 315 arquivos.
+- Total: 59 pastas e 317 arquivos.
 
 ```text
 ├── .github/
@@ -113,6 +113,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   └── Sources/
 │       ├── AshbySource.php
 │       ├── BizneoSource.php
+│       ├── BneSource.php
 │       ├── BradescoCsodSource.php
 │       ├── BtgPactualSource.php
 │       ├── CompleoSource.php
@@ -143,6 +144,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │       ├── QuickinSource.php
 │       ├── RadarTecSource.php
 │       ├── RecrutAiSource.php
+│       ├── RioVagasSource.php
 │       ├── RjEmpregosSource.php
 │       ├── SensediaSource.php
 │       ├── SmartRecruitersSource.php
