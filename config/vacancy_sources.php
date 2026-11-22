@@ -142,61 +142,8 @@ return [
 
     'inhire' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
-        'max_jobs' => 200,
-
-        'companies' => [
-            'orizon' => [
-                'name' => 'Orizon',
-            ],
-            'brivia' => [
-                'name' => 'Brivia',
-            ],
-            'idwall' => [
-                'name' => 'idwall',
-            ],
-            'rposolutions' => [
-                'name' => 'RPO Solutions',
-            ],
-            'aarin' => [
-                'name' => 'Aarin Techfin',
-            ],
-            'grupofour' => [
-                'name' => 'Uhuu / Grupo Four',
-            ],
-            'amaro' => [
-                'name' => 'AMARO',
-            ],
-            'mjv' => [
-                'name' => 'MJV Technology & Innovation',
-            ],
-            'instacarro' => [
-                'name' => 'InstaCarro',
-            ],
-            'bancopine' => [
-                'name' => 'Banco Pine',
-            ],
-            'riachuelo' => [
-                'name' => 'Riachuelo',
-            ],
-            'alun' => [
-                'name' => 'FIAP / Alura / PM3',
-            ],
-            'avenue' => [
-                'name' => 'Avenue',
-            ],
-            'dtidigital' => [
-                'name' => 'dti digital',
-            ],
-            'trinca' => [
-                'name' => 'TRINCA',
-            ],
-            'brq' => [
-                'name' => 'BRQ Digital Solutions',
-            ],
-            'mottu' => [
-                'name' => 'Mottu',
-            ],
-        ],
+        'max_jobs_per_tenant' => 200,
+        'request_delay_ms' => 150,
     ],
 
     'mindsight' => [
