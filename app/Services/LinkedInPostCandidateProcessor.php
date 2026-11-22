@@ -113,14 +113,14 @@ class LinkedInPostCandidateProcessor
             is_array($post['emails'] ?? null) ? array_map('strtolower', $post['emails']) : []
         )));
 
-        $hasCorporateEmail = $this->hasCorporateEmail($emails);
+        $hasApplicationEmail = $emails !== [];
 
         if (
             (
                 ($post['searchProvider'] ?? null) === 'linkedin-secondary-account'
                 || ($post['secondaryAccountSource'] ?? false) === true
                 || in_array('linkedin-secondary-account', $post['searchProviders'] ?? [], true)
-            ) && $links === [] && !$hasCorporateEmail
+            ) && $links === [] && !$hasApplicationEmail
         ) {
             $candidate->fill($base + [
                 'embedded_links' => [],
@@ -132,7 +132,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        if ($links === [] && !$hasCorporateEmail) {
+        if ($links === [] && !$hasApplicationEmail) {
             $candidate->fill($base + [
                 'embedded_links' => [],
                 'emails' => $emails,
@@ -145,7 +145,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        foreach ($links as $link) {
+        foreach ($hasApplicationEmail ? [] : $links as $link) {
             $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
             $duplicateCandidate = $this->findDuplicateCandidate(
                 null,
@@ -174,7 +174,7 @@ class LinkedInPostCandidateProcessor
         }
 
         $verifiedLinks = [];
-        foreach ($links as $link) {
+        foreach ($hasApplicationEmail ? [] : $links as $link) {
             $inspection = $this->urlInspector->inspect($link);
             $verifiedLinks[] = ['url' => $link] + $inspection;
 
@@ -212,16 +212,11 @@ class LinkedInPostCandidateProcessor
             }
         }
 
-        // Publicações de recrutamento no LinkedIn também podem receber currículos
-        // diretamente por e-mail corporativo. Representamos esse canal como mailto:
-        // para que a oportunidade permaneça publicável sem inventar uma URL web.
-        if ($applicationUrl === null && $hasCorporateEmail) {
-            $corporateEmail = collect($emails)->first(
-                fn (string $email): bool => $this->isCorporateEmail($email)
-            );
-            if ($corporateEmail !== null) {
-                $applicationUrl = 'mailto:' . $corporateEmail;
-            }
+        // Quando a publicação oferece e-mail, o TI Vagas exibe a própria
+        // publicação como origem da oportunidade. O e-mail permanece no texto
+        // original para que o candidato veja as instruções da pessoa recrutadora.
+        if ($hasApplicationEmail) {
+            $applicationUrl = $postUrl;
         }
 
         $enrichedText = trim($text . "\n" . $pageContent);
@@ -235,6 +230,7 @@ class LinkedInPostCandidateProcessor
         $description = trim(
             $enrichedText
             . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
+            . ($links !== [] ? "\n\nLinks identificados na publicação:\n" . implode("\n", $links) : '')
         );
 
         $reason = $this->validateBusinessRules(
@@ -549,75 +545,24 @@ class LinkedInPostCandidateProcessor
         ?string $applicationUrl,
         array $emails
     ): ?string {
-        $titleText = $this->normalize($title);
-        $descriptionText = $this->normalize($description);
-
         if ($title === null) {
             return 'Não foi possível identificar o cargo da oportunidade.';
         }
 
-        foreach ([
-            'estagio', 'estagiario', 'trainee', 'internship', 'intern',
-            'pleno', 'senior', 'sr', 'mid-level', 'mid level',
-            'staff', 'principal', 'lead', 'manager', 'gerente', 'diretor',
-            'head', 'especialista', 'coordenador', 'supervisor',
-        ] as $term) {
-            if (preg_match('/(^|[^a-z0-9])' . preg_quote($term, '/') . '([^a-z0-9]|$)/', $titleText)) {
-                return 'Nível fora do escopo: somente vagas efetivas júnior.';
-            }
+        if (preg_match('/\\b(estagio|estagiario|trainee|internship|intern|apprentice)\\b/', $this->normalize($title))) {
+            return 'Estágio e trainee não fazem parte do escopo de vagas efetivas do TI Vagas.';
         }
 
-        if (preg_match('/\b(?:3|[4-9]|\d{2,})\s*(?:\+|plus)?\s*(?:[-–]\s*\d+\s*)?(?:anos?|years?)\b/', $descriptionText)) {
-            return 'Descrição exige três anos ou mais de experiência.';
-        }
-
-        if (preg_match(
-            '/\\b(?:nivel|posicao|vaga|cargo|perfil)\\s+(?:de\\s+|para\\s+)?(?:pleno|senior|sr|mid[- ]level|staff|principal|lead|especialista|coordenador|supervisor)\\b|\\b(?:pleno|senior|sr|mid[- ]level|staff|principal|lead)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b|\\b(?:experienced|experiente)\\s+(?:developer|engineer|analyst|analista|desenvolvedor|programador|tecnico)\\b/',
-            $descriptionText
-        )) {
-            return 'A descrição identifica explicitamente a oportunidade como nível pleno, sênior ou equivalente.';
-        }
-
-        $excluded = [
-            'crm', 'erp', 'sap', 'abap', 'business intelligence',
-            'analista de dados', 'data analyst', 'data engineer',
-            'data scientist', 'machine learning', 'deep learning',
-            'cientista de dados', 'engenheiro de dados', 'bi analyst',
-        ];
-
-        foreach ($excluded as $term) {
-            if (str_contains($titleText, $this->normalize($term))) {
-                return 'Área fora do escopo editorial do TI Vagas.';
-            }
-        }
-
-        $allowed = [
-            'desenvolvedor', 'developer', 'programador', 'software engineer',
-            'engenheiro de software', 'backend', 'back-end', 'frontend',
-            'front-end', 'full stack', 'fullstack', 'php', '.net', 'java',
-            'python', 'javascript', 'typescript', 'qa', 'quality assurance',
-            'analista de testes', 'infraestrutura', 'infrastructure',
-            'devops', 'cloud engineer', 'sysadmin', 'redes', 'network',
-            'suporte', 'help desk', 'helpdesk', 'service desk', 'it support',
-            'technical support', 'noc', 'security analyst', 'ciberseguranca',
-        ];
-
-        $isAllowed = false;
-        foreach ($allowed as $term) {
-            if (str_contains($titleText, $this->normalize($term))) {
-                $isAllowed = true;
-                break;
-            }
-        }
-
-        if (!$isAllowed) {
-            return 'Cargo não pertence às áreas de desenvolvimento, QA, infraestrutura, DevOps, redes ou suporte.';
-        }
-
+        // A publicação já passou pela identificação de anúncio real de vaga,
+        // anti-spam e validação de canal público de candidatura. Não aplicar aqui
+        // filtros rígidos de senioridade, anos de experiência ou área: preservar
+        // a oportunidade permite corrigir a regra sem perder o post de origem.
         if ($applicationUrl === null) {
-            return 'Sem link de candidatura verificado ou e-mail corporativo de candidatura.';
+            return 'Sem link de candidatura ou e-mail informado na publicação.';
         }
 
+        // Mantém a regra geográfica do projeto para não transformar vagas
+        // globais em oportunidades brasileiras sem evidência.
         if (!$this->locationFilter->isEligibleForCollection(
             $location,
             $title,
@@ -799,15 +744,22 @@ class LinkedInPostCandidateProcessor
 
     private function extractTitle(string $text): ?string
     {
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $text) ?: [])));
+        // Em posts de uma linha, captura apenas o cargo anunciado.
+        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
+
+        if (preg_match($rolePattern, $text, $matches)) {
+            return mb_substr(trim($matches[1]), 0, 255);
+        }
+
+        $lines = array_values(array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])));
 
         foreach ($lines as $line) {
-            if (preg_match('/\b(j[uú]nior|jr\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\b/i', $line)) {
-                return mb_substr(trim(preg_replace('/^[#\-\s]+/', '', $line)), 0, 255);
+            if (preg_match('/\\b(j[uú]nior|jr\\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\\b/i', $line)) {
+                return mb_substr(trim(preg_replace('/^[#\\-\\s]+/', '', $line)), 0, 255);
             }
         }
 
-        if (preg_match('/(?:vaga|oportunidade)\s+(?:para|de|em)?\s*([^\n.!]{5,100})/iu', $text, $matches)) {
+        if (preg_match('/(?:vaga|oportunidade)\\s+(?:para|de|em)?\\s*([^\\n.!]{5,100})/iu', $text, $matches)) {
             return mb_substr(trim($matches[1]), 0, 255);
         }
 

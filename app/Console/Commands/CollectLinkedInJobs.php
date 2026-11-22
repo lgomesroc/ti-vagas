@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\SourceRateLimitedException;
+use App\Jobs\FetchLinkedInJobsJob;
 use App\Services\VacancyImporter;
 use App\Services\VacancyLocationFilter;
 use App\Sources\LinkedInJobsSource;
@@ -11,16 +13,25 @@ use Throwable;
 
 class CollectLinkedInJobs extends Command
 {
-    protected $signature = 'linkedin:collect-jobs';
+    protected $signature = 'linkedin:collect-jobs {--sync : Executa a coleta imediatamente, sem fila}';
 
-    protected $description = 'Coleta vagas do LinkedIn Jobs usando a sessão autenticada da conta secundária';
+    protected $description = 'Enfileira ou executa a coleta pública de vagas do LinkedIn Jobs';
 
     public function handle(
         VacancyImporter $importer,
         VacancyLocationFilter $locationFilter
     ): int {
-        if (!config('linkedin.secondary_account.enabled')) {
-            $this->warn('A coleta autenticada do LinkedIn está desabilitada.');
+        if (!config('linkedin.jobs.enabled')) {
+            $this->warn('A coleta pública de LinkedIn Jobs está desabilitada.');
+            return self::SUCCESS;
+        }
+
+        if (!$this->option('sync')) {
+            FetchLinkedInJobsJob::dispatch();
+
+            $this->info('Coleta do LinkedIn Jobs enviada para a fila linkedin.');
+            $this->line('Execute um worker da fila linkedin para processá-la.');
+
             return self::SUCCESS;
         }
 
@@ -29,13 +40,25 @@ class CollectLinkedInJobs extends Command
         try {
             $source = new LinkedInJobsSource($locationFilter);
             $vacancies = $source->fetch();
-            $this->info('Vagas aprovadas pelos filtros da fonte: ' . count($vacancies));
+            $this->info('Vagas extraídas para importação: ' . count($vacancies));
             $result = $importer->importFetched($source->name(), $vacancies);
 
             $this->table(
-                ['Recebidas elegíveis', 'Novas', 'Atualizadas', 'Ignoradas'],
+                ['Extraídas', 'Novas', 'Atualizadas', 'Ignoradas'],
                 [[count($vacancies), $result['created'], $result['updated'], $result['skipped']]]
             );
+
+            return self::SUCCESS;
+        } catch (SourceRateLimitedException $exception) {
+            // Limitação temporária, não é erro da aplicação: nada foi importado
+            // e a coleta deve ser repetida mais tarde (de preferência pela fila).
+            $this->warn($exception->getMessage());
+
+            if ($exception->retryAfterSeconds !== null) {
+                $this->warn('Retry-After informado: ' . $exception->retryAfterSeconds . 's.');
+            }
+
+            $this->warn('Nenhuma vaga foi importada nesta execução. Tente novamente mais tarde ou sem --sync.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

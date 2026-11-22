@@ -9,10 +9,12 @@ use App\Sources\BradescoCsodSource;
 use App\Sources\DerevoSource;
 use App\Sources\GeekHunterSource;
 use App\Sources\GreenhouseSource;
-use App\Sources\GupySource;
-use App\Sources\InhireSource;
+use App\Sources\GupyGlobalSource;
+use App\Sources\InhireGlobalSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
+use App\Sources\NerdinSource;
+use App\Sources\NetVagasSource;
 use App\Sources\JobConvoSource;
 use App\Sources\JobylonSource;
 use App\Sources\LeverSource;
@@ -186,17 +188,14 @@ class VacancySourceFactory
 
         $inhire = config('vacancy_sources.inhire', []);
 
-        foreach ($inhire['companies'] ?? [] as $tenant => $company) {
-            $source = new InhireSource(
-                tenant: $tenant,
-                companyName: $company['name'] ?? $tenant,
-                caBundle: $inhire['ca_bundle'] ?? null,
-                maxJobs: (int) ($inhire['max_jobs'] ?? 200),
-                locationFilter: $this->locationFilter,
-            );
+        $inhireSource = new InhireGlobalSource(
+            caBundle: $inhire['ca_bundle'] ?? null,
+            maxJobsPerTenant: (int) ($inhire['max_jobs_per_tenant'] ?? 200),
+            locationFilter: $this->locationFilter,
+            delayMs: (int) ($inhire['request_delay_ms'] ?? 150),
+        );
 
-            $sources[$source->name()] = $source;
-        }
+        $sources[$inhireSource->name()] = $inhireSource;
 
         $mindsight = config('vacancy_sources.mindsight', []);
 
@@ -213,20 +212,7 @@ class VacancySourceFactory
             $sources[$source->name()] = $source;
         }
 
-        $gupy = config('vacancy_sources.gupy', []);
-
-        foreach ($gupy['companies'] ?? [] as $subdomain => $company) {
-            $source = new GupySource(
-                subdomain: $subdomain,
-                companyName: $company['name'] ?? $subdomain,
-                caBundle: $gupy['ca_bundle'] ?? null,
-                maxJobs: (int) ($gupy['max_jobs'] ?? 200),
-                baseUrl: $company['url'] ?? null,
-                technologyOnly: (bool) ($company['technology_only'] ?? false),
-            );
-
-            $sources[$source->name()] = $source;
-        }
+        // Gupy global é criada sob demanda em make(), fora da fila das demais fontes.
 
         $oracle = config('vacancy_sources.oracle_hcm', []);
 
@@ -561,6 +547,26 @@ class VacancySourceFactory
         $ibmSource = new IbmSource(caBundle: $ibm['ca_bundle'] ?? null, maxJobs: (int) ($ibm['max_jobs'] ?? 500), locationFilter: $this->locationFilter);
         $sources[$ibmSource->name()] = $ibmSource;
 
+        $nerdin = config('vacancy_sources.nerdin', []);
+        $nerdinSource = new NerdinSource(
+            caBundle: $nerdin['ca_bundle'] ?? null,
+            maxPages: (int) ($nerdin['max_pages'] ?? 45),
+            maxJobs: (int) ($nerdin['max_jobs'] ?? 500),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$nerdinSource->name()] = $nerdinSource;
+
+        $netvagas = config('vacancy_sources.netvagas', []);
+        $netvagasSource = new NetVagasSource(
+            terms: $netvagas['terms'] ?? [],
+            maxPages: (int) ($netvagas['max_pages'] ?? 2),
+            initialLookbackDays: (int) ($netvagas['initial_lookback_days'] ?? 60),
+            requestDelayMs: (int) ($netvagas['request_delay_ms'] ?? 150),
+            caBundle: $netvagas['ca_bundle'] ?? null,
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$netvagasSource->name()] = $netvagasSource;
+
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
         $sources[$microsoftSource->name()] = $microsoftSource;
@@ -570,6 +576,21 @@ class VacancySourceFactory
 
     public function make(string $sourceName)
     {
+        if ($sourceName === 'gupy-global') {
+            $gupy = config('vacancy_sources.gupy', []);
+
+            return new GupyGlobalSource(
+                terms: $gupy['global']['terms'] ?? [],
+                pageSize: (int) ($gupy['global']['page_size'] ?? 50),
+                maxPages: (int) ($gupy['global']['max_pages'] ?? 5),
+                initialLookbackDays: (int) ($gupy['global']['initial_lookback_days'] ?? 60),
+                overlapMinutes: (int) ($gupy['global']['overlap_minutes'] ?? 60),
+                requestDelayMs: (int) ($gupy['global']['request_delay_ms'] ?? 250),
+                caBundle: $gupy['ca_bundle'] ?? null,
+                locationFilter: $this->locationFilter,
+            );
+        }
+
         $source = $this->all()[$sourceName] ?? null;
 
         if ($source === null) {

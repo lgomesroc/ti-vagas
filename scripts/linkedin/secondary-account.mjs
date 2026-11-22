@@ -87,8 +87,10 @@ function canonicalPostUrl(value) {
   try {
     const url = new URL(value);
 
+    // O LinkedIn usa URNs no /feed/update e IDs embutidos no slug
+    // de /posts. Ambos precisam produzir a mesma chave persistente.
     const activity = url.pathname.match(
-      /urn:li:(?:activity|share):(\d+)/i
+      /(?:urn:li:)?(?:activity|share|ugcPost)[-:](\d{10,})/i
     );
 
     if (activity) {
@@ -161,29 +163,27 @@ async function expandComments(page, card) {
   const labels =
     /show more comments|view more comments|ver mais comentarios|mostrar mais comentarios|mais comentarios/i;
 
-  for (let i = 0; i < 2; i++) {
-    const buttons = card.getByRole('button');
-    const count = Math.min(await buttons.count(), 60);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    // Lê rótulos em uma única avaliação do DOM. Isso evita esperar 30s por
+    // um nth() que deixou de existir após o LinkedIn atualizar o cartão.
+    const candidates = await card.locator('button').evaluateAll(nodes =>
+      nodes.slice(0, 60).map((node, index) => ({
+        index,
+        label: [
+          node.getAttribute('aria-label') || '',
+          node.innerText || node.textContent || '',
+        ].join(' '),
+      }))
+    ).catch(() => []);
 
-    let clicked = false;
+    const candidate = candidates.find(item => labels.test(item.label));
+    if (!candidate) break;
 
-    for (let j = 0; j < count; j++) {
-      const button = buttons.nth(j);
+    const clicked = await card.locator('button').nth(candidate.index)
+      .click({ timeout: 1200 }).then(() => true).catch(() => false);
 
-      const label =
-        (await button.getAttribute('aria-label')) +
-        ' ' +
-        (await button.innerText({ timeout: 1000 }).catch(() => ''));
-
-      if (labels.test(label)) {
-        await button.click({ timeout: 1500 }).catch(() => {});
-        await page.waitForTimeout(300);
-        clicked = true;
-        break;
-      }
-    }
-
-    if (!clicked) break;
+    if (!clicked) continue;
+    await page.waitForTimeout(250);
   }
 }
 
@@ -481,8 +481,13 @@ async function extractCard(page, card, keyword) {
     }
   }
 
+  const emailSource = [
+    postText,
+    ...comments.map(comment => comment.text),
+  ].join('\n');
+
   const emailMatches = [
-    ...postText.matchAll(
+    ...emailSource.matchAll(
       /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
     ),
   ].map(match => match[0].toLowerCase());
@@ -497,7 +502,7 @@ async function extractCard(page, card, keyword) {
   ) || postLines[0] || keyword;
 
   return {
-    postId: componentKey || Buffer.from(postUrl).toString('base64url'),
+    postId: canonicalPostUrl(postUrl),
     postUrl,
     title: titleLine.slice(0, 255),
     text: postText,
@@ -549,9 +554,9 @@ async function launchBrowser() {
 }
 
 async function main() {
-  if (!['login', 'search', 'jobs', 'all'].includes(mode)) {
+  if (!['login', 'search', 'posts', 'jobs', 'all'].includes(mode)) {
     throw new Error(
-      `Modo inválido: ${mode}. Use login, search, jobs ou all.`
+      `Modo inválido: ${mode}. Use login, search, posts, jobs ou all.`
     );
   }
 
@@ -631,104 +636,15 @@ async function main() {
         waitUntil: 'domcontentloaded',
       });
 
-      await page.waitForTimeout(2200);
+      await page.waitForTimeout(900);
 
       const diagnostic = keywordDiagnostics.get(keyword) ?? {
         cards: 0,
         samples: [],
+        pages: 0,
+        cardElements: 0,
       };
-
-      diagnostic.searchUrl = page.url();
-      diagnostic.pageTitle = await page.title().catch(() => '');
-      diagnostic.bodyText = (
-        await page.locator('body').innerText().catch(() => '')
-      ).slice(0, 1800);
-
-      diagnostic.mainText = (
-        await page.locator('main').innerText().catch(() => '')
-      ).slice(0, 1200);
-
-      diagnostic.selectorCounts = {
-        urnDivs: await page.locator('div[data-urn]').count().catch(() => -1),
-        feedUpdates: await page.locator('div.feed-shared-update-v2').count().catch(() => -1),
-        reusableResults: await page.locator('li.reusable-search__result-container').count().catch(() => -1),
-        articles: await page.locator('main article').count().catch(() => -1),
-        listItems: await page.locator('main li').count().catch(() => -1),
-      };
-
-      diagnostic.listItemSamples = await page.locator('main li').evaluateAll(nodes =>
-        nodes.slice(0, 10).map(node => ({
-          className: typeof node.className === 'string' ? node.className : '',
-          text: (node.innerText || '').slice(0, 700),
-          links: [...node.querySelectorAll('a[href]')]
-            .slice(0, 12)
-            .map(a => ({
-              text: (a.innerText || '').trim().slice(0, 100),
-              href: a.href,
-            })),
-          time: [...node.querySelectorAll('time')]
-            .slice(0, 3)
-            .map(t => ({
-              text: (t.innerText || '').trim(),
-              datetime: t.getAttribute('datetime'),
-              ariaLabel: t.getAttribute('aria-label'),
-            })),
-        }))
-      ).catch(() => []);
-
-      diagnostic.timestampAncestors = await page.locator('main').evaluate(main => {
-        const candidates = [...main.querySelectorAll('*')].filter(node => {
-          const text = (node.innerText || '').trim();
-
-          return (
-            text.length >= 250 &&
-            text.length <= 10000 &&
-            /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(text) &&
-            ![...node.children].some(child => {
-              const childText = (child.innerText || '').trim();
-
-              return (
-                childText.length >= 250 &&
-                childText.length <= 10000 &&
-                /\b\d+\s*(min|minuto|minutos|h|hr|hora|horas|d|dia|dias)\b/i.test(childText)
-              );
-            })
-          );
-        }).slice(0, 5);
-
-        return candidates.map(node => {
-          const chain = [];
-          let current = node;
-
-          for (let i = 0; current && i < 7; i++, current = current.parentElement) {
-            chain.push({
-              tag: current.tagName,
-              className: typeof current.className === 'string'
-                ? current.className
-                : '',
-              role: current.getAttribute('role'),
-              dataUrn: current.getAttribute('data-urn'),
-              text: (current.innerText || '').slice(0, 900),
-              links: [...current.querySelectorAll('a[href]')]
-                .slice(0, 8)
-                .map(a => ({
-                  text: (a.innerText || '').trim().slice(0, 80),
-                  href: a.href,
-                })),
-              times: [...current.querySelectorAll('time')]
-                .slice(0, 3)
-                .map(t => ({
-                  text: (t.innerText || '').trim(),
-                  datetime: t.getAttribute('datetime'),
-                  aria: t.getAttribute('aria-label'),
-                })),
-            });
-          }
-
-          return chain;
-        });
-      }).catch(() => []);
-
+      diagnostic.pages++;
       keywordDiagnostics.set(keyword, diagnostic);
 
       for (let pageNo = 0; pageNo < 2; pageNo++) {
@@ -804,23 +720,13 @@ async function main() {
         }
 
         await page.mouse.wheel(0, 1800);
-        await page.waitForTimeout(900);
+        await page.waitForTimeout(400);
       }
-
-      await page.waitForTimeout(1100);
     }
 
-    const enriched = [];
-
-    for (const post of [...posts.values()].slice(0, 25)) {
-      try {
-        enriched.push(await enrichPost(page, post));
-      } catch {
-        enriched.push(post);
-      }
-
-      await page.waitForTimeout(350);
-    }
+    // O cartão já foi expandido e os links, e-mails e comentários públicos
+    // foram extraídos durante a busca. Evita abrir até 25 URLs individualmente.
+    const enriched = [...posts.values()];
 
     process.stderr.write(
       '[LinkedIn secondary diagnostics]\n' +

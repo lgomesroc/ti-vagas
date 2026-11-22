@@ -142,61 +142,8 @@ return [
 
     'inhire' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
-        'max_jobs' => 200,
-
-        'companies' => [
-            'orizon' => [
-                'name' => 'Orizon',
-            ],
-            'brivia' => [
-                'name' => 'Brivia',
-            ],
-            'idwall' => [
-                'name' => 'idwall',
-            ],
-            'rposolutions' => [
-                'name' => 'RPO Solutions',
-            ],
-            'aarin' => [
-                'name' => 'Aarin Techfin',
-            ],
-            'grupofour' => [
-                'name' => 'Uhuu / Grupo Four',
-            ],
-            'amaro' => [
-                'name' => 'AMARO',
-            ],
-            'mjv' => [
-                'name' => 'MJV Technology & Innovation',
-            ],
-            'instacarro' => [
-                'name' => 'InstaCarro',
-            ],
-            'bancopine' => [
-                'name' => 'Banco Pine',
-            ],
-            'riachuelo' => [
-                'name' => 'Riachuelo',
-            ],
-            'alun' => [
-                'name' => 'FIAP / Alura / PM3',
-            ],
-            'avenue' => [
-                'name' => 'Avenue',
-            ],
-            'dtidigital' => [
-                'name' => 'dti digital',
-            ],
-            'trinca' => [
-                'name' => 'TRINCA',
-            ],
-            'brq' => [
-                'name' => 'BRQ Digital Solutions',
-            ],
-            'mottu' => [
-                'name' => 'Mottu',
-            ],
-        ],
+        'max_jobs_per_tenant' => 200,
+        'request_delay_ms' => 150,
     ],
 
     'mindsight' => [
@@ -623,8 +570,43 @@ return [
             ],
 
         ],
-    ],
 
+
+        'global' => [
+            'page_size' => 50,
+            'max_pages' => 5,
+            'initial_lookback_days' => 60,
+            'overlap_minutes' => 60,
+            'request_delay_ms' => 250,
+            'terms' => [
+                'desenvolvedor',
+                'desenvolvedora',
+                'developer',
+                'programador',
+                'programadora',
+                'software engineer',
+                'backend',
+                'back-end',
+                'frontend',
+                'front-end',
+                'full stack',
+                'analista de suporte',
+                'suporte técnico',
+                'help desk',
+                'service desk',
+                'infraestrutura',
+                'analista de redes',
+                'devops',
+                'cloud',
+                'QA',
+                'quality assurance',
+                'cibersegurança',
+                'segurança da informação',
+                'NOC',
+                'SOC',
+            ],
+        ],
+    ],
     'oracle_hcm' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_jobs' => 1000,
@@ -981,6 +963,47 @@ return [
                 'name' => 'EDITORA GLOBO',
                 'url' => 'https://trabalheconosco.vagas.com.br/editoragloboeradio/oportunidades',
             ],
+        ],
+    ],
+
+    'nerdin' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 45,
+        'max_jobs' => 500,
+    ],
+
+    'netvagas' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 2,
+        'initial_lookback_days' => 60,
+        'request_delay_ms' => 150,
+        'terms' => [
+            'desenvolvedor',
+            'desenvolvedora',
+            'programador',
+            'software',
+            'backend',
+            'frontend',
+            'full stack',
+            'php',
+            'laravel',
+            'dotnet',
+            'java',
+            'python',
+            'javascript',
+            'analista de sistemas',
+            'analista de suporte',
+            'suporte técnico',
+            'infraestrutura',
+            'redes',
+            'devops',
+            'qa',
+            'testes',
+            'dados',
+            'cloud',
+            'segurança da informação',
+            'noc',
+            'soc',
         ],
     ],
 

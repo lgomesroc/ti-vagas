@@ -28,6 +28,7 @@ jobs:
       CACHE_STORE: database
       QUEUE_CONNECTION: database
       LINKEDIN_HEADLESS: "true"
+      LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
       LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "true"
       LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json

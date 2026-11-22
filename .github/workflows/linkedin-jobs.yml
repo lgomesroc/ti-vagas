@@ -1,0 +1,60 @@
+name: TI Vagas - LinkedIn Jobs
+
+on:
+  schedule:
+    - cron: "30 6,12,18,0 * * *"
+      timezone: "America/Sao_Paulo"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-linkedin-jobs
+  cancel-in-progress: false
+
+jobs:
+  collect-linkedin-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
+      DB_SSLMODE: require
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      DB_QUEUE_RETRY_AFTER: "1900"
+      LINKEDIN_JOBS_ENABLED: "true"
+      LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: developer
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
+          coverage: none
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependências PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Aplicar migrações
+        run: php artisan migrate --force
+
+      - name: Coletar vagas do LinkedIn Jobs e importar no banco
+        run: |
+          php artisan linkedin:collect-jobs
+          php artisan queue:work database --queue=linkedin --stop-when-empty --timeout=1800 --tries=1

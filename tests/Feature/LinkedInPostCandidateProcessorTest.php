@@ -12,7 +12,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_email_provider_without_application_link_is_rejected(): void
+    public function test_public_email_provider_keeps_the_original_linkedin_post_as_application_source(): void
     {
         $post = $this->makePost([
             'isPromoted' => false,
@@ -21,10 +21,11 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $this->assertSame(1, $result['rejected']);
+        $this->assertSame(0, $result['rejected']);
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
-            'status' => 'rejected',
+            'status' => 'pending_publication',
+            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
         ]);
 
         $candidate = LinkedInPostCandidate::query()
@@ -32,6 +33,23 @@ class LinkedInPostCandidateProcessorTest extends TestCase
             ->firstOrFail();
 
         $this->assertContains('contato@gmail.com', $candidate->emails);
+    }
+
+    public function test_seniority_mismatch_is_preserved_for_later_editorial_review(): void
+    {
+        $post = $this->makePost([
+            'text' => 'Estamos contratando Analista de Suporte Sênior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para recrutamento@acme.com.',
+        ]);
+
+        $result = app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertSame(0, $result['rejected']);
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:1001',
+            'status' => 'pending_publication',
+            'title' => 'Analista de Suporte Sênior',
+            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
+        ]);
     }
 
     public function test_engagement_bait_asking_people_to_comment_for_a_private_message_is_rejected(): void
@@ -204,7 +222,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         ]);
     }
 
-    public function test_post_with_corporate_email_only_is_queued_for_automatic_publication(): void
+    public function test_post_with_corporate_email_only_uses_original_post_as_application_source(): void
     {
         $post = $this->makePost([
             'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para talentos@acme.com.',
@@ -216,7 +234,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'pending_publication',
-            'application_url' => 'mailto:talentos@acme.com',
+            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
         ]);
     }
 

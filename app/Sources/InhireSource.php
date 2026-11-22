@@ -20,6 +20,7 @@ class InhireSource implements VacancySource
         private readonly ?string $caBundle = null,
         private readonly int $maxJobs = 200,
         private readonly ?VacancyLocationFilter $locationFilter = null,
+        private readonly array $knownJobIds = [],
     ) {
     }
 
@@ -34,6 +35,11 @@ class InhireSource implements VacancySource
             ->get(self::BASE_URL . '/job-posts/public/pages');
 
         $response->throw();
+
+        $companyName = trim((string) ($response->json('tenantName') ?? $this->companyName));
+        if ($companyName === '') {
+            $companyName = $this->companyName;
+        }
 
         $jobs = $response->json('jobsPage', []);
 
@@ -51,6 +57,7 @@ class InhireSource implements VacancySource
                 !is_array($job)
                 || ($job['status'] ?? null) !== 'published'
                 || empty($job['jobId'])
+                || in_array((string) $job['jobId'], $this->knownJobIds, true)
             ) {
                 continue;
             }
@@ -62,7 +69,7 @@ class InhireSource implements VacancySource
             $processed++;
 
             try {
-                $vacancy = $this->fetchJobDetails($job);
+                $vacancy = $this->fetchJobDetails($job, $companyName);
 
                 if ($vacancy !== null) {
                     $vacancies[] = $vacancy;
@@ -79,7 +86,7 @@ class InhireSource implements VacancySource
         return $vacancies;
     }
 
-    private function fetchJobDetails(array $job): ?array
+    private function fetchJobDetails(array $job, string $companyName): ?array
     {
         $jobId = (string) $job['jobId'];
 
@@ -195,14 +202,15 @@ class InhireSource implements VacancySource
 
         return [
             'title' => $title,
-            'company' => $this->companyName,
+            'company' => trim((string) ($details['tenantName'] ?? $companyName)) ?: $companyName,
             'description' => $description,
             'location' => $location,
             'work_model' => $workModel,
             'employment_type' => $this->extractEmploymentType($details),
             'salary' => $this->extractSalary($details),
             'application_url' => $applicationUrl,
-            'external_id' => $jobId,
+            'external_id' => $this->tenant . ':' . $jobId,
+            '_legacy_source' => 'inhire-' . $this->tenant,
             'original_published_at' => $originalPublishedAt,
 
             'city' => $geographicFields['city'],
@@ -349,6 +357,7 @@ class InhireSource implements VacancySource
         return Http::acceptJson()
             ->withHeaders([
                 'X-Tenant' => $this->tenant,
+                'X-Inhire-Client' => 'web-inhire',
             ])
             ->timeout(30)
             ->withOptions([

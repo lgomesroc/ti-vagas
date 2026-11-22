@@ -167,6 +167,67 @@ class VacancyImporterTest extends TestCase
         );
     }
 
+    public function test_linkedin_jobs_are_subject_to_the_editorial_filter(): void
+    {
+        $vacancy = $this->validVacancy([
+            'title' => 'Analista de Marketing Sênior',
+            'external_id' => 'linkedin-jobs:987654',
+            'description' => 'Oportunidade encontrada na pesquisa do LinkedIn e preservada para revisão editorial.',
+            'application_url' => 'https://www.linkedin.com/jobs/view/987654/',
+        ]);
+
+        $result = app(VacancyImporter::class)->import(
+            $this->makeSource([$vacancy], 'linkedin-jobs')
+        );
+
+        $this->assertSame([
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 1,
+        ], $result);
+
+        $this->assertDatabaseMissing('vacancies', [
+            'source' => 'linkedin-jobs',
+            'external_id' => 'linkedin-jobs:987654',
+        ]);
+    }
+
+    public function test_global_gupy_import_updates_legacy_tenant_record_without_changing_its_source(): void
+    {
+        $legacy = $this->validVacancy([
+            'external_id' => 'gupy-job-987',
+            'application_url' => 'https://empresa.gupy.io/jobs/987',
+        ]);
+
+        app(VacancyImporter::class)->import(
+            $this->makeSource([$legacy], 'gupy-empresa')
+        );
+
+        $updated = $this->validVacancy([
+            'external_id' => 'gupy-job-987',
+            'title' => 'Desenvolvedor PHP Júnior - Atualizado',
+            'application_url' => 'https://empresa.gupy.io/jobs/987',
+            'description' => 'Descrição atualizada da oportunidade.',
+        ]);
+
+        $result = app(VacancyImporter::class)->import(
+            $this->makeSource([$updated], 'gupy-global')
+        );
+
+        $this->assertSame([
+            'created' => 0,
+            'updated' => 1,
+            'skipped' => 0,
+        ], $result);
+
+        $this->assertDatabaseCount('vacancies', 1);
+        $this->assertDatabaseHas('vacancies', [
+            'source' => 'gupy-empresa',
+            'external_id' => 'gupy-job-987',
+            'title' => 'Desenvolvedor PHP Júnior - Atualizado',
+        ]);
+    }
+
     public function test_it_skips_vacancies_without_original_publication_date(): void
     {
         $vacancy = $this->validVacancy([
@@ -261,17 +322,18 @@ class VacancyImporterTest extends TestCase
         ]);
     }
 
-    private function makeSource(array $vacancies): VacancySource
+    private function makeSource(array $vacancies, string $sourceName = 'test-source'): VacancySource
     {
-        return new class($vacancies) implements VacancySource {
+        return new class($vacancies, $sourceName) implements VacancySource {
             public function __construct(
-                private array $vacancies
+                private array $vacancies,
+                private string $sourceName
             ) {
             }
 
             public function name(): string
             {
-                return 'test-source';
+                return $this->sourceName;
             }
 
             public function fetch(): iterable

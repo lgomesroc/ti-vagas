@@ -61,11 +61,15 @@ class VacancyEditorialFilter
         'pleno', 'senior', 'sr', 'staff', 'principal', 'lead', 'manager',
         'gerente', 'director', 'diretor', 'head', 'architect', 'arquiteto',
         'especialista', 'coordenador', 'coordenadora', 'lider', 'supervisor',
-        'supervisora', 'trainee', 'estagio', 'estagiario', 'intern',
-        'internship',
+        'supervisora', 'mid', 'middle', 'intermediate', 'trainee', 'estagio',
+        'estagiario', 'intern', 'internship',
     ];
 
     private const IRRELEVANT_TERMS = [
+        'programador(a) de operacao', 'programador de operacao',
+        'programadora de operacao', 'programador operacional',
+        'programadora operacional', 'programador de servicos',
+        'programadora de servicos',
         'marketing', 'vendas', 'sales', 'juridico', 'legal', 'financeiro',
         'financial', 'recruiter', 'recrutamento', 'recursos humanos',
         'human resources', 'engenheiro de planejamento', 'engenheiro de pocos',
@@ -126,22 +130,23 @@ class VacancyEditorialFilter
         }
 
         if (
-            preg_match('/\bpl\s*$/i', $titleText) === 1
-            || preg_match('/\bsoftware engineer\s+(?:iii|iv|v)\b/i', $titleText) === 1
+            preg_match('/\\bpl\\s*$/i', $titleText) === 1
+            || preg_match('/\\bsoftware engineer\\s+(?:iii|iv|v)\\b/i', $titleText) === 1
         ) {
             return false;
         }
 
         // Rejeita exigência explícita de três ou mais anos de experiência.
         if (preg_match(
-            '/\b(?:3|[4-9]|\d{2,})\s*(?:(?:\+|plus)\s*)?(?:[-–]\s*(?:3|[4-9]|\d{2,})\s*)?(?:years?|anos)\b/i',
+            '/\\b(?:3|[4-9]|\\d{2,})\\s*(?:(?:\\+|plus)\\s*)?(?:[-–]\\s*(?:3|[4-9]|\\d{2,})\\s*)?(?:years?|anos)\\b/i',
             $descriptionText
         ) === 1) {
             return false;
         }
 
+        $nonJuniorSeniority = '(?:pleno|senior|sr|staff|principal|lead|mid(?:[- ]level)?|middle(?:[- ]level)?|intermediate)';
         if (preg_match(
-            '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\b(?:pleno|senior|sr|staff|principal|lead)\b|\b(?:pleno|senior|sr|staff|principal|lead)\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
+            '/(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer).{0,80}\\b' . $nonJuniorSeniority . '\\b|\\b' . $nonJuniorSeniority . '\\b.{0,80}(?:desenvolvedor|developer|software engineer|engineer|consultor|consultant|programador|programmer)/i',
             $descriptionText
         ) === 1) {
             return false;

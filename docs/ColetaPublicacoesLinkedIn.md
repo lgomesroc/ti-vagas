@@ -29,3 +29,35 @@ A conta secundária pesquisa exclusivamente vagas de suporte técnico, help desk
 9. Não enviar candidaturas automaticamente.
 
 Dados ausentes não devem ser presumidos. Publicações sem informação suficiente são descartadas.
+
+## Coleta pública de LinkedIn Jobs: limitação de requisições (HTTP 429)
+
+A coleta (`scripts/linkedin/jobs.mjs`) espaça as chamadas e reage ao HTTP 429 sem tentar
+contornar o limite: não há rotação de IP, proxies, troca de identidade ou cookies alternativos.
+
+| Variável | Padrão | Função |
+| --- | --- | --- |
+| `LINKEDIN_JOBS_DELAY_MS` | 2500 | Intervalo mínimo entre quaisquer requisições (mínimo 500) |
+| `LINKEDIN_JOBS_JITTER_MS` | 500 | Variação aleatória somada ao intervalo |
+| `LINKEDIN_JOBS_MAX_RETRIES` | 3 | Novas tentativas após 429 |
+| `LINKEDIN_JOBS_BACKOFF_BASE_MS` | 30000 | Primeira espera; dobra a cada tentativa |
+| `LINKEDIN_JOBS_BACKOFF_MAX_MS` | 300000 | Teto do backoff e da espera aceita dentro do processo |
+| `LINKEDIN_JOBS_RESCHEDULE_SECONDS` | 900 | Atraso inicial do reagendamento do job |
+| `LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS` | 14400 | Teto do reagendamento |
+
+- O cabeçalho `Retry-After` (segundos ou data HTTP) é respeitado. Se pedir espera acima do teto,
+  a coleta é interrompida de imediato, sem aguardar dentro do processo.
+- Persistindo o 429 (inclusive na etapa do `geoId`), o script registra o motivo e o progresso
+  (pesquisas concluídas, cartões únicos, detalhes consultados, descrições extraídas) e sai com
+  código 75. O Laravel converte isso em `SourceRateLimitedException`; nada é importado.
+- `FetchLinkedInJobsJob` devolve o job à fila com atraso crescente (`release`) e não conta isso
+  como falha. Esgotados os 5 reagendamentos, termina sem falha e a próxima execução agendada tenta
+  de novo. Erros reais continuam falhando na primeira ocorrência.
+- O job é único (`ShouldBeUnique`): enquanto houver um pendente ou reagendado, um novo despacho é
+  descartado, para não repetir a coleta logo após uma limitação.
+- Em `linkedin:collect-jobs --sync` a limitação é exibida como aviso (código 0), sem importar vagas.
+- No workflow `linkedin-jobs.yml`, o worker usa `--stop-when-empty`: um job reagendado permanece
+  na fila e é processado pelo worker da próxima execução agendada.
+
+Testes: `npm run test:linkedin` (módulo de ritmo/backoff e execução real do script contra um
+servidor local que responde 429) e `tests/Feature/LinkedInJobsRateLimitTest.php`.
