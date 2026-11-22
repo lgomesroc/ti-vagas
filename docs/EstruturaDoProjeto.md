@@ -2,7 +2,9 @@
 
 Árvore dos diretórios e arquivos versionados na branch `developer`, gerada diretamente da árvore Git.
 
-Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
+**Regra de ordenação aplicada recursivamente em todos os níveis:**
+1. Pastas em ordem alfabética.
+2. Arquivos em ordem alfabética.
 
 - Branch: `developer`
 - Total: 59 pastas e 318 arquivos.
