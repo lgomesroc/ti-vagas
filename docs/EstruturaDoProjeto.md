@@ -2,10 +2,12 @@
 
 Árvore dos diretórios e arquivos versionados na branch `developer`, gerada diretamente da árvore Git.
 
-Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois, todos os arquivos aparecem em ordem alfabética**. A regra é aplicada recursivamente, inclusive na raiz.
+**Regra de ordenação aplicada recursivamente em todos os níveis:**
+1. Pastas em ordem alfabética.
+2. Arquivos em ordem alfabética.
 
 - Branch: `developer`
-- Total: 59 pastas e 315 arquivos.
+- Total: 59 pastas e 319 arquivos.
 
 ```text
 ├── .github/
@@ -111,8 +113,10 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── VacancyLocationFilter.php
 │   │   └── VacancySourceFactory.php
 │   └── Sources/
+│       ├── AblerSource.php
 │       ├── AshbySource.php
 │       ├── BizneoSource.php
+│       ├── BneSource.php
 │       ├── BradescoCsodSource.php
 │       ├── BtgPactualSource.php
 │       ├── CompleoSource.php
@@ -143,6 +147,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │       ├── QuickinSource.php
 │       ├── RadarTecSource.php
 │       ├── RecrutAiSource.php
+│       ├── RioVagasSource.php
 │       ├── RjEmpregosSource.php
 │       ├── SensediaSource.php
 │       ├── SmartRecruitersSource.php
@@ -287,6 +292,7 @@ Em cada nível, **todas as pastas aparecem primeiro em ordem alfabética; depois
 │   │   ├── ConfiguresNetworkSecurity.php
 │   │   └── SeedsGeography.php
 │   ├── Feature/
+│   │   ├── AblerSourceTest.php
 │   │   ├── AbuseIpDbDetectorTest.php
 │   │   ├── AshbySourceTest.php
 │   │   ├── BizneoSourceTest.php

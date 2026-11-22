@@ -103,3 +103,10 @@ Como os endereços vêm de fontes externas, o verificador aplica restrições an
 - Limita a leitura do corpo da resposta a 250.000 caracteres para procurar indicadores de encerramento.
 
 A verificação é um indício automatizado, não uma garantia de que a candidatura esteja realmente aberta. Páginas protegidas, bloqueios automatizados, respostas temporárias e mudanças no HTML podem produzir estados suspeitos ou classificações incorretas. A ausência de confirmação não deve ser confundida com prova de encerramento.
+
+
+### Abler
+
+A Abler é consultada por um único coletor global (`AblerSource`), usando a listagem pública JSON do portal de candidatos em `/api/candidate/v2/vacancies`. A coleta percorre a paginação informada em `meta.next` e `meta.last`, respeita o limite configurado e considera a janela inicial de 60 dias. Os anúncios são normalizados para o contrato comum, com empresa, descrição, localização, modalidade, URL de candidatura, identificador externo e data original.
+
+A configuração operacional fica em `vacancy_sources.abler`. Os limites padrão são 30 páginas, 12 registros por página e até 1.500 anúncios importáveis por execução. A classificação de TI e a elegibilidade geográfica são aplicadas antes da importação. Como a API pode alterar seus campos e regras de paginação, a integração deve ser acompanhada pelos testes e diagnósticos da fonte.

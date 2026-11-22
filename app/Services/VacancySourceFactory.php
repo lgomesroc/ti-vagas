@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Sources\AblerSource;
 use App\Sources\AshbySource;
 use App\Sources\CompleoSource;
 use App\Sources\CwiSource;
@@ -591,6 +592,17 @@ class VacancySourceFactory
             locationFilter: $this->locationFilter,
         );
         $sources[$bneSource->name()] = $bneSource;
+
+        $abler = config('vacancy_sources.abler', []);
+        $ablerSource = new AblerSource(
+            caBundle: $abler['ca_bundle'] ?? null,
+            maxPages: (int) ($abler['max_pages'] ?? 30),
+            pageSize: (int) ($abler['page_size'] ?? 12),
+            maxJobs: (int) ($abler['max_jobs'] ?? 1500),
+            initialLookbackDays: (int) ($abler['initial_lookback_days'] ?? 60),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$ablerSource->name()] = $ablerSource;
 
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
