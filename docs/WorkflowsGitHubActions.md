@@ -157,14 +157,14 @@ Dispara em push nas branches `feature/linkedin-recruiter-posts`, `developer` e `
 
 | Grupo | Workflow |
 |---|---|
-| `ti-vagas-database-operations` | Failover PostgreSQL |
-| `ti-vagas-vacancies` | Automação geral |
+| `ti-vagas-database-operations` | Failover PostgreSQL; também `vacancies.yml` em `main` |
+| `ti-vagas-vacancies` | `vacancies.yml` em `developer` |
 | `ti-vagas-gupy-global` | Gupy global |
 | `ti-vagas-linkedin-jobs` | LinkedIn Jobs |
 | `ti-vagas-linkedin-posts` | Publicações |
 | `ti-vagas-linkedin-secondary` | Conta secundária |
 
-Um grupo só serializa execuções que compartilham exatamente o mesmo nome. O CI não participa desses grupos. Não interpretar esses grupos independentes como trava global de banco.
+Um grupo só serializa execuções que compartilham exatamente o mesmo nome. O CI não participa desses grupos. Em `main`, o failover e a automação geral compartilham grupo; em `developer`, não. Gupy e LinkedIn continuam em grupos independentes nas duas branches. Não interpretar os grupos como trava global de banco.
 
 ## Secrets e dados sensíveis
 
