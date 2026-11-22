@@ -75,7 +75,6 @@ class AblerSource implements VacancySource
                 break;
             }
 
-            $olderThanWindow = false;
             foreach ($records as $record) {
                 if (!is_array($record) || ($record['type'] ?? null) !== 'vacancy') {
                     continue;
@@ -92,7 +91,6 @@ class AblerSource implements VacancySource
 
                 $publishedAt = $this->normalizeDate($job['created_at'] ?? null);
                 if ($publishedAt !== null && CarbonImmutable::parse($publishedAt)->lt($cutoff)) {
-                    $olderThanWindow = true;
                     continue;
                 }
 
@@ -112,7 +110,7 @@ class AblerSource implements VacancySource
             $next = $meta['next'] ?? null;
             $last = (int) ($meta['last'] ?? 0);
 
-            if ($olderThanWindow || $next === null || $next === false || $page >= $last) {
+            if ($next === null || $next === false || $page >= $last) {
                 break;
             }
         }
