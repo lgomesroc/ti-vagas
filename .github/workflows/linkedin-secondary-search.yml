@@ -22,8 +22,9 @@ jobs:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: ${{ secrets.APP_KEY }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       DB_CONNECTION: pgsql
-      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
       DB_SSLMODE: require
       CACHE_STORE: database
       QUEUE_CONNECTION: database
@@ -34,6 +35,33 @@ jobs:
       LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
 
     steps:
+      - name: Resolver banco atualmente ativo no Render
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for name in APP_KEY RENDER_API_KEY RENDER_SERVICE_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::A variável/secret $name não está configurada."
+              exit 1
+            fi
+          done
+
+          response="$(curl --fail --silent --show-error --retry 3 \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Accept: application/json")"
+
+          active_url="$(jq -r '[.[] | select(.envVar.key == "DB_URL") | .envVar.value] | first // empty' <<< "$response")"
+
+          if [ -z "$active_url" ]; then
+            echo "::error::Não foi possível obter DB_URL das variáveis de ambiente do serviço Render."
+            exit 1
+          fi
+
+          echo "::add-mask::$active_url"
+          echo "DB_URL=$active_url" >> "$GITHUB_ENV"
+          echo "Banco ativo do Render resolvido para a automação LinkedIn."
       - name: Checkout
         uses: actions/checkout@v4
         with:
