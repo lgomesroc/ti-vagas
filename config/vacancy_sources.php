@@ -972,6 +972,25 @@ return [
         'max_jobs' => 500,
     ],
 
+    'bne' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 3,
+        'max_jobs' => 250,
+        'initial_lookback_days' => 60,
+        'request_delay_ms' => 200,
+        'terms' => [
+            'desenvolvedor',
+            'programador',
+            'analista de sistemas',
+            'analista de suporte',
+            'suporte técnico',
+            'infraestrutura de TI',
+            'redes de computadores',
+            'estágio em tecnologia',
+            'qa',
+        ],
+    ],
+
     'netvagas' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_pages' => 2,
@@ -1005,6 +1024,14 @@ return [
             'noc',
             'soc',
         ],
+    ],
+
+    'riovagas' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'base_url' => 'https://riovagas.com.br',
+        'max_pages' => 3,
+        'max_jobs' => 80,
+        'initial_lookback_days' => 60,
     ],
 
     'rjempregos' => [
