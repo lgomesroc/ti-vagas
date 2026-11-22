@@ -84,3 +84,13 @@ O coletor passou a aplicar intervalo mínimo entre requisições, jitter, backof
 
 As duas Issues foram encerradas após as correções. A documentação não fixa uma contagem de testes: a validação deve ser consultada na execução de CI correspondente à versão publicada.
 
+
+## 8. Revisão da automação GitHub Actions — 22/11/2026
+
+Foi criado o documento [Workflows do GitHub Actions](WorkflowsGitHubActions.md), com inventário de todos os workflows, gatilhos, agendamentos, timezone, branch usada no checkout, secrets, jobs, filas e grupos de concorrência.
+
+A revisão identificou uma diferença importante entre branches: `database-failover.yml` existe somente em `main`, enquanto os outros sete workflows estão presentes em `developer`. Também foram registrados os checkouts explícitos: Gupy e automação geral executam código de `main`; LinkedIn Jobs e conta secundária usam `developer`; publicações regulares usam a referência do evento.
+
+A documentação agora distingue os grupos de concorrência independentes. O grupo do failover não é compartilhado com todos os workflows de coleta, e as rotinas de coleta usam diretamente o secret `NEON_DATABASE_URL`, não a variável dinâmica `DB_URL` do Render. Isso é uma limitação operacional relevante durante a troca de banco e não deve ser descrita como sincronização global automática.
+
+O documento [Automação e Testes](AutomacaoETestes.md) foi reescrito para refletir o scheduler Laravel, as filas, os comandos e a relação com os workflows. O README passou a apontar para o novo inventário.
