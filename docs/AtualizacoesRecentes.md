@@ -97,3 +97,31 @@ A documentação técnica por assunto está relacionada no [README principal](..
 Este é um resumo de alterações recentes, não uma substituição dos documentos técnicos específicos. Para regras detalhadas de elegibilidade, localização, segurança, instalação, automação e coleta, consulte os documentos correspondentes na pasta `docs/`.
 
 A existência de uma integração no código não garante que o serviço externo esteja sempre disponível, que todos os anúncios sejam encontrados ou que uma candidatura permaneça aberta. A disponibilidade real depende das fontes externas, da configuração de ambiente e da execução bem-sucedida das rotinas.
+
+## 7. Atualizações de integração e processamento — 22/11/2026
+
+### Gupy: coleta global
+
+A coleta da Gupy deixou de executar uma consulta independente por empresa. O workflow dedicado chama `vacancies:collect-gupy`, que utiliza `GupyGlobalSource` e a API pública global de busca. Os termos de pesquisa e os limites de paginação ficam em `vacancy_sources.gupy.global`. A lista de empresas e a classe `GupySource` ainda presentes no repositório são legado e não participam da coleta executada pela fábrica.
+
+### InHire: descoberta global de tenants
+
+A fábrica passou a registrar um único coletor `inhire-global`. Ele combina tenants iniciais conhecidos com tenants identificados em vagas já armazenadas, fontes antigas e publicações/candidatos do LinkedIn, inclusive links guardados em comentários. A consulta por tenant é mantida internamente, mas a importação usa uma identidade global e evita buscar novamente detalhes de IDs já conhecidos.
+
+### LinkedIn Jobs: respeito a limites de requisição
+
+O coletor passou a aplicar intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Quando o HTTP 429 persiste, a execução é interrompida sem importar os resultados parciais; o job Laravel é reagendado com atraso crescente. Não são utilizados proxies, rotação de IP ou troca de identidade para contornar o limite.
+
+### Filtros e normalização
+
+- O filtro editorial passou a rejeitar funções operacionais de programação que não correspondem ao escopo de desenvolvimento de software do portal.
+- Foram reforçados os critérios para não aceitar oportunidades de nível pleno como se fossem júnior.
+- O processador de publicações do LinkedIn passou a extrair títulos concisos de anúncios em uma única linha, evitando armazenar o texto inteiro da publicação como título quando há uma função identificável.
+
+### Correções do aceite dos termos e da primeira localização
+
+- **Issue #46:** foi identificada uma quebra de linha antes de `<?php` em `config/vacancy_sources.php`. A saída prematura impedia o envio correto dos cabeçalhos HTTP, inclusive redirecionamentos e cookies. A linha foi removida.
+- **Issue #47:** o fluxo inicial de localização foi ajustado para permitir que uma sessão em modo `limited` faça a primeira solicitação. A sessão só passa a `available` depois que coordenadas válidas são resolvidas para um município; recusas e dados inválidos mantêm o modo limitado.
+
+As duas Issues foram encerradas após as correções. A documentação não fixa uma contagem de testes: a validação deve ser consultada na execução de CI correspondente à versão publicada.
+
