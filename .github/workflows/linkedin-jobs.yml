@@ -16,7 +16,7 @@ concurrency:
 jobs:
   collect-linkedin-jobs:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 30
     env:
       APP_ENV: production
       APP_DEBUG: "false"
@@ -27,9 +27,16 @@ jobs:
       DB_SSLMODE: require
       CACHE_STORE: database
       QUEUE_CONNECTION: database
-      DB_QUEUE_RETRY_AFTER: "1900"
+      DB_QUEUE_RETRY_AFTER: "1700"
       LINKEDIN_JOBS_ENABLED: "true"
       LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
+      # Mais rápido: menos páginas por termo e orçamento de 15 min. Ao esgotar, a coleta
+      # entrega o que já tem; o restante fica para a próxima execução (mais recentes primeiro).
+      LINKEDIN_JOBS_MAX_PAGES: "3"
+      LINKEDIN_JOBS_DELAY_MS: "1800"
+      LINKEDIN_JOBS_JITTER_MS: "400"
+      LINKEDIN_JOBS_TIME_BUDGET_SECONDS: "900"
+      LINKEDIN_JOBS_TIMEOUT: "1200"
 
     steps:
       - name: Resolver banco atualmente ativo no Render
@@ -83,6 +90,9 @@ jobs:
         run: php artisan migrate --force
 
       - name: Coletar vagas do LinkedIn Jobs e importar no banco
+        timeout-minutes: 25
         run: |
           php artisan linkedin:collect-jobs
-          php artisan queue:work database --queue=linkedin --stop-when-empty --timeout=1800 --tries=1
+          # --timeout (1500s) fica abaixo do limite do passo (25 min), então o worker
+          # encerra o job de forma limpa em vez de ser morto (exit 137).
+          php artisan queue:work database --queue=linkedin --stop-when-empty --timeout=1500 --tries=1

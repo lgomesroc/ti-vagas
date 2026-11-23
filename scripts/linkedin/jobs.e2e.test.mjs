@@ -221,3 +221,50 @@ test('registra o ID depois de receber a resposta detalhada mesmo quando a descri
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('orçamento de tempo esgotado devolve resultado parcial (código 0), mais recentes primeiro', async () => {
+  const hour = 3600 * 1000;
+  // ids 1001..1008; quanto maior o id, mais antigo o anúncio.
+  const cards = Array.from({ length: 8 }, (_, index) => `<li>
+    <div data-entity-urn="urn:li:jobPosting:${1001 + index}"></div>
+    <time datetime="${new Date(Date.now() - (index + 1) * hour).toISOString()}"></time>
+    <h3 class="base-search-card__title">Desenvolvedor Júnior ${index}</h3>
+    <h4 class="base-search-card__subtitle">Acme Tecnologia</h4>
+    <span class="job-search-card__location">Brasil</span>
+  </li>`).join('\n');
+  const detail = '<div class="show-more-less-html__markup">Descrição completa da vaga para desenvolvedor júnior com mais de trinta caracteres.</div></section>';
+
+  await withServer((req, res) => {
+    if (req.url.includes('typeaheadHits')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify([{ id: '1' }]));
+      return;
+    }
+    if (req.url.includes('/jobs-guest/jobs/api/seeMoreJobPostings/search')) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(cards);
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(detail);
+  }, async (baseUrl, requests) => {
+    const startedAt = Date.now();
+    const result = await runScript(baseUrl, {
+      LINKEDIN_JOBS_TIME_BUDGET_SECONDS: '3',
+      LINKEDIN_JOBS_DELAY_MS: '500',
+    });
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stderr, /Orçamento de tempo esgotado/);
+    assert.ok(Date.now() - startedAt < 8000, 'deve terminar logo após o orçamento, sem varrer todas as vagas');
+
+    const vacancies = JSON.parse(result.stdout);
+    assert.ok(vacancies.length >= 1 && vacancies.length < 8, 'resultado parcial: ' + vacancies.length);
+
+    const detailIds = requests
+      .filter(url => url.includes('/jobPosting/'))
+      .map(url => Number(url.split('/jobPosting/')[1]));
+    assert.ok(detailIds.length < 8);
+    assert.deepEqual(detailIds, [...detailIds].sort((a, b) => a - b), 'detalhes das vagas mais recentes primeiro');
+  });
+});

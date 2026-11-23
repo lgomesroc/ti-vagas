@@ -63,10 +63,11 @@ class LinkedInJobsSource implements VacancySource
                     'LINKEDIN_JOBS_BACKOFF_BASE_MS' => (string) config('linkedin.jobs.backoff_base_ms', 30000),
                     'LINKEDIN_JOBS_BACKOFF_MAX_MS' => (string) config('linkedin.jobs.backoff_max_ms', 300000),
                     'LINKEDIN_JOBS_LOCATION' => (string) config('linkedin.jobs.location', 'Brasil'),
+                    'LINKEDIN_JOBS_TIME_BUDGET_SECONDS' => (string) config('linkedin.jobs.time_budget', 900),
                     'LINKEDIN_JOBS_KNOWN_IDS_FILE' => $knownIdsFile,
                     'LINKEDIN_JOBS_SCAN_LOG_FILE' => $scanLogFile,
                 ])
-                ->timeout(max(600, (int) config('linkedin.jobs.timeout', 1800)))
+                ->timeout(max(300, (int) config('linkedin.jobs.timeout', 1200)))
                 ->run(['node', 'scripts/linkedin/jobs.mjs']);
         } finally {
             // O Node registra cada resposta de detalhe; persistimos também em caso de 429.

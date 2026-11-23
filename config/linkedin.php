@@ -17,7 +17,12 @@ return [
         'delay_ms' => max(500, (int) env('LINKEDIN_JOBS_DELAY_MS', 2500)),
         'jitter_ms' => max(0, (int) env('LINKEDIN_JOBS_JITTER_MS', 500)),
         'location' => env('LINKEDIN_JOBS_LOCATION', 'Brasil'),
-        'timeout' => max(600, (int) env('LINKEDIN_JOBS_TIMEOUT', 1800)),
+        // Tempo máximo do processo Node. Deve ser menor que o timeout do job (1500s)
+        // e maior que o orçamento de coleta, para o Node encerrar sozinho e entregar
+        // o resultado parcial antes de qualquer SIGKILL.
+        'timeout' => max(300, (int) env('LINKEDIN_JOBS_TIMEOUT', 1200)),
+        // Orçamento de tempo da coleta dentro do Node (segundos). 0 = sem limite.
+        'time_budget' => max(0, (int) env('LINKEDIN_JOBS_TIME_BUDGET_SECONDS', 900)),
 
         // HTTP 429: novas tentativas e backoff exponencial dentro do processo (ms).
         // Não há rotação de IP, proxy ou troca de identidade: persistindo o 429,
@@ -31,11 +36,17 @@ return [
         'reschedule_max_seconds' => max(1, (int) env('LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS', 14400)),
     ],
 
+    // Navegador sem janela. Padrão true: servidores e GitHub Actions não têm tela.
+    // Só use false localmente, para o login manual da conta secundária.
+    'headless' => filter_var(env('LINKEDIN_HEADLESS', true), FILTER_VALIDATE_BOOL),
+
     'secondary_account' => [
         'enabled' => filter_var(env('LINKEDIN_SECONDARY_ACCOUNT_ENABLED', true), FILTER_VALIDATE_BOOL),
         'profile' => env('LINKEDIN_SECONDARY_ACCOUNT_PROFILE', '.local/linkedin-secondary-profile'),
         'storage_state' => env('LINKEDIN_STORAGE_STATE_PATH', '.local/linkedin-storage-state.json'),
-        'timeout' => max(600, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 600)),
+        'timeout' => max(300, (int) env('LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT', 900)),
+        // Orçamento de tempo da pesquisa dentro do Node (segundos); menor que o timeout.
+        'time_budget' => max(0, (int) env('LINKEDIN_POSTS_TIME_BUDGET_SECONDS', 480)),
         'keywords' => [
             'vaga suporte técnico',
             'vaga suporte TI',
