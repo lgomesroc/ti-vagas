@@ -98,6 +98,17 @@ jobs:
           printf '%s' "$LINKEDIN_STORAGE_STATE_B64" | base64 --decode > "$LINKEDIN_STORAGE_STATE_PATH"
           chmod 600 "$LINKEDIN_STORAGE_STATE_PATH"
 
+          # Valida a sessão restaurada para falhar com uma mensagem clara.
+          node -e '
+            const fs = require("fs");
+            let s;
+            try { s = JSON.parse(fs.readFileSync(process.env.LINKEDIN_STORAGE_STATE_PATH, "utf8")); }
+            catch { console.log("::error::LINKEDIN_STORAGE_STATE_B64 não é um storage-state.json válido em base64. Gere de novo com: npm run linkedin:secondary:export"); process.exit(1); }
+            const c = (s.cookies || []).find(x => x.name === "li_at");
+            if (!c) { console.log("::error::A sessão não tem o cookie li_at (login incompleto). Rode npm run linkedin:secondary:login, espere o feed carregar, e depois npm run linkedin:secondary:export."); process.exit(1); }
+            if (c.expires > 0 && c.expires < Date.now() / 1000) { console.log("::error::A sessão do LinkedIn expirou. Refaça o login e atualize o secret LINKEDIN_STORAGE_STATE_B64."); process.exit(1); }
+          '
+
       - name: Aplicar migrações pendentes
         run: php artisan migrate --force
 
