@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Sources;
+namespace App\Sources;
 
-use App\\Contracts\\VacancySource;
-use App\\Services\\VacancyLocationFilter;
-use Carbon\\CarbonImmutable;
-use Illuminate\\Support\\Facades\\Log;
-use Illuminate\\Support\\Str;
+use App\Contracts\VacancySource;
+use App\Services\VacancyLocationFilter;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
-use Symfony\\Component\\Process\\Process;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 class AblerSource implements VacancySource
