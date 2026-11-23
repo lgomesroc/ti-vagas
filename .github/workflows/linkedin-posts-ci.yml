@@ -50,10 +50,11 @@ jobs:
           node --check scripts/linkedin/jobs.mjs
           node --check scripts/linkedin/secondary-account.mjs
           node --check scripts/linkedin/runtime.mjs
+          node --check scripts/linkedin/restore-session.mjs
           node --check scripts/linkedin/export-session.mjs
 
       - name: Testar limitação de requisições do LinkedIn Jobs
-        run: node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs
+        run: node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/restore-session.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
