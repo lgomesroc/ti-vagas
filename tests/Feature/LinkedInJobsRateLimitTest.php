@@ -216,7 +216,7 @@ class LinkedInJobsRateLimitTest extends TestCase
         // Reagendamentos por 429 não esgotam as tentativas como um erro real.
         $this->assertGreaterThan(1, $job->tries);
         $this->assertSame(1, $job->maxExceptions, 'erros reais continuam falhando na primeira ocorrência');
-        $this->assertSame(1800, $job->timeout);
+        $this->assertSame(1500, $job->timeout);
         $this->assertTrue($job->failOnTimeout);
         $this->assertSame('linkedin', $job->queue);
         $this->assertInstanceOf(ShouldBeUnique::class, $job);

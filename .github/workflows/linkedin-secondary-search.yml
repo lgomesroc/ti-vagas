@@ -16,7 +16,7 @@ concurrency:
 jobs:
   search-and-process:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     env:
       APP_ENV: production
@@ -28,9 +28,12 @@ jobs:
       DB_SSLMODE: require
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      # O runner não tem X server: o Chromium roda sempre sem janela (headless).
       LINKEDIN_HEADLESS: "true"
       LINKEDIN_POSTS_ENABLED: "true"
       LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
+      LINKEDIN_POSTS_TIME_BUDGET_SECONDS: "480"
+      LINKEDIN_SECONDARY_ACCOUNT_TIMEOUT: "720"
       LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "true"
       LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-storage-state.json
 
@@ -86,8 +89,20 @@ jobs:
       - name: Instalar dependências Node
         run: npm ci --ignore-scripts
 
+      - name: Cache do Chromium do Playwright
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Instalar Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Restaurar sessão do LinkedIn
         env:
@@ -105,4 +120,5 @@ jobs:
         run: php artisan migrate --force
 
       - name: Pesquisar, filtrar e cadastrar publicações
+        timeout-minutes: 15
         run: php artisan linkedin:collect-posts --mode=bot

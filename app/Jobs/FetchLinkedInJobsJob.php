@@ -43,7 +43,9 @@ class FetchLinkedInJobsJob implements ShouldQueue, ShouldBeUnique
      */
     public int $maxExceptions = 1;
 
-    public int $timeout = 1800;
+    // Menor que o --timeout do worker e que o retry_after da fila; o Node
+    // encerra antes (orçamento de 900s), então este é só a última barreira.
+    public int $timeout = 1500;
     public bool $failOnTimeout = true;
 
     /**
@@ -60,7 +62,7 @@ class FetchLinkedInJobsJob implements ShouldQueue, ShouldBeUnique
     {
         return [
             (new WithoutOverlapping('linkedin-jobs-collection'))
-                ->expireAfter(1860)
+                ->expireAfter(1560)
                 ->releaseAfter(30),
         ];
     }

@@ -4,6 +4,7 @@ import { stdin, stdout } from 'node:process';
 import path from 'node:path';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { collectLinkedInJobs } from './jobs.mjs';
+import { chromiumArgs, createTimeBudget, resolveHeadless } from './runtime.mjs';
 
 const profile = path.resolve(
   process.env.LINKEDIN_SECONDARY_ACCOUNT_PROFILE ??
@@ -66,7 +67,15 @@ function loadKnownPosts() {
 
 const knownPosts = loadKnownPosts();
 
-const headless = process.env.LINKEDIN_HEADLESS === 'true';
+// Em CI ou Linux sem servidor gráfico não há tela: força headless para o Chromium
+// não falhar com "Missing X server or $DISPLAY".
+const headless = resolveHeadless();
+
+// Tempo total da pesquisa de publicações (segundos). Ao esgotar, devolve o que
+// já foi coletado. 0 = sem limite.
+const timeBudget = createTimeBudget(
+  process.env.LINKEDIN_POSTS_TIME_BUDGET_SECONDS ?? 480
+);
 
 const keywords = [
   // Suporte e infraestrutura
@@ -562,6 +571,7 @@ async function launchBrowser() {
   const launchOptions = {
     ...(browserExecutable ? { executablePath: browserExecutable } : {}),
     headless,
+    args: chromiumArgs(headless),
   };
 
   if (storageStatePath && existsSync(storageStatePath)) {
@@ -584,7 +594,6 @@ async function launchBrowser() {
       ...launchOptions,
       viewport: { width: 1440, height: 1000 },
       locale: 'pt-BR',
-      args: [],
     }
   );
 
@@ -648,7 +657,7 @@ async function main() {
 
     if (mode === 'jobs') {
       process.stderr.write(
-        '\n[LinkedIn] Iniciando coleta de vagas com Chromium visível.\n'
+        '\n[LinkedIn] Iniciando coleta de vagas.\n'
       );
 
       const vacancies = await collectLinkedInJobs(page);
@@ -661,6 +670,14 @@ async function main() {
     const posts = new Map();
 
     for (const keyword of keywords) {
+      if (timeBudget.expired()) {
+        process.stderr.write(
+          '\n[LinkedIn Posts] Orçamento de tempo esgotado; encerrando as pesquisas restantes.\n'
+        );
+        break;
+      }
+
+      try {
       const searchUrl =
         'https://www.linkedin.com/search/results/content/?keywords=' +
         encodeURIComponent(keyword) +
@@ -757,6 +774,12 @@ async function main() {
 
         await page.mouse.wheel(0, 1800);
         await page.waitForTimeout(400);
+      }
+      } catch (error) {
+        // Uma pesquisa com falha não derruba as demais.
+        process.stderr.write(
+          `[LinkedIn Posts] Falha na pesquisa "${keyword}": ${error?.message ?? error}\n`
+        );
       }
     }
 

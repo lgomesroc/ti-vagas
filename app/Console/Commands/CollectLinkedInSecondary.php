@@ -43,10 +43,12 @@ class CollectLinkedInSecondary extends Command
                 ->env([
                     'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
                     'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
-                    'LINKEDIN_HEADLESS' => (string) env('LINKEDIN_HEADLESS', 'false'),
+                    'LINKEDIN_HEADLESS' => config('linkedin.headless') ? 'true' : 'false',
                     'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
+                    'LINKEDIN_POSTS_TIME_BUDGET_SECONDS' => (string) config('linkedin.secondary_account.time_budget', 480),
+                    'LINKEDIN_JOBS_TIME_BUDGET_SECONDS' => (string) config('linkedin.jobs.time_budget', 900),
                 ])
-                ->timeout(max(600, (int) config('linkedin.secondary_account.timeout', 600)))
+                ->timeout(max(300, (int) config('linkedin.secondary_account.timeout', 900)))
                 ->run(['node', 'scripts/linkedin/secondary-account.mjs', 'all']);
 
             if (!$result->successful()) {

@@ -9,6 +9,7 @@ import {
   loadRateLimitConfig,
   requestWithBackoff,
 } from './rate-limit.mjs';
+import { createTimeBudget } from './runtime.mjs';
 
 const SEARCH_TERMS = [
   'desenvolvedor júnior',
@@ -36,6 +37,11 @@ const LOCATION = process.env.LINKEDIN_JOBS_LOCATION ?? 'Brasil';
 const BASE_URL = (process.env.LINKEDIN_JOBS_BASE_URL ?? 'https://www.linkedin.com').replace(/\/+$/, '');
 const RATE_LIMIT = loadRateLimitConfig();
 const throttle = createThrottle(RATE_LIMIT);
+// Tempo total da coleta (segundos). Ao esgotar, devolve o que já foi coletado
+// em vez de ser morto pelo timeout do worker e perder tudo. 0 = sem limite.
+const TIME_BUDGET_SECONDS = Number(process.env.LINKEDIN_JOBS_TIME_BUDGET_SECONDS ?? 900);
+// Fração do orçamento reservada às pesquisas; o restante vai para os detalhes.
+const SEARCH_BUDGET_SHARE = 0.4;
 const KNOWN_IDS_FILE = process.env.LINKEDIN_JOBS_KNOWN_IDS_FILE;
 const SCAN_LOG_FILE = process.env.LINKEDIN_JOBS_SCAN_LOG_FILE;
 
@@ -245,7 +251,7 @@ function classifyEmployment(text) {
   return null;
 }
 
-async function searchJobs(term, geo) {
+async function searchJobs(term, geo, shouldStop = () => false) {
   const found = new Map();
   const params = new URLSearchParams({
     keywords: term,
@@ -255,6 +261,8 @@ async function searchJobs(term, geo) {
   });
 
   for (let page = 0; page < MAX_PAGES; page++) {
+    if (shouldStop()) break;
+
     params.set('start', String(page * PAGE_SIZE));
     const url = BASE_URL + '/jobs-guest/jobs/api/seeMoreJobPostings/search?' + params;
     const html = await request(url);
@@ -272,18 +280,29 @@ async function searchJobs(term, geo) {
 
 export async function collectLinkedInJobs() {
   const scrapedAt = new Date();
+  const budget = createTimeBudget(TIME_BUDGET_SECONDS);
+  const searchDeadlineMs = Number.isFinite(budget.limitMs)
+    ? budget.limitMs * SEARCH_BUDGET_SHARE
+    : Infinity;
+  const searchExpired = () => budget.elapsedMs() >= searchDeadlineMs;
   const geo = await geoId(LOCATION);
   const unique = new Map();
 
   log(
     'Busca pública sem login. Localização: ' + LOCATION + ' | janela: ' + LOOKBACK_HOURS + 'h | ' +
-    'intervalo mínimo: ' + RATE_LIMIT.requestDelayMs + 'ms | até ' +
+    'intervalo mínimo: ' + RATE_LIMIT.requestDelayMs + 'ms | orçamento: ' +
+    (TIME_BUDGET_SECONDS > 0 ? TIME_BUDGET_SECONDS + 's' : 'sem limite') + ' | até ' +
     RATE_LIMIT.maxRetries + ' novas tentativas por 429'
   );
 
   for (const term of SEARCH_TERMS) {
+    if (searchExpired()) {
+      log('Orçamento de tempo das pesquisas esgotado; pulando os termos restantes a partir de "' + term + '".');
+      break;
+    }
+
     try {
-      for (const job of await searchJobs(term, geo)) {
+      for (const job of await searchJobs(term, geo, searchExpired)) {
         if (!unique.has(job.id)) unique.set(job.id, { ...job, matchedKeywords: [term] });
         else unique.get(job.id).matchedKeywords.push(term);
       }
@@ -298,13 +317,26 @@ export async function collectLinkedInJobs() {
 
   const results = [];
   const discoveredJobs = [...unique.values()];
-  const jobs = discoveredJobs.filter(job => !knownJobIds.has(String(job.id)));
+  // Mais recentes primeiro: se o tempo acabar, o que fica para a próxima execução
+  // são as vagas mais antigas.
+  const jobs = discoveredJobs
+    .filter(job => !knownJobIds.has(String(job.id)))
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
   log('Vagas únicas nos cartões: ' + discoveredJobs.length);
   log('Detalhes já consultados e ignorados: ' + (discoveredJobs.length - jobs.length));
   log('Novos detalhes que serão consultados: ' + jobs.length);
 
   for (const job of jobs) {
+    if (budget.expired()) {
+      log(
+        'Orçamento de tempo esgotado (' + TIME_BUDGET_SECONDS + 's). Detalhes consultados: ' +
+        progress.detailsRequested + '/' + jobs.length +
+        '. O restante ficará para a próxima execução.'
+      );
+      break;
+    }
+
     try {
       progress.detailsRequested++;
 
