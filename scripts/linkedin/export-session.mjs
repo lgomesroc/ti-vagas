@@ -13,6 +13,27 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
+export function filterLinkedInStorageState(state) {
+  const isLinkedInDomain = domain =>
+    String(domain ?? '').replace(/^\\./, '').toLowerCase() === 'linkedin.com' ||
+    String(domain ?? '').replace(/^\\./, '').toLowerCase().endsWith('.linkedin.com');
+
+  return {
+    ...state,
+    cookies: (Array.isArray(state?.cookies) ? state.cookies : [])
+      .filter(cookie => isLinkedInDomain(cookie.domain)),
+    origins: (Array.isArray(state?.origins) ? state.origins : [])
+      .filter(item => {
+        try {
+          const hostname = new URL(item.origin).hostname.toLowerCase();
+          return hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com');
+        } catch {
+          return false;
+        }
+      }),
+  };
+}
+
 export function inspectStorageState(raw, nowSeconds = Date.now() / 1000) {
   let state;
   try {
@@ -53,19 +74,31 @@ function main() {
   }
 
   const raw = readFileSync(file, 'utf8');
-  const info = inspectStorageState(raw);
+  let state;
+
+  try {
+    state = JSON.parse(raw);
+  } catch {
+    console.error('O arquivo de sessão não contém JSON válido.');
+    process.exit(1);
+  }
+
+  const filteredState = filterLinkedInStorageState(state);
+  const filteredRaw = JSON.stringify(filteredState);
+  const info = inspectStorageState(filteredRaw);
 
   if (!info.ok) {
     console.error(info.error);
     process.exit(1);
   }
 
-  const b64 = Buffer.from(raw, 'utf8').toString('base64');
+  const removedCookies = (Array.isArray(state.cookies) ? state.cookies.length : 0) - info.cookies;
+  const b64 = Buffer.from(filteredRaw, 'utf8').toString('base64');
   const out = path.join('.local', 'linkedin-storage-state.b64');
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, b64, { mode: 0o600 });
 
-  console.log(`Sessão válida (${info.cookies} cookies${info.daysLeft !== null ? `, expira em ~${info.daysLeft} dias` : ''}).`);
+  console.log(`Sessão válida: ${info.cookies} cookies do LinkedIn mantidos; ${removedCookies} cookies de outros domínios descartados${info.daysLeft !== null ? `, expira em ~${info.daysLeft} dias` : ''}.`);
   console.log(`Secret gravado em: ${out}  (não versionar; já está em .local/)`);
 
   if (process.argv.includes('--gh')) {
