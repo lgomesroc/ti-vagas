@@ -23,8 +23,8 @@ A documentação foi dividida por assunto. Este README funciona como página ini
 | [Detecção de VPN, proxy e redes suspeitas](docs/deteccao-de-redes-suspeitas.md) | Fontes de reputação, classificação de rede, políticas, configuração e limitações. |
 | [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore de diretórios e arquivos versionados, com pastas antes dos arquivos e ordenação alfabética. |
 | [Expiração dos Anúncios](docs/ExpiracaoDeAnuncios.md) | Política de retenção de 60 dias, comando de limpeza e diferença entre idade e disponibilidade. |
-| [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Comportamento específico dos conectores de carreiras IBM e Microsoft. |
 | [Histórico de Fontes Gupy por Empresa (legado)](docs/FontesGupyRecentes.md) | Contexto histórico dos cadastros individuais antigos; não descreve o fluxo global atual. |
+| [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Comportamento específico dos conectores de carreiras IBM e Microsoft. |
 | [Funcionalidades do Portal](docs/FuncionalidadesDoPortal.md) | Recursos disponíveis ao visitante e limites do que o portal oferece. |
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, clonagem, dependências, ambiente, banco, geografia e execução local. |
 | [Integração Abler](docs/IntegracaoAbler.md) | Coletor público com Playwright, termos de busca, limites, extração e workflow isolado. |
