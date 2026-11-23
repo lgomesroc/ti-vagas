@@ -132,7 +132,6 @@ return [
         'catho.com.br',
         'netvagas.com.br',
         'remotar.com.br',
-        'programathor.com.br',
         'coodesh.com',
         'trabalhabrasil.com.br',
         'jobisjob.com',
