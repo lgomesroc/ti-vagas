@@ -5,6 +5,7 @@ namespace App\Services\Geo\Security;
 use App\Services\Geo\IpLocationResolver;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
@@ -47,7 +48,7 @@ class LocationGuard
 
         $lockedUntil = $this->state($session)['locked_until'] ?? null;
 
-        return is_int($lockedUntil) && $lockedUntil > time();
+        return is_int($lockedUntil) && $lockedUntil > $this->now();
     }
 
     /**
@@ -159,7 +160,7 @@ class LocationGuard
         $state = $this->state($session);
 
         $changes = $this->recentRegionChanges($state);
-        $changes[] = time();
+        $changes[] = $this->now();
         $state['region_changes'] = $changes;
 
         $session->put(self::SESSION_KEY, $state);
@@ -180,7 +181,7 @@ class LocationGuard
         $session = $request->session();
         $state = $this->state($session);
 
-        $now = time();
+        $now = $this->now();
         $state['score'] = $this->decayedScore($state, $now) + $weight;
         $state['score_at'] = $now;
 
@@ -296,7 +297,7 @@ class LocationGuard
      */
     private function recentRegionChanges(array $state): array
     {
-        $limit = time() - self::HOUR_SECONDS;
+        $limit = $this->now() - self::HOUR_SECONDS;
 
         return array_values(array_filter(
             (array) ($state['region_changes'] ?? []),
@@ -307,6 +308,16 @@ class LocationGuard
     private function ipLimiterKey(Request $request): string
     {
         return 'location-region-change:' . hash('sha256', (string) $request->ip());
+    }
+
+    /**
+     * Relógio da sessão em segundos. Usa o Carbon para poder ser congelado
+     * nos testes (Carbon::setTestNow), evitando resultados que dependem de
+     * a requisição cair no mesmo segundo.
+     */
+    private function now(): int
+    {
+        return Carbon::now()->getTimestamp();
     }
 
     private function rejectScore(): int

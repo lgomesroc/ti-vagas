@@ -362,6 +362,10 @@ class LocationSpoofingProtectionTest extends TestCase
 
     public function test_repeated_suspicious_attempts_freeze_the_current_region(): void
     {
+        // O acúmulo de suspeitas decai com o tempo: congela o relógio para as duas
+        // tentativas não dependerem de cair no mesmo segundo (instável em CI lento).
+        $this->freezeTime();
+
         $session = $this->niteroiSession();
 
         // Duas tentativas de peso 4 atingem o limite de bloqueio (8).
