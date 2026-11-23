@@ -1,17 +1,49 @@
 /**
- * Prepara o secret LINKEDIN_STORAGE_STATE_B64 a partir da sessão salva por
- * `npm run linkedin:secondary:login`.
- *
- * Uso:
- *   npm run linkedin:secondary:export            valida e grava o .b64 local
- *   npm run linkedin:secondary:export -- --gh    também envia o secret via GitHub CLI
- *
- * Nunca imprime cookies. Login e senha NÃO são necessários nem guardados: o
- * GitHub Actions reaproveita a sessão (cookies) já autenticada.
+ * Exporta somente cookies de autenticação/sessão do LinkedIn para o secret
+ * LINKEDIN_STORAGE_STATE_B64 usado pelo GitHub Actions.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ALLOWED_COOKIES = new Set([
+  'li_at',
+  'JSESSIONID',
+  'bcookie',
+  'bscookie',
+  'lidc',
+  'liap',
+  'lang',
+  'timezone',
+  'sdsc',
+]);
+
+function isLinkedInDomain(value) {
+  const domain = String(value ?? '').replace(/^\./, '').toLowerCase();
+  return domain === 'linkedin.com' || domain.endsWith('.linkedin.com');
+}
+
+export function filterLinkedInStorageState(state) {
+  const cookies = Array.isArray(state?.cookies) ? state.cookies : [];
+
+  const filteredCookies = cookies
+    .filter(cookie => isLinkedInDomain(cookie.domain) && ALLOWED_COOKIES.has(cookie.name))
+    .map(cookie => ({
+      name: cookie.name,
+      value: cookie.value,
+      domain: cookie.domain,
+      path: cookie.path ?? '/',
+      expires: cookie.expires ?? -1,
+      httpOnly: Boolean(cookie.httpOnly),
+      secure: Boolean(cookie.secure),
+      sameSite: cookie.sameSite ?? 'Lax',
+    }));
+
+  // Cookies são suficientes para a sessão autenticada. Não exportamos
+  // localStorage, que pode conter dados volumosos e não necessários.
+  return { cookies: filteredCookies, origins: [] };
+}
 
 export function inspectStorageState(raw, nowSeconds = Date.now() / 1000) {
   let state;
@@ -22,18 +54,20 @@ export function inspectStorageState(raw, nowSeconds = Date.now() / 1000) {
   }
 
   const cookies = Array.isArray(state?.cookies) ? state.cookies : [];
-  const liAt = cookies.find(c => c.name === 'li_at' && /linkedin\.com$/i.test(c.domain ?? ''));
+  const liAt = cookies.find(cookie =>
+    cookie.name === 'li_at' && isLinkedInDomain(cookie.domain)
+  );
 
   if (!liAt) {
     return {
       ok: false,
-      error: 'Cookie de sessão "li_at" ausente: o login não foi concluído antes de apertar ENTER. Rode o login de novo e só aperte ENTER depois de ver o feed.',
+      error: 'Cookie de sessão "li_at" ausente: refaça o login da conta secundária e só exporte depois de entrar no feed.',
     };
   }
 
   const expires = Number(liAt.expires);
   if (Number.isFinite(expires) && expires > 0 && expires < nowSeconds) {
-    return { ok: false, error: 'A sessão salva já expirou. Rode o login de novo.' };
+    return { ok: false, error: 'A sessão salva já expirou. Refaça o login.' };
   }
 
   const daysLeft = Number.isFinite(expires) && expires > 0
@@ -52,21 +86,31 @@ function main() {
     process.exit(1);
   }
 
-  const raw = readFileSync(file, 'utf8');
-  const info = inspectStorageState(raw);
+  let state;
+  try {
+    state = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    console.error('O arquivo de sessão não contém JSON válido.');
+    process.exit(1);
+  }
+
+  const filteredState = filterLinkedInStorageState(state);
+  const filteredRaw = JSON.stringify(filteredState);
+  const info = inspectStorageState(filteredRaw);
 
   if (!info.ok) {
     console.error(info.error);
     process.exit(1);
   }
 
-  const b64 = Buffer.from(raw, 'utf8').toString('base64');
+  const b64 = Buffer.from(filteredRaw, 'utf8').toString('base64');
   const out = path.join('.local', 'linkedin-storage-state.b64');
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, b64, { mode: 0o600 });
 
-  console.log(`Sessão válida (${info.cookies} cookies${info.daysLeft !== null ? `, expira em ~${info.daysLeft} dias` : ''}).`);
-  console.log(`Secret gravado em: ${out}  (não versionar; já está em .local/)`);
+  console.log(`Sessão filtrada: ${info.cookies} cookies permitidos do LinkedIn.`);
+  console.log(`Tamanho do Base64: ${Buffer.byteLength(b64, 'utf8')} caracteres.`);
+  console.log(`Arquivo: ${out}`);
 
   if (process.argv.includes('--gh')) {
     const result = spawnSync('gh', ['secret', 'set', 'LINKEDIN_STORAGE_STATE_B64', '--repo', 'lgomesroc/ti-vagas'], {
@@ -74,17 +118,16 @@ function main() {
       stdio: ['pipe', 'inherit', 'inherit'],
     });
     if (result.status !== 0) {
-      console.error('Não consegui enviar via gh. Use o passo manual abaixo.');
+      console.error('Falha ao atualizar o secret pelo GitHub CLI.');
       process.exit(result.status ?? 1);
     }
-    console.log('Secret LINKEDIN_STORAGE_STATE_B64 atualizado no GitHub.');
+    console.log('Secret LINKEDIN_STORAGE_STATE_B64 atualizado.');
     return;
   }
 
-  console.log('\nPróximo passo: GitHub > Settings > Secrets and variables > Actions >');
-  console.log('LINKEDIN_STORAGE_STATE_B64 > cole TODO o conteúdo do arquivo acima (uma linha só).');
+  console.log('Atualize o secret LINKEDIN_STORAGE_STATE_B64 com o conteúdo completo desse arquivo.');
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   main();
 }
