@@ -159,7 +159,7 @@ class ProgramathorSource implements VacancySource
             return null;
         }
 
-        $location = $this->field($body, '/Localiza[cç][ãa]o\s*:/iu');
+        $location = $this->field($body, 'Localiza[cç][ãa]o');
         $workModel = $this->workModel($body, $location);
         $employmentType = $this->employmentType($body);
         $salary = $this->salary($body);
@@ -236,7 +236,7 @@ class ProgramathorSource implements VacancySource
     private function field(string $body, string $labelPattern): string
     {
         if (!preg_match(
-            '/' . $labelPattern . '\s*(.+?)(?=\s+(?:Sal[aá]rio|Localiza[cç][ãa]o|N[ií]vel|Home Office|Remoto|Presencial|H[ií]brido|CLT|PJ)\b|$)/iu',
+            '/\b' . $labelPattern . '\s*:\s*(.+?)(?=\s+(?:Sal[aá]rio|Localiza[cç][ãa]o|N[ií]vel|Home Office|Remoto|Presencial|H[ií]brido|CLT|PJ)\b|$)/iu',
             $body,
             $match
         )) {
