@@ -88,8 +88,45 @@ class VacancyControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee($vacancy->title);
         $response->assertSee($vacancy->company);
-        $response->assertSee('CLT');
-        $response->assertSee('A combinar');
+        $response->assertDontSee('CLT');
+        $response->assertDontSee('A combinar');
+    }
+
+    public function test_listing_can_be_filtered_by_company(): void
+    {
+        $matching = $this->createVacancy([
+            'company' => 'TransFast Tecnologia',
+            'title' => 'Desenvolvedor PHP Júnior',
+        ]);
+
+        $other = $this->createVacancy([
+            'company' => 'Outra Empresa',
+            'title' => 'Desenvolvedor C# Júnior',
+        ]);
+
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.index', ['company' => 'TransFast']));
+
+        $response->assertOk();
+        $response->assertSee($matching->title);
+        $response->assertSee($matching->company);
+        $response->assertDontSee($other->title);
+        $response->assertDontSee($other->company);
+    }
+
+    public function test_vacancy_details_link_to_other_vacancies_from_the_same_company(): void
+    {
+        $vacancy = $this->createVacancy([
+            'company' => 'TransFast Tecnologia',
+        ]);
+
+        $response = $this->getAcceptedTerms()
+            ->get(route('vacancies.show', $vacancy));
+
+        $response->assertOk();
+        $response->assertSee(route('vacancies.index', ['company' => $vacancy->company]));
+        $response->assertSee('Ver outras vagas');
+        $response->assertSee('Candidatar-se na empresa');
     }
 
     public function test_available_vacancy_can_be_accessed_directly(): void
