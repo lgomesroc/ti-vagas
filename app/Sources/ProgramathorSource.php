@@ -223,7 +223,7 @@ class ProgramathorSource implements VacancySource
                     $candidate !== ''
                     && $candidate !== $title
                     && !preg_match('/^(api|clt|pj|estágio|júnior|pleno|sênior|remoto)$/iu', $candidate)
-                    && !preg_match('/(entrar|cadastrar|candidatar|vaga|jobs)/iu', $href)
+                    && str_contains($href, '/companies/')
                 ) {
                     return $candidate;
                 }
