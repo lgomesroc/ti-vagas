@@ -7,7 +7,7 @@
 2. Arquivos em ordem alfabética.
 
 - Branch: `developer`
-- Total: 59 pastas e 320 arquivos.
+- Total: 60 pastas e 329 arquivos.
 
 ```text
 ├── .github/
@@ -210,13 +210,21 @@
 │   ├── AutomacaoETestes.md
 │   ├── ColetaEIntegracaoDeVagas.md
 │   ├── ColetaPublicacoesLinkedIn.md
+│   ├── ConsentimentoEAtribuicao.md
 │   ├── deteccao-de-redes-suspeitas.md
 │   ├── EstruturaDoProjeto.md
+│   ├── ExpiracaoDeAnuncios.md
 │   ├── FontesGupyRecentes.md
+│   ├── FontesIBMEMicrosoft.md
+│   ├── FuncionalidadesDoPortal.md
 │   ├── InstalacaoEConfiguracao.md
+│   ├── IntegracaoAbler.md
 │   ├── LocalizacaoERegionalizacao.md
 │   ├── RegrasDeElegibilidade.md
+│   ├── ResponsabilidadeELimitacoes.md
 │   ├── SegurancaDeRedeELocalizacao.md
+│   ├── TecnologiasUtilizadas.md
+│   ├── VerificacaoDeDisponibilidade.md
 │   ├── VisaoGeralDaAplicacao.md
 │   └── WorkflowsGitHubActions.md
 ├── ibge/
@@ -256,6 +264,8 @@
 │   ├── console.php
 │   └── web.php
 ├── scripts/
+│   ├── abler/
+│   │   └── collect.mjs
 │   ├── ibge/
 │   │   └── import-dtb-2025.ps1
 │   └── linkedin/
