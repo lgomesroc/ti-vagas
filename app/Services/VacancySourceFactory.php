@@ -25,6 +25,7 @@ use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\OwnCareerPageSource;
 use App\Sources\PandapeSource;
+use App\Sources\ProgramathorSource;
 use App\Sources\PlooralSource;
 use App\Sources\RadarTecSource;
 use App\Sources\RecrutAiSource;
@@ -592,6 +593,17 @@ class VacancySourceFactory
             locationFilter: $this->locationFilter,
         );
         $sources[$bneSource->name()] = $bneSource;
+
+        $programathor = config('vacancy_sources.programathor', []);
+        $programathorSource = new ProgramathorSource(
+            caBundle: $programathor['ca_bundle'] ?? null,
+            maxPages: (int) ($programathor['max_pages'] ?? 5),
+            maxJobs: (int) ($programathor['max_jobs'] ?? 150),
+            initialLookbackDays: (int) ($programathor['initial_lookback_days'] ?? 60),
+            requestDelayMs: (int) ($programathor['request_delay_ms'] ?? 200),
+            locationFilter: $this->locationFilter,
+        );
+        $sources[$programathorSource->name()] = $programathorSource;
 
         $abler = config('vacancy_sources.abler', []);
         $ablerSource = new AblerSource(

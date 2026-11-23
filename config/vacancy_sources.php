@@ -163,6 +163,30 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'agrotis' => [
+                'name' => 'AGROTIS',
+                'url' => 'https://agrotis.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'brasilprev' => [
+                'name' => 'Brasilprev',
+                'url' => 'https://brasilprev.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'globalweb' => [
+                'name' => 'Globalweb',
+                'url' => 'https://sejaglobalweb.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'ztech' => [
+                'name' => 'Z-Tech',
+                'url' => 'https://ztech.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'talentoslight' => [
                 'name' => 'Light',
                 'url' => 'https://talentoslight.gupy.io/',
@@ -1123,6 +1147,14 @@ return [
             // https://careers.smartrecruiters.com/{companyIdentifier}
         ],
     ],
+    'programathor' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 5,
+        'max_jobs' => 150,
+        'initial_lookback_days' => 60,
+        'request_delay_ms' => 200,
+    ],
+
     'abler' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_pages' => 30,
