@@ -265,7 +265,7 @@ class VacancyController extends Controller
      * evitar transferir ao PHP registros que já seriam descartados.
      * A elegibilidade regional permanece em PHP, pois depende do visitante.
      */
-    private function applySqlEditorialFilters($query, string $search, string $company = ''): void
+    private function applySqlEditorialFilters($query, string $search, string $companyFilter = ''): void
     {
         $title = $this->normalizedSqlExpression('title');
         $description = $this->normalizedSqlExpression('description');
@@ -277,10 +277,10 @@ class VacancyController extends Controller
             $query->whereRaw("position(? in {$searchable}) > 0", [$this->normalize($search)]);
         }
 
-        if ($company !== '') {
+        if ($companyFilter !== '') {
             $query->whereRaw(
                 "position(? in {$company}) > 0",
-                [$this->normalize($company)]
+                [$this->normalize($companyFilter)]
             );
         }
 
@@ -424,7 +424,7 @@ class VacancyController extends Controller
             ->orderByRaw("CASE WHEN lower(title) LIKE '%exclusivo pcd%' THEN 1 ELSE 0 END ASC")
             ->orderByDesc('id');
 
-        $this->applySqlEditorialFilters($query, $search, $company);
+        $this->applySqlEditorialFilters($query, $search, $companyFilter);
 
         $seenDuplicateKeys = [];
 
