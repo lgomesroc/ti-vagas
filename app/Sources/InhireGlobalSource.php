@@ -23,7 +23,7 @@ class InhireGlobalSource implements VacancySource
         'db1', 'zappts', 'lyncas', 'bixtecnologia', 'programmers',
         'jump', 'orizon', 'dock', 'rentbrella', 'edge', 'ninecon', 'mambape',
         // Empresas InHire identificadas e selecionadas para o TI Vagas.
-        'brivia', 'idwall', 'rposolutions', 'aarin', 'uhuu', 'amaro',
+        'brivia', 'idwall', 'rposolutions', 'aarin', 'uhuu', 'amaro', 'bionexo',
         'mjv', 'instacarro', 'bancopine', 'riachuelo', 'fiap', 'alura',
         'pm3', 'avenue', 'dtidigital', 'trinca', 'brq', 'mottu',
     ];
