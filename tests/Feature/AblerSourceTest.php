@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Sources\\AblerSource;
+use App\Sources\AblerSource;
 use ReflectionMethod;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class AblerSourceTest extends TestCase
 {
