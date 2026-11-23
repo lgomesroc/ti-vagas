@@ -98,14 +98,6 @@
                                 {{ $vacancy->display_work_model ?? 'Não informado' }}
                             </span>
 
-                            @if ($vacancy->employment_type)
-                                <span>{{ $vacancy->employment_type }}</span>
-                            @endif
-
-                            @if ($vacancy->salary)
-                                <span>{{ $vacancy->salary }}</span>
-                            @endif
-
                         </div>
 
 
