@@ -265,7 +265,7 @@ class VacancyController extends Controller
      * evitar transferir ao PHP registros que já seriam descartados.
      * A elegibilidade regional permanece em PHP, pois depende do visitante.
      */
-    private function applySqlEditorialFilters($query, string $search): void
+    private function applySqlEditorialFilters($query, string $search, string $companyFilter = ''): void
     {
         $title = $this->normalizedSqlExpression('title');
         $description = $this->normalizedSqlExpression('description');
@@ -275,6 +275,13 @@ class VacancyController extends Controller
         if ($search !== '') {
             $searchable = "concat_ws(' ', {$title}, {$company}, {$location}, {$description})";
             $query->whereRaw("position(? in {$searchable}) > 0", [$this->normalize($search)]);
+        }
+
+        if ($companyFilter !== '') {
+            $query->whereRaw(
+                "position(? in {$company}) > 0",
+                [$this->normalize($companyFilter)]
+            );
         }
 
         $query->whereRaw("{$title} !~ ?", [$this->sqlTermPattern(self::EXCLUDED_SENIORITY_TERMS)]);
@@ -388,7 +395,8 @@ class VacancyController extends Controller
      */
     private function eligibleVacancies(
         ?RegionScope $visitorScope = null,
-        string $search = ''
+        string $search = '',
+        string $companyFilter = ''
     ): \Generator {
         $query = Vacancy::query()
             ->select([
@@ -417,7 +425,7 @@ class VacancyController extends Controller
             ->orderByRaw("CASE WHEN lower(title) LIKE '%exclusivo pcd%' THEN 1 ELSE 0 END ASC")
             ->orderByDesc('id');
 
-        $this->applySqlEditorialFilters($query, $search);
+        $this->applySqlEditorialFilters($query, $search, $companyFilter);
 
         $seenDuplicateKeys = [];
 
@@ -565,6 +573,7 @@ class VacancyController extends Controller
     public function index(Request $request): View
     {
         $search = trim($request->query('q', ''));
+        $company = trim($request->query('company', ''));
 
         $perPage = 12;
         $currentPage = Paginator::resolveCurrentPage();
@@ -577,7 +586,8 @@ class VacancyController extends Controller
             $this->visitorLocationResolver->scopeFromSession(
                 $request->session()
             ),
-            $search
+            $search,
+            $company
         ) as $vacancy) {
             if ($eligibleCount < $firstItem) {
                 $eligibleCount++;
@@ -608,6 +618,7 @@ class VacancyController extends Controller
         return view('vacancies.index', [
             'vacancies' => $vacancies,
             'search' => $search,
+            'companyFilter' => $company,
             'locationMode' => $request->session()->get('location_mode', 'limited'),
         ]);
     }

@@ -98,24 +98,8 @@
                                 {{ $vacancy->display_work_model ?? 'Não informado' }}
                             </span>
 
-                            @if ($vacancy->employment_type)
-                                <span>{{ $vacancy->employment_type }}</span>
-                            @endif
-
-                            @if ($vacancy->salary)
-                                <span>{{ $vacancy->salary }}</span>
-                            @endif
-
                         </div>
 
-                        <p class="vacancy-description">
-                            {{ \Illuminate\Support\Str::limit(strip_tags($vacancy->description), 220) }}
-                        </p>
-
-                        <div class="vacancy-date">
-                            Publicada em:
-                            {{ $vacancy->original_published_at->format('d/m/Y') }}
-                        </div>
 
                     </article>
 

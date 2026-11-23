@@ -83,7 +83,7 @@
                 </a>
 
                 <a
-                    href="{{ route('vacancies.index') }}"
+                    href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}"
                     class="button"
                 >
                     Ver outras vagas
