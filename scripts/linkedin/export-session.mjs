@@ -6,6 +6,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ALLOWED_COOKIES = new Set([
   'li_at',       // sessão autenticada
@@ -124,6 +125,6 @@ function main() {
   console.log('Atualize o secret LINKEDIN_STORAGE_STATE_B64 com o conteúdo completo desse arquivo.');
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\\/([A-Za-z]:)/, '$1'))) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   main();
 }
