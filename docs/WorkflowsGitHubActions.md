@@ -191,7 +191,7 @@ Os workflows referenciam secrets do GitHub Actions; os valores não devem aparec
 | `PRISMA_DATABASE_URL` | Banco standby no failover |
 | `RENDER_API_KEY` | Autorização na API Render |
 | `RENDER_SERVICE_ID` | Identificação do serviço Render |
-| `LINKEDIN_STORAGE_STATE_B64` | Estado de sessão da conta secundária |
+| `LINKEDIN_STORAGE_STATE_B64` | Estado de sessão da conta secundária (cookies, não login/senha). Gere com `npm run linkedin:secondary:login` e depois `npm run linkedin:secondary:export` (`-- --gh` envia direto). Refazer quando expirar. |
 
 ## Procedimento de manutenção
 
