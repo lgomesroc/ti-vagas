@@ -1147,6 +1147,14 @@ return [
             // https://careers.smartrecruiters.com/{companyIdentifier}
         ],
     ],
+    'programathor' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 5,
+        'max_jobs' => 150,
+        'initial_lookback_days' => 60,
+        'request_delay_ms' => 200,
+    ],
+
     'abler' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
         'max_pages' => 30,
