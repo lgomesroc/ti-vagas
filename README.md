@@ -1,553 +1,110 @@
 # TI Vagas
 
-## Documentação
+Portal independente que reúne oportunidades efetivas de nível júnior na área de tecnologia. O projeto consulta fontes externas, normaliza os anúncios e aplica critérios de área, senioridade, experiência, localização e disponibilidade.
 
-A documentação técnica está organizada por assunto na pasta [docs/](docs/).
-
-| Tópico | Resumo |
-|---|---|
-| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público-alvo, funcionalidades e limites do portal. |
-| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Organização das camadas, responsabilidades e fluxo de dados. |
-| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato das fontes, normalização, importação e filas. |
-| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas atendidas, senioridade, tipo de oportunidade e filtros. |
-| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Resolução de município, regras regionais e base territorial. |
-| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Proteções contra adulteração de localização e avaliação de rede. |
-| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, instalação, ambiente, banco de dados e execução local. |
-| [Automação e Testes](docs/AutomacaoETestes.md) | Agendamentos Laravel, filas, testes e visão operacional das automações. |
-| [Workflows do GitHub Actions](docs/WorkflowsGitHubActions.md) | Inventário completo dos workflows, branches de checkout, agendas, secrets, jobs e concorrência. |
-| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore completa; pastas antes dos arquivos, ambos em ordem alfabética. |
-| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Histórico de mudanças em coletores, filtros, aceite dos termos, localização e documentação. |
-| [Histórico de Fontes Gupy por Empresa](docs/FontesGupyRecentes.md) | Contexto dos cadastros individuais antigos; não representa a coleta operacional atual. |
-
-O documento [Detecção de Redes Suspeitas](docs/deteccao-de-redes-suspeitas.md) complementa o tópico de segurança.
-
-## Resumo das atualizações recentes
-
-- **LinkedIn:** descoberta de publicações por Bing RSS, DuckDuckGo e conta secundária, com processamento automático e leitura de comentários visíveis quando disponíveis. Publicações já reservadas não são enriquecidas novamente, mesmo se rejeitadas. No LinkedIn Jobs, IDs com consulta detalhada concluída são ignorados antes de novas requisições; novos anúncios continuam tendo a descrição completa consultada antes dos filtros editoriais.
-- **Validação de recrutamento:** chamadas que condicionem informações ou candidatura a comentários, palavras-chave ou contato privado por DM são rejeitadas tanto no texto da publicação quanto nos comentários públicos disponíveis. E-mails pessoais/gratuitos não são aceitos como canal de candidatura; um link válido continua sendo analisado normalmente.
-- **Gupy:** substituição da coleta individual por empresa por um coletor global baseado na API pública de busca, com termos e janela incremental configurados.
-- **Abler:** inclusão de um coletor global baseado na listagem pública JSON do portal de candidatos, com paginação e normalização para o contrato comum.
-- **InHire:** inclusão de descoberta global de tenants, aproveitando registros existentes e links encontrados em candidatos do LinkedIn.
-- **LinkedIn Jobs:** backoff e reagendamento após HTTP 429, respeitando `Retry-After` sem tentar contornar limites externos.
-- **Correções de fluxo:** correção do envio de cabeçalhos/cookies após remoção de saída antes de `<?php` e ajuste da primeira solicitação de geolocalização em sessão `limited`.
-- **Automação:** inventário dos workflows do GitHub Actions: sete arquivos em `developer` e oito em `main`, com branch de checkout, agenda, secrets, jobs e grupos de concorrência. O failover PostgreSQL existe somente em `main`.
-- **Documentação:** atualização dos fluxos Gupy, InHire e LinkedIn, registro das correções de aceite/localização e do failover PostgreSQL; árvore do projeto regenerada com pastas primeiro e arquivos depois, ambos em ordem alfabética.
-
-Consulte [Atualizações Recentes](docs/AtualizacoesRecentes.md) para o histórico das mudanças e [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) para o funcionamento dos coletores globais, incluindo Abler.
+O visitante consulta os detalhes e segue para o canal original de candidatura. O TI Vagas não recebe currículos, não intermedeia contratações e não garante que um anúncio permaneça ativo.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
-O **TI Vagas** é um portal independente de oportunidades profissionais na área de tecnologia, com foco em vagas efetivas de nível júnior.
+## Documentação
 
-O projeto reúne anúncios publicados em diferentes empresas e plataformas de recrutamento, aplicando critérios automatizados de área profissional, senioridade, experiência, localização e modalidade de trabalho.
+A documentação foi dividida por assunto. Este README funciona como página inicial: apresenta o projeto e resume cada tema; os detalhes técnicos, procedimentos e regras ficam nos documentos específicos em `docs/`.
 
-O objetivo é facilitar a busca por oportunidades em desenvolvimento de software, infraestrutura, DevOps, redes e suporte técnico.
+### Índice
 
-## Consentimento e atribuição de campanhas
+| Documento | Conteúdo |
+|---|---|
+| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Camadas da aplicação, responsabilidades e percurso dos dados entre fontes, serviços e banco. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Registro cronológico das principais mudanças implementadas no projeto. |
+| [Automação e Testes](docs/AutomacaoETestes.md) | Scheduler, filas, comandos operacionais e execução dos testes automatizados. |
+| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato comum das fontes, normalização, importação, deduplicação e coletores globais. |
+| [Coleta de Oportunidades no LinkedIn](docs/ColetaPublicacoesLinkedIn.md) | Fluxos de publicações, LinkedIn Jobs, análise de comentários, limites e tratamento de bloqueios. |
+| [Consentimento e Atribuição de Campanhas](docs/ConsentimentoEAtribuicao.md) | Aceite dos termos, cookies não essenciais, Analytics, AdSense e parâmetros UTM. |
+| [Detecção de VPN, proxy e redes suspeitas](docs/deteccao-de-redes-suspeitas.md) | Fontes de reputação, classificação de rede, políticas, configuração e limitações. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore de diretórios e arquivos versionados, com pastas antes dos arquivos e ordenação alfabética. |
+| [Expiração dos Anúncios](docs/ExpiracaoDeAnuncios.md) | Política de retenção de 60 dias, comando de limpeza e diferença entre idade e disponibilidade. |
+| [Histórico de Fontes Gupy por Empresa (legado)](docs/FontesGupyRecentes.md) | Contexto histórico dos cadastros individuais antigos; não descreve o fluxo global atual. |
+| [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Comportamento específico dos conectores de carreiras IBM e Microsoft. |
+| [Funcionalidades do Portal](docs/FuncionalidadesDoPortal.md) | Recursos disponíveis ao visitante e limites do que o portal oferece. |
+| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, clonagem, dependências, ambiente, banco, geografia e execução local. |
+| [Integração Abler](docs/IntegracaoAbler.md) | Coletor público com Playwright, termos de busca, limites, extração e workflow isolado. |
+| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Identificação de município, regiões do IBGE e regras de exibição local/remota. |
+| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas contempladas, senioridade, experiência, estágio e critérios editoriais. |
+| [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md) | Dependência de fontes externas, cuidados do visitante e limites das verificações. |
+| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Integridade da localização, sinais de falsificação, middleware e proteções no servidor. |
+| [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) | Stack de backend, frontend, automação, testes e arquivos de dependências. |
+| [Verificação de Disponibilidade das Vagas](docs/VerificacaoDeDisponibilidade.md) | Estados active/suspect/expired, verificação HTTP, histórico e critérios de classificação. |
+| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público-alvo, escopo, jornada do visitante e funcionalidades em alto nível. |
+| [Workflows do GitHub Actions](docs/WorkflowsGitHubActions.md) | Inventário dos workflows, branches de checkout, secrets, agendas, jobs e concorrência. |
 
-O aceite dos termos e a preferência sobre cookies não essenciais são registrados separadamente. A escolha de rejeitar cookies não essenciais não impede o uso do portal; nesse caso, os códigos do Google Analytics e do Google AdSense não são carregados. A escolha positiva permite o carregamento dessas ferramentas conforme a implementação atual.
+## Escopo do portal
 
-O middleware `CaptureUtmParameters` registra na sessão a primeira origem de campanha identificada pelos parâmetros UTM suportados. Os valores são sanitizados e limitados; atribuições posteriores não substituem a primeira origem durante a mesma sessão. O envio desses dados ao Google Analytics depende do consentimento para cookies não essenciais.
-
-## Objetivo do projeto
-
-Encontrar uma oportunidade de entrada ou conquistar uma recolocação profissional em tecnologia pode ser um processo demorado.
-
-As plataformas de recrutamento reúnem vagas de diferentes níveis, especialidades e localidades. Nem sempre os anúncios deixam claro o nível de experiência esperado ou se a oportunidade é compatível com quem está no início da carreira.
-
-O TI Vagas procura centralizar essas oportunidades e reduzir o tempo gasto na procura, priorizando vagas efetivas de nível júnior.
-
-## Público-alvo
-
-O portal é direcionado a profissionais que procuram oportunidades efetivas de nível júnior nas seguintes áreas:
+O foco são oportunidades efetivas de nível júnior nas áreas de:
 
 - Desenvolvimento backend, frontend e full stack;
-- Desenvolvimento web e mobile;
-- Infraestrutura de TI;
-- DevOps e computação em nuvem;
+- Infraestrutura, DevOps e computação em nuvem;
 - Redes e administração de sistemas;
-- Suporte técnico e suporte de TI.
+- Suporte técnico e suporte de TI;
+- QA e testes de software, quando compatíveis com o escopo editorial.
 
-O projeto não tem como foco vagas de estágio, trainee ou programas de formação corporativa.
+O portal não tem como público-alvo vagas de estágio, trainee, programas de formação corporativa ou especialidades fora do escopo, como consultoria funcional de ERP/SAP, CRM, BI e ciência de dados. A classificação considera o cargo, a especialidade, os requisitos e as responsabilidades do anúncio.
 
-## Critérios de seleção das vagas
+## Como as vagas são exibidas
 
-As oportunidades passam por filtros automatizados para manter o foco editorial do portal.
+- Oportunidades remotas compatíveis com atuação no Brasil podem ser exibidas nacionalmente.
+- Vagas presenciais e híbridas são exibidas conforme a região do visitante, identificada e validada no servidor.
+- Sem localização válida, o portal limita os resultados às oportunidades remotas nacionais.
+- A candidatura ocorre diretamente no site da empresa ou plataforma que publicou o anúncio.
 
-### Áreas contempladas
+Os filtros automatizados reduzem anúncios incompatíveis, mas não garantem a exatidão de todos os dados nem a disponibilidade em tempo real. Leia [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md).
 
-- Desenvolvimento de software convencional;
-- Infraestrutura de TI;
-- DevOps e cloud;
-- Redes e administração de sistemas;
-- Suporte técnico e suporte de TI.
+## Tecnologias principais
 
-Entre as tecnologias de desenvolvimento consideradas estão PHP, Laravel, C#/.NET, Java, Python, JavaScript, TypeScript e seus respectivos frameworks e ecossistemas.
+| Tecnologia | Uso |
+|---|---|
+| PHP 8.3 e Laravel 13 | Backend e regras de negócio |
+| PostgreSQL | Persistência de dados |
+| Blade, Tailwind CSS e Vite | Interface e build frontend |
+| Node.js e Playwright | Scripts auxiliares e automação de navegador |
+| Laravel Scheduler e Queue | Agendamento e processamento assíncrono |
+| PHPUnit | Testes automatizados |
+| GitHub Actions | CI e rotinas automatizadas |
 
-### Áreas não contempladas
+Consulte [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) para os arquivos de referência e [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) para preparar o ambiente.
 
-O portal não tem como objetivo divulgar vagas especializadas em:
+## Executar localmente
 
-- CRM;
-- ERP, SAP, ABAP e sistemas corporativos equivalentes;
-- Consultoria funcional e implantação de sistemas empresariais;
-- Business Intelligence (BI);
-- Análise e engenharia de dados;
-- Ciência de dados;
-- Machine Learning e Deep Learning;
-- Outras especialidades profissionais fora do escopo definido.
-
-A classificação considera principalmente o cargo e a especialidade da oportunidade. Uma menção incidental a uma dessas tecnologias ou áreas na descrição não deve, isoladamente, eliminar uma vaga de desenvolvimento convencional.
-
-### Senioridade e experiência
-
-O foco do portal são oportunidades de nível júnior.
-
-Os filtros identificam indicações de senioridade incompatíveis com esse público, incluindo:
-
-- Pleno;
-- Sênior;
-- Staff;
-- Principal;
-- Lead;
-- Manager;
-- Director;
-- Head;
-- Architect;
-- Especialista e outras posições de maior responsabilidade.
-
-Também são avaliados requisitos de experiência e responsabilidades descritas no anúncio. Exigências de três ou mais anos de experiência são consideradas incompatíveis com os critérios atuais.
-
-Vagas sem senioridade claramente informada podem ser submetidas aos demais critérios de elegibilidade, sem que a ausência dessa informação seja interpretada automaticamente como comprovação de nível júnior.
-
-### Localização e modalidade de trabalho
-
-O portal prioriza oportunidades destinadas a profissionais residentes no Brasil e exibe vagas presenciais e híbridas **apenas para a região do visitante**, como acontece com a programação regional da televisão.
-
-- **Remoto:** oportunidades que permitem atuação remota no Brasil aparecem para todos, independentemente do local.
-- **Presencial, híbrido ou modalidade não informada:** aparecem somente para visitantes da mesma região da vaga.
-- O visitante precisa autorizar a localização no navegador. Sem autorização, apenas vagas remotas são exibidas. A região **nunca é adivinhada** (não há estimativa por IP).
-- A escolha vale nas visitas seguintes: permissão concedida mostra as vagas da região, bloqueada ou revogada volta às remotas, e redefinida nas configurações faz o navegador perguntar de novo.
-- Em movimento (por exemplo, no celular), a região acompanha o deslocamento do aparelho.
-
-#### Como a região é definida
-
-O município do visitante e o da vaga são identificados pelo código do IBGE. A região é definida em camadas:
-
-1. **Região Metropolitana (RM) ou RIDE:** se o município pertence a uma delas, o visitante vê apenas vagas dos municípios da mesma RM ou RIDE. Um visitante de Rio Bonito, por exemplo, vê vagas de Niterói e Nova Iguaçu, mas não de Teresópolis, de São Paulo ou de Campinas.
-2. **Região Geográfica Intermediária do IBGE (DTB 2025):** para os demais municípios, vale a região intermediária, sem os municípios que pertencem a alguma RM ou RIDE. Um visitante de Teresópolis não vê vagas da RM do Rio de Janeiro.
-
-As vagas só são exibidas se o município puder ser identificado. Quando o texto informa uma cidade que não existe na UF indicada (por exemplo, "Santos, Rio de Janeiro"), a vaga não é associada a nenhum município.
-
-#### Proteção contra falsificação de localização
-
-A região usada para filtrar as vagas é decidida **no servidor**. O navegador apenas informa coordenadas; ele nunca escolhe o município, a UF nem a região.
-
-O que o servidor faz:
-
-- **Região só pela sessão.** A listagem e a página da vaga leem a região exclusivamente da sessão. Parâmetros de URL, campos de formulário/JSON e cookies com nome de localização (`uf`, `city`, `ibge`, `lat`, `lng`, `region`, `location_mode` etc., lista em `config/location_guard.php`) são removidos pelo middleware `location.overrides` antes de chegarem aos controllers e **registrados como tentativa suspeita**. Isso também impede que apareçam nos links de paginação.
-- **Cidade e UF enviadas pelo navegador são ignoradas** na atualização automática: o município sai somente das coordenadas, dentro de uma distância máxima do centroide (`VisitorLocationResolver`). Coordenadas fora do Brasil ou sem município plausível não alteram nada.
-- **Selo de integridade na sessão** (`LocationProof`). Município e coordenadas são gravados com um HMAC feito com a `APP_KEY`. Dados de localização sem selo, ou com qualquer campo alterado depois, não liberam vagas regionais: o visitante volta ao modo limitado (somente remotas) até enviar uma posição válida.
-- **Detecção de sinais de GPS falso** (`LocationSpoofingDetector`). Cada sinal tem um peso (`config/location_guard.php`); a posição é recusada quando a soma de uma tentativa chega a `reject_score`:
-  - deslocamento impossível ou muito rápido em relação à última posição aceita (tempo medido pelo servidor);
-  - coordenadas idênticas ao centroide de um município (o CSV é público no repositório);
-  - precisão igual a zero ou perfeita demais, e coordenadas "redondas" (até 2 casas decimais);
-  - hora da leitura do GPS muito diferente da hora do servidor (reenvio de posição antiga);
-  - UF do GPS diferente da UF estimada pelo IP (sinal fraco: VPN e operadoras móveis também causam isso);
-  - payload fora do formato que o navegador legítimo envia.
-- **Reincidência e troca excessiva de região.** Tentativas suspeitas se acumulam na sessão (com decaimento); ao atingir `lock_score`, a região atual fica congelada por `lock_minutes`. Há ainda um limite de trocas de região por hora, por sessão e por IP, para impedir que alguém "percorra" várias regiões enviando coordenadas em sequência.
-- **Registro sem dado pessoal.** Os eventos vão para o log como `location_guard.suspicious`, com motivos e pontuação. Coordenadas, IP e identificador de sessão não são gravados em claro (apenas resumos).
-- A resposta ao navegador não revela o motivo da recusa (`reason: unverified`).
-
-**Limites, sem rodeios:** não existe proteção absoluta contra falsificação de localização. O navegador e o dispositivo do visitante estão sob o controle dele, e as ferramentas de desenvolvedor, extensões e aplicativos de GPS falso permitem simular uma posição. Quem informar coordenadas plausíveis, com ruído realista, a partir de um ponto que não coincide com nenhum centroide e sem trocar de região rápido demais, **não será detectado**. Estas regras tornam o abuso mais trabalhoso, limitado e registrável; elas não provam que o visitante está onde diz estar. Por isso a região libera apenas a exibição de vagas, nunca algo que dependa de a presença física ser comprovada.
-
-### HTTPS
-
-Em produção (ou com `APP_FORCE_HTTPS=true`) o site só funciona por https: pedidos `http` são redirecionados (301), todas as URLs geradas saem como https, e o navegador recebe `Strict-Transport-Security` e `upgrade-insecure-requests` (evita conteúdo misto, que faz o navegador marcar a página como não segura). O app roda atrás do proxy da hospedagem, que termina o TLS; o esquema vem de `X-Forwarded-Proto`. Confira também que `APP_URL` no painel da hospedagem começa com `https://`.
-
-Ajustes por variável de ambiente: `LOCATION_GUARD_ENABLED`, `LOCATION_GUARD_LOG_CHANNEL` e `LOCATION_GUARD_IP_CROSSCHECK`. Em produção, defina `TRUSTED_PROXIES` com os proxies reais, ou o IP usado nos limites e no cruzamento com o GPS pode ser forjado por quem envia o cabeçalho `X-Forwarded-For`.
-
-#### Base territorial
-
-- Municípios, UF e centroides: `database/data/municipios.csv`.
-- Regiões Imediatas, Intermediárias e RMs: API de localidades do IBGE.
-- Ajustes manuais (RM do Rio de Janeiro, RM de São Paulo, RM de Campinas, RIDE do Distrito Federal e Entorno, RIDE da Grande Teresina e RIDE do Polo Petrolina e Juazeiro): `config/geo_regions.php`. Esses ajustes substituem a RM de mesmo nome importada do IBGE.
-
-Após `php artisan migrate`, importe a base territorial:
+Requisitos: PHP 8.3+, Composer, Node.js 22+, PostgreSQL e Git.
 
 ```bash
-php artisan geo:import-ibge
-php artisan vacancies:resolve-municipalities
+git clone https://github.com/lgomesroc/ti-vagas.git
+cd ti-vagas
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
 ```
 
-A importação usa `database/data/ibge/municipios_dtb_2025.csv`, gerado a partir do arquivo oficial `ibge/DTB_2025.zip` pelo script PowerShell `scripts/ibge/import-dtb-2025.ps1`. O CSV normalizado deve ser versionado no repositório para estar disponível no Docker e em produção. A rotina não consulta a API do IBGE. O segundo comando identifica o município das vagas já gravadas; vagas novas são identificadas na importação. No deploy, o `Dockerfile` executa `geo:import-ibge --if-empty`.
-
-## Coleta e integração de vagas
-
-O TI Vagas utiliza integrações automatizadas para consultar anúncios disponíveis em APIs, páginas de carreiras e plataformas de recrutamento.
-
-Cada integração é implementada considerando as características técnicas da respectiva fonte.
-
-Entre as plataformas ATS e integrações configuradas na branch `developer` estão:
-
-| Plataforma / integração | Empresas configuradas |
-|---|---|
-| Greenhouse | VTEX, Hotmart, Capco, QuintoAndar, EBANX, Sezzle, C6 Bank, Wellhub, Jusbrasil, Systemiq, Stone, Blip, Banco Inter e iFood |
-| Portal próprio de carreiras | BTG Pactual (API pública do board, com identidade de importação preservada para evitar duplicidade com o cadastro Greenhouse anterior) |
-| Lever | CI&T, Swile, Jeeves, Ubiminds, Oowlish, Flex e Bluelight Consulting |
-| Workday | PwC e ABC Fitness |
-| Workable | RecargaPay |
-| Teamtailor | ABGi Consulting e Amanco Wavin |
-| InHire | Coletor global com descoberta de tenants conhecidos e identificados em dados já armazenados e publicações do LinkedIn |
-| Gupy | API pública de busca global; coleta centralizada por termos, sem execução individual por empresa |
-| Oracle HCM | Uber |
-| Ashby | Nubank, Truelogic, LatamCent, Constructor e OpenAI |
-| Recrut.ai | Grupo Bamaq e TPF Engenharia |
-| Pandapé | FIESC, SONDA IT, Adecco e Minsait Brasil |
-| Zoho Recruit | Spassu |
-| TOTVS ATS | TOTVS, Elotech, Netfive, Solor Tecnologia, PERFORMA_IT e V8.TECH |
-| JobConvo | Adecco |
-| Portal próprio / API SYDLE ONE | LEVTY |\n| SmartRecruiters | Empresas configuradas em `config/vacancy_sources.php` |
-| Bradesco CSOD | Bradesco e Bradesco Seguros |
-| Integrações próprias | GeekHunter, Derevo, Sensedia, Ozy e RadarTEC |
-| Mindsight | Guidance |
-
-A configuração efetiva das integrações está em `config/vacancy_sources.php`. A Gupy usa o bloco `gupy.global` e o comando `vacancies:collect-gupy`; cadastros individuais antigos ainda presentes no arquivo não são executados pelo fluxo atual. A SmartRecruiters utiliza a Posting API pública, consulta a listagem paginada e recupera os detalhes de cada anúncio para obter descrição e link oficial de candidatura. Cada empresa deve ser cadastrada pelo identificador da página de carreiras. A LEVTY utiliza uma API pública do portal SYDLE ONE para listar processos seletivos e consulta as páginas oficiais de cada oportunidade para obter a descrição. Algumas integrações próprias não representam necessariamente um ATS público; são conectores específicos para consultar as respectivas fontes.
-
-### LinkedIn: publicações e LinkedIn Jobs
-
-O projeto mantém dois fluxos separados: descoberta de publicações de recrutamento por Bing RSS, DuckDuckGo e conta secundária, com análise de conteúdo e comentários visíveis quando disponíveis; e coleta de anúncios do LinkedIn Jobs por páginas públicas, sem login. As publicações que passam pelas regras automáticas podem ser cadastradas pelo publicador automático. O fluxo de LinkedIn Jobs possui tratamento de HTTP 429 com backoff e reagendamento, sem contornar limites externos.
-
-Detalhes, limitações e configuração: [docs/ColetaPublicacoesLinkedIn.md](docs/ColetaPublicacoesLinkedIn.md).
-
-### Agregadores de vagas
-
-O RJ Empregos está integrado como agregador via feed RSS público. O coletor percorre as publicações recentes, preserva a data original do feed e só importa anúncios cuja página apresente um link externo direto de candidatura. Links internos do próprio RJ Empregos, redirecionamentos sem destino verificável e anúncios sem data original são descartados. Como o portal divulga vagas de diferentes áreas e níveis, os critérios gerais do TI Vagas continuam responsáveis por selecionar o que será exibido ao público.
-
-DEVagas, Netvagas, VagaNet e AllLocalJobs **não estão cadastrados como fontes de coleta**. A existência de links externos ou anúncios encontrados nesses portais não significa que haja integração automatizada com eles.
-
-A relação de fontes pode mudar conforme novas integrações sejam implementadas ou fontes existentes deixem de funcionar.
-
-### Processo de importação
-
-Antes de disponibilizar uma oportunidade, o sistema realiza validações e normalizações dos dados recebidos.
-
-Entre as etapas estão:
-
-1. Consulta às fontes configuradas;
-2. Identificação da empresa e do anúncio;
-3. Normalização dos dados recebidos;
-4. Validação dos campos obrigatórios;
-5. Verificação do identificador externo;
-6. Preservação da data original de publicação;
-7. Identificação de anúncios potencialmente indisponíveis;
-8. Inserção ou atualização dos registros no banco de dados.
-
-A identificação dos anúncios utiliza a fonte de origem e o identificador externo para evitar registros duplicados.
-
-Quando uma oportunidade já existe, seus dados podem ser atualizados sem substituir a data original de publicação pela data da coleta.
-
-## Verificação de disponibilidade
-
-O projeto possui um mecanismo centralizado para identificar anúncios que não representam mais oportunidades disponíveis.
-
-O detector considera informações de status fornecidas pelas fontes e expressões encontradas nos títulos e nas descrições.
-
-Entre as situações identificadas estão:
-
-- Vagas encerradas;
-- Vagas finalizadas;
-- Vagas preenchidas;
-- Vagas pausadas;
-- Vagas suspensas;
-- Vagas congeladas;
-- Vagas canceladas;
-- Inscrições ou candidaturas encerradas;
-- Anúncios que informam que não estão mais recebendo candidaturas.
-
-O mecanismo contempla expressões em português e inglês.
-
-### Tratamento de oportunidades indisponíveis
-
-Quando uma oportunidade é identificada como indisponível durante a importação:
-
-- O anúncio não é inserido novamente;
-- Caso já exista no banco de dados, seu registro é preservado e recebe o estado `expired`;
-- Uma ocorrência é gravada no histórico de verificações com o tipo `source`;
-- A ocorrência continua contabilizada como item ignorado durante a importação.
-
-A listagem e a página individual exibem somente vagas com estado `active`. Vagas `suspect` e `expired` permanecem fora da consulta pública.
-
-**Limitação:** a ausência de uma vaga na resposta de uma fonte externa não significa necessariamente que ela foi encerrada. Quando uma fonte deixa de retornar um anúncio sem informar seu status, não é possível confirmar automaticamente sua indisponibilidade apenas pela ausência do registro.
-
-Como as fontes externas podem apresentar informações desatualizadas ou incompletas, não existe garantia de que todas as oportunidades sejam identificadas corretamente.
-
-### Monitoramento HTTP dos links de candidatura
-
-O projeto inclui um verificador automático dos links de candidatura, executado pelo comando:
+Configure a conexão PostgreSQL no `.env`, crie o banco e execute:
 
 ```bash
-php artisan vacancies:check-links --limit=500
+php artisan migrate
+npm run build
+php artisan serve
 ```
 
-A rotina está agendada a cada seis horas, no fuso `America/Sao_Paulo`, alinhada às execuções do GitHub Actions, e verifica até 500 links por execução. Os links ainda não verificados ou verificados há mais tempo são priorizados.
+A aplicação ficará disponível em `http://127.0.0.1:8000`.
 
-Cada vaga possui um estado de disponibilidade:
-
-- `active`: a página respondeu com sucesso e não foi identificado indicador de encerramento;
-- `suspect`: houve falha temporária, bloqueio, timeout, resposta HTTP inconclusiva ou primeira resposta HTTP 404;
-- `expired`: a fonte informou encerramento, a página respondeu HTTP 410 ou houve HTTP 404 em verificações consecutivas.
-
-O verificador segue redirecionamentos HTTP/HTTPS, registra o endereço inicial e o destino final, o código HTTP, o tempo de resposta, o resultado, o motivo e a data da consulta. Destinos locais e endereços IP privados ou reservados são bloqueados.
-
-Cada tentativa gera um registro em `vacancy_availability_checks`. A vaga mantém também o último resultado, data da última consulta, último código HTTP, contador de respostas HTTP 404 consecutivas e eventual erro.
-
-Falhas HTTP 403, 429 e 5xx, timeout e erros de conexão não encerram uma vaga automaticamente: ela passa para `suspect` e poderá ser verificada novamente. Uma primeira resposta 404 também fica como suspeita; a expiração exige nova confirmação. Uma resposta 410 é tratada como encerramento explícito.
-
-**Limitações:** uma resposta HTTP 200 confirma apenas que a página está acessível, não que a empresa ainda recebe candidaturas. Algumas plataformas bloqueiam verificações automatizadas ou apresentam páginas genéricas. O conteúdo pode mudar sem que o status real da seleção seja refletido. O estado `active` significa que a última verificação foi bem-sucedida, não uma garantia de contratação ou de disponibilidade em tempo real.
-
-A tabela de histórico usa vínculo com a vaga e acompanha seu ciclo de retenção: quando uma vaga é eliminada pela política de expiração de 60 dias, seus registros históricos vinculados também são eliminados.
-
-## Expiração dos anúncios
-
-Além da verificação de disponibilidade, o projeto possui uma regra independente de expiração.
-
-Vagas com mais de 60 dias, considerando a data original de publicação, são removidas do banco de dados pelo processo de limpeza.
-
-Essa regra evita o acúmulo de anúncios antigos.
-
-A expiração por idade não substitui a verificação de disponibilidade: são mecanismos distintos e complementares.
-
-## Funcionalidades
-
-- Listagem de oportunidades recentes;
-- Pesquisa por palavras-chave;
-- Página individual com detalhes da oportunidade;
-- Identificação da empresa, localização e modalidade de trabalho;
-- Exibição da data original de publicação, quando disponível;
-- Redirecionamento para a página original de candidatura;
-- Integração com diferentes fontes de recrutamento;
-- Importação e atualização automatizada de oportunidades;
-- Identificação de anúncios indisponíveis informados pelas fontes;
-- Estados de disponibilidade `active`, `suspect` e `expired`;
-- Verificação HTTP automatizada dos links de candidatura;
-- Histórico de verificações, incluindo código HTTP, URL final, motivo e data;
-- Preservação de vagas encerradas com estado `expired`;
-- Exclusão de vagas com mais de 60 dias;
-- Paginação dos resultados;
-- Validação de elegibilidade antes da exibição das oportunidades.
-
-## Tecnologias utilizadas
-
-| Tecnologia | Finalidade |
-|---|---|
-| PHP 8.3 | Linguagem principal |
-| Laravel 13 | Framework da aplicação |
-| PostgreSQL | Banco de dados relacional |
-| Blade | Renderização das páginas |
-| Tailwind CSS | Estilização da interface |
-| Vite | Compilação dos recursos frontend |
-| Laravel Scheduler | Agendamento de tarefas |
-| Laravel Queue | Processamento de filas |
-| PHPUnit 12 | Testes automatizados |
-| Git | Controle de versão |
-| GitHub Actions | Integração contínua e automação das rotinas |
-
-## Testes automatizados
-
-O projeto possui testes automatizados para validar regras de negócio e comportamentos importantes da aplicação.
-
-Entre os cenários cobertos estão:
-
-- Identificação de anúncios encerrados em português e inglês;
-- Reconhecimento de diferentes estados de indisponibilidade;
-- Identificação de expressões de encerramento em títulos e descrições;
-- Prevenção de falsos positivos em anúncios que mencionam encerramentos futuros;
-- Prevenção de falsos positivos em referências históricas;
-- Aplicação dos critérios de senioridade;
-- Exclusão de vagas de estágio e trainee;
-- Exclusão de especialidades fora do escopo, como SAP/ABAP, ERP, CRM, BI e ciência de dados;
-- Preservação de vagas de desenvolvimento que apenas mencionam tecnologias ou áreas excluídas na descrição;
-- Tratamento de vagas com requisitos de experiência incompatíveis;
-- Aplicação dos critérios de localização e modalidade;
-- Comportamento da listagem diante de oportunidades indisponíveis;
-- Bloqueio de acesso a anúncios indisponíveis;
-- Importação de oportunidades;
-- Tratamento de registros duplicados e indisponíveis;
-- Verificação HTTP dos links de candidatura, redirecionamentos e respostas inconclusivas;
-- Captura, sanitização e preservação da primeira atribuição UTM;
-- Aceite dos termos, persistência de cookies e preferências de cookies não essenciais;
-- Primeira autorização de localização a partir do modo limitado;
-- Retorno do visitante com cookie de termos e sessão nova, permissão bloqueada ou revogada e ausência de estimativa por IP.
-
-A quantidade de testes e as asserções muda conforme o projeto evolui. Não há nesta documentação uma contagem fixa apresentada como resultado atual; consulte a execução mais recente do CI ou execute a suíte no ambiente local.
-
-Para executar a suíte localmente:
+Para executar a suíte, configure o banco exclusivo de testes conforme [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) e rode:
 
 ```bash
 php artisan test
 ```
 
-## Automação e agendamento
+## Aviso
 
-O projeto utiliza o Laravel Scheduler e o GitHub Actions para executar as rotinas de coleta e manutenção.
-
-### Coleta de oportunidades
-
-A coleta está configurada para ocorrer a cada seis horas, no fuso horário `America/Sao_Paulo`.
-
-O comando responsável é:
-
-```bash
-php artisan vacancies:collect
-```
-
-A rotina consulta as fontes configuradas e processa as oportunidades recebidas.
-
-### Limpeza de anúncios expirados
-
-A limpeza está configurada para ocorrer às segundas-feiras, às 03h, no fuso horário `America/Sao_Paulo`, com execução condicionada à semana ISO par.
-
-O comando responsável é:
-
-```bash
-php artisan vacancies:prune-expired
-```
-
-### GitHub Actions
-
-O projeto possui workflows separados:
-
-- **CI:** valida o `composer.json`, instala dependências, verifica a sintaxe dos arquivos PHP e compila o frontend. É executado em push e pull request nas branches `developer` e `main`.
-- **Automação de vagas:** executa as rotinas agendadas, conecta ao banco de dados e processa a fila de oportunidades.
-
-A automação de vagas utiliza processamento de filas para executar as tarefas de coleta.
-
-## Detecção de VPN, proxy e redes suspeitas
-
-O acesso é avaliado pelo tipo de rede de origem, **sem substituir a geolocalização do navegador**:
-
-| Origem | Tratamento |
-|---|---|
-| Internet residencial, dados móveis e Wi-Fi público (cafeterias, restaurantes, hotéis, aeroportos) | Permitir |
-| VPN identificada | Avaliar; restringe se o IP se comportar como robô |
-| Proxy anônimo e Tor | Restringir (configurável para bloquear) |
-| Datacenter | Avaliar comportamento e risco |
-| Endereço associado a abuso (Spamhaus DROP) | Bloquear |
-
-- IPs públicos e compartilhados **não são tratados como suspeitos**: só entra na política o IP que aparece em alguma lista.
-- Todas as fontes são gratuitas (lista oficial do Tor, faixas da AWS e do Google Cloud, listas comunitárias); o AbuseIPDB é opcional.
-- Publique primeiro com `NETWORK_SECURITY_MODE=monitor` e observe os logs `network.access`.
-- As listas são atualizadas a cada seis horas por `php artisan network:update-lists`; `php artisan network:check <ip>` mostra como um IP seria classificado.
-
-Funcionamento, configuração, **limitações e possíveis falsos positivos de cada mecanismo**: [docs/deteccao-de-redes-suspeitas.md](docs/deteccao-de-redes-suspeitas.md).
-
-## Executando o projeto localmente
-
-### Requisitos
-
-- PHP 8.3 ou superior;
-- Composer;
-- Node.js 22 ou superior;
-- PostgreSQL;
-- Git.
-
-### Instalação
-
-Clone o repositório:
-
-```bash
-git clone https://github.com/lgomesroc/ti-vagas.git
-cd ti-vagas
-```
-
-Instale as dependências PHP:
-
-```bash
-composer install
-```
-
-Configure o ambiente:
-
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-Configure as variáveis de conexão com o PostgreSQL no arquivo `.env`.
-
-Execute as migrações:
-
-```bash
-php artisan migrate
-```
-
-Instale as dependências frontend e compile os recursos:
-
-```bash
-npm install
-npm run build
-```
-
-Inicie o servidor local:
-
-```bash
-php artisan serve
-```
-
-A aplicação ficará disponível, por padrão, em:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Aviso importante e responsabilidade
-
-O TI Vagas é um projeto independente de agregação e divulgação de oportunidades profissionais.
-
-Não somos uma agência de recrutamento, consultoria de RH, empregador ou representantes das empresas anunciantes.
-
-**A publicação de uma vaga no portal não representa garantia de que ela esteja ativa, seja legítima, esteja disponível ou resulte em contratação.**
-
-Embora sejam aplicados filtros e verificações automatizadas, não é possível garantir a precisão de todas as informações recebidas das fontes externas.
-
-O usuário deve considerar que:
-
-- Uma vaga pode já ter sido encerrada pela empresa, mesmo que continue aparecendo no portal;
-- Podem existir anúncios desatualizados, duplicados ou incorretos;
-- Podem existir vagas fantasmas, publicadas ou mantidas pelas empresas sem intenção imediata de contratação;
-- Requisitos, salários, benefícios, localização e modalidades podem mudar sem aviso;
-- A empresa pode alterar, suspender ou encerrar um processo seletivo a qualquer momento;
-- A classificação automática de senioridade, área e modalidade pode apresentar falhas.
-
-**A responsabilidade pela verificação da oportunidade e pela decisão de candidatura é do próprio usuário.**
-
-Antes de fornecer dados pessoais, documentos ou qualquer informação sensível, recomendamos conferir a legitimidade da empresa e utilizar seus canais oficiais de recrutamento.
-
-As candidaturas são realizadas diretamente nos canais indicados pela empresa ou plataforma responsável pelo anúncio.
-
-## Atualização e disponibilidade
-
-A coleta depende da disponibilidade das fontes externas e de suas respectivas APIs, páginas de carreiras e estruturas de dados.
-
-Alterações em serviços de terceiros, políticas de acesso ou formatos de resposta podem interromper temporariamente a integração de determinadas empresas.
-
-A atualização das oportunidades também depende da execução dos workflows, da disponibilidade do banco de dados e do funcionamento dos serviços externos.
-
-## Projeto
-
-O TI Vagas é desenvolvido e mantido como um projeto independente, com foco em facilitar o acesso a oportunidades profissionais de nível júnior na área de tecnologia.
-
-Sugestões, identificação de anúncios incorretos e contribuições para melhorar os critérios de seleção são bem-vindas.
+O TI Vagas é um projeto independente. Não é empregador, agência de recrutamento ou representante das empresas anunciantes. Uma vaga publicada pode estar encerrada, desatualizada, incorreta ou não resultar em contratação. Antes de compartilhar dados pessoais, confira a legitimidade da empresa e utilize seus canais oficiais.
 
 ---
 
 **TI Vagas — Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
-
-
-## Integrações IBM e Microsoft
-
-- **IBM:** consulta a API de busca de carreiras, restringe a coleta aos níveis Entry Level e Internship e filtra oportunidades de tecnologia. Registros sem data original de publicação são descartados.
-- **Microsoft:** consulta o portal Eightfold para vagas no Brasil, recupera a descrição individual e mantém oportunidades de tecnologia com indicação de júnior, início de carreira ou estágio.
-
-As integrações possuem testes automatizados com respostas simuladas. A disponibilidade real depende das APIs externas e deve ser monitorada após a publicação.

@@ -107,6 +107,12 @@ A verificação é um indício automatizado, não uma garantia de que a candidat
 
 ### Abler
 
-A Abler é consultada por um único coletor global (`AblerSource`), usando a listagem pública JSON do portal de candidatos em `/api/candidate/v2/vacancies`. A coleta percorre a paginação informada em `meta.next` e `meta.last`, respeita o limite configurado e considera a janela inicial de 60 dias. Os anúncios são normalizados para o contrato comum, com empresa, descrição, localização, modalidade, URL de candidatura, identificador externo e data original.
+A Abler utiliza um coletor global baseado na interface pública de busca do portal de candidatos, renderizada com Playwright. O acesso direto ao endpoint interno da API retornava bloqueio de acesso, por isso o coletor abre a página pública no Chromium, lê os links disponibilizados pela interface e visita os detalhes dos anúncios.
 
-A configuração operacional fica em `vacancy_sources.abler`. Os limites padrão são 30 páginas, 12 registros por página e até 1.500 anúncios importáveis por execução. A classificação de TI e a elegibilidade geográfica são aplicadas antes da importação. Como a API pode alterar seus campos e regras de paginação, a integração deve ser acompanhada pelos testes e diagnósticos da fonte.
+A implementação está dividida entre `AblerSource` (adaptador PHP), `scripts/abler/collect.mjs` (navegador), e o workflow isolado `.github/workflows/abler.yml`. O script pesquisa termos específicos de desenvolvimento, linguagens, suporte, infraestrutura e QA em nível júnior. Para cada termo, limita a busca a três páginas e 30 links; anúncios repetidos entre termos são deduplicados.
+
+Os detalhes são normalizados para o contrato comum quando os campos estão disponíveis na página: título, empresa, descrição, localidade, modalidade, tipo de contratação, salário, data original, URL do anúncio e identificador externo. A elegibilidade, a janela de recência e os filtros geográficos são aplicados pelo adaptador PHP.
+
+O workflow instala Node.js, dependências npm e Chromium e executa somente `vacancies:collect-source abler-global`. É uma execução operacional que grava no banco configurado pelos secrets; não deve ser usada como teste local sem intenção de coletar dados reais.
+
+A interface da Abler pode mudar e a busca limitada não garante cobertura de todos os anúncios. Detalhes da extração, limites, execução e diagnóstico estão em [Integração Abler](IntegracaoAbler.md).
