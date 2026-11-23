@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Sources;
@@ -139,7 +140,6 @@ class ProgramathorSource implements VacancySource
             $title === ''
             || preg_match('/^\s*VAGA\s+EXTERNA\b/iu', $title)
             || preg_match('/\bVAGA\s+EXTERNA\b/iu', $body)
-            || preg_match('/\b(vaga vencida|oportunidade vencida|não recebe mais candidaturas)\b/iu', $body)
         ) {
             return null;
         }
