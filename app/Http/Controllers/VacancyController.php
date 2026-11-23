@@ -395,7 +395,8 @@ class VacancyController extends Controller
      */
     private function eligibleVacancies(
         ?RegionScope $visitorScope = null,
-        string $search = ''
+        string $search = '',
+        string $companyFilter = ''
     ): \Generator {
         $query = Vacancy::query()
             ->select([
