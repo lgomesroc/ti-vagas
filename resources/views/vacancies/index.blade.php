@@ -108,14 +108,6 @@
 
                         </div>
 
-                        <p class="vacancy-description">
-                            {{ \Illuminate\Support\Str::limit(strip_tags($vacancy->description), 220) }}
-                        </p>
-
-                        <div class="vacancy-date">
-                            Publicada em:
-                            {{ $vacancy->original_published_at->format('d/m/Y') }}
-                        </div>
 
                     </article>
 
