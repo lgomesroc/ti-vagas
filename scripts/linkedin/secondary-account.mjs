@@ -41,9 +41,15 @@ const linkedinBaseUrl = new URL(
   process.env.LINKEDIN_BASE_URL ?? 'https://www.linkedin.com'
 ).origin;
 
+const isMockLinkedInOrigin = linkedinBaseUrl !== 'https://www.linkedin.com';
+
 function isLinkedInUrl(value) {
   try {
-    return new URL(value).origin === linkedinBaseUrl;
+    const url = new URL(value);
+
+    return isMockLinkedInOrigin
+      ? url.origin === linkedinBaseUrl
+      : /(^|\\.)linkedin\\.com$/i.test(url.hostname);
   } catch {
     return false;
   }
