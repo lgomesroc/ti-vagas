@@ -35,10 +35,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $candidateReason = LinkedInPostCandidate::query()
-            ->where('post_id', 'urn:li:activity:1001')
-            ->value('decision_reason');
-        $this->assertSame(0, $result['rejected'], 'Motivo de rejeição: ' . ($candidateReason ?? 'não informado'));
+        $this->assertSame(0, $result['rejected']);
         $candidate = LinkedInPostCandidate::query()->where('post_id', 'urn:li:activity:1001')->firstOrFail();
         $this->assertSame('pending_publication', $candidate->status);
         $this->assertSame('https://acme.example/jobs/123', $candidate->application_url);
@@ -72,22 +69,12 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $candidate = LinkedInPostCandidate::query()
-            ->where('post_id', 'urn:li:activity:1001')
-            ->firstOrFail();
-        $details = json_encode([
-            'reason' => $candidate->decision_reason,
-            'title' => $candidate->title,
-            'company' => $candidate->company,
-            'location' => $candidate->location,
-            'work_model' => $candidate->work_model,
-            'description_length' => mb_strlen((string) $candidate->description),
-        ], JSON_UNESCAPED_UNICODE);
-        $this->assertSame(0, $result['rejected'], 'Diagnóstico: ' . $details);
+        $this->assertSame(0, $result['rejected']);
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'pending_publication',
             'title' => 'Analista de Suporte Sênior',
+            'company' => 'Acme Tecnologia',
             'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
         ]);
     }
@@ -139,15 +126,9 @@ class LinkedInPostCandidateProcessorTest extends TestCase
         $candidate = LinkedInPostCandidate::query()
             ->where('post_id', 'urn:li:activity:1001')
             ->firstOrFail();
-        $details = json_encode([
-            'reason' => $candidate->decision_reason,
-            'title' => $candidate->title,
-            'company' => $candidate->company,
-            'location' => $candidate->location,
-            'work_model' => $candidate->work_model,
-            'description_length' => mb_strlen((string) $candidate->description),
-        ], JSON_UNESCAPED_UNICODE);
-        $this->assertSame('pending_publication', $candidate->status, 'Diagnóstico: ' . $details);
+
+        $this->assertSame('pending_publication', $candidate->status);
+        $this->assertSame('Acme Tecnologia', $candidate->company);
     }
 
     public function test_open_to_work_and_job_search_posts_are_rejected_as_not_vacancies(): void
@@ -313,22 +294,12 @@ class LinkedInPostCandidateProcessorTest extends TestCase
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
 
-        $candidate = LinkedInPostCandidate::query()
-            ->where('post_id', 'urn:li:activity:1001')
-            ->firstOrFail();
-        $details = json_encode([
-            'reason' => $candidate->decision_reason,
-            'title' => $candidate->title,
-            'company' => $candidate->company,
-            'location' => $candidate->location,
-            'work_model' => $candidate->work_model,
-            'description_length' => mb_strlen((string) $candidate->description),
-        ], JSON_UNESCAPED_UNICODE);
-        $this->assertSame(0, $result['rejected'], 'Diagnóstico: ' . $details);
+        $this->assertSame(0, $result['rejected']);
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:1001',
             'status' => 'pending_publication',
             'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:1001/',
+            'company' => 'Acme Tecnologia',
         ]);
     }
 
