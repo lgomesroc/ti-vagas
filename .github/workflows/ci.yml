@@ -68,7 +68,7 @@ jobs:
           find app bootstrap config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 
       - name: Executar suíte PHP completa (inclui LinkedIn offline)
-        run: php artisan test --compact --testsuite=CI
+        run: php artisan test --compact --display-warnings --testsuite=CI
 
   frontend:
     name: Testar Node e compilar frontend
