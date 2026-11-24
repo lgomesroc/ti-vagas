@@ -933,7 +933,7 @@ class LinkedInPostCandidateProcessor
             return false;
         }
 
-        $plain = preg_replace('~https?://[^\\s<>"\\']+~iu', ' ', $text) ?? $text;
+        $plain = preg_replace("~https?://[^\\s<>\"']+~iu", ' ', $text) ?? $text;
         $plain = preg_replace('/[A-Z0-9._%+\\-]+@[A-Z0-9.\\-]+\\.[A-Z]{2,}/i', ' ', $plain) ?? $plain;
         $plain = preg_replace('/#[\\p{L}\\p{N}_]+/u', ' ', $plain) ?? $plain;
         $normalized = $this->normalize($plain);
