@@ -600,6 +600,36 @@ async function launchBrowser() {
   return { browser: null, context };
 }
 
+async function logAuthenticationDiagnostics(context, page) {
+  const cookies = await context.cookies('https://www.linkedin.com').catch(() => []);
+  const authCookie = cookies.find(cookie => cookie.name === 'li_at');
+  let currentUrl;
+
+  try {
+    const url = new URL(page.url());
+    currentUrl = `${url.origin}${url.pathname}`;
+  } catch {
+    currentUrl = 'URL indisponível';
+  }
+
+  const diagnostics = {
+    currentUrl,
+    pageTitle: await page.title().catch(() => 'Título indisponível'),
+    linkedinCookieCount: cookies.length,
+    cookieNames: cookies.map(cookie => cookie.name).sort(),
+    liAtPresent: Boolean(authCookie),
+    liAtExpiresAt: authCookie?.expires > 0
+      ? new Date(authCookie.expires * 1000).toISOString()
+      : authCookie ? 'cookie de sessão' : null,
+  };
+
+  process.stderr.write(
+    '\\n[LinkedIn authentication diagnostics]\\n' +
+    JSON.stringify(diagnostics, null, 2) +
+    '\\n'
+  );
+}
+
 async function main() {
   if (!['login', 'search', 'posts', 'jobs', 'all'].includes(mode)) {
     throw new Error(
@@ -650,6 +680,7 @@ async function main() {
     await page.waitForTimeout(1800);
 
     if (/\/(login|checkpoint|challenge)/i.test(new URL(page.url()).pathname)) {
+      await logAuthenticationDiagnostics(context, page);
       throw new Error(
         'A sessão da conta secundária não está autenticada. Execute npm run linkedin:secondary:login.'
       );
