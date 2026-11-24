@@ -607,7 +607,7 @@ async function logAuthenticationDiagnostics(context, page) {
 
   try {
     const url = new URL(page.url());
-    currentUrl = \`\${url.origin}\${url.pathname}\`;
+    currentUrl = `${url.origin}${url.pathname}`;
   } catch {
     currentUrl = 'URL indisponível';
   }
