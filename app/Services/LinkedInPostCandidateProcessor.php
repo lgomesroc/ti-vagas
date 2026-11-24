@@ -193,7 +193,7 @@ class LinkedInPostCandidateProcessor
         }
 
         $verifiedLinks = [];
-        foreach ($hasApplicationEmail ? [] : $links as $link) {
+        foreach ($links as $link) {
             $inspection = $this->urlInspector->inspect($link);
             $verifiedLinks[] = ['url' => $link] + $inspection;
 
@@ -231,6 +231,12 @@ class LinkedInPostCandidateProcessor
             }
         }
 
+        // Sem página externa validada, o destino continua sendo a publicação original.
+        // O e-mail é metadado informativo e nunca substitui o link de origem.
+        if ($applicationUrl === null && $hasApplicationEmail) {
+            $applicationUrl = $postUrl;
+        }
+
         $enrichedText = trim($text . "\n" . $pageContent);
         $postTitle = $this->stringValue($post, ['title']);
         $title = $this->extractTitle(
@@ -245,6 +251,30 @@ class LinkedInPostCandidateProcessor
             . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
             . ($links !== [] ? "\n\nLinks identificados na publicação:\n" . implode("\n", $links) : '')
         );
+
+        if (
+            $applicationUrl === $postUrl
+            && $hasApplicationEmail
+            && !$this->hasSufficientEmailOnlyDetails($title, $company, $location, $enrichedText)
+        ) {
+            $candidate->fill($base + [
+                'embedded_links' => $verifiedLinks,
+                'emails' => $emails,
+                'title' => $title,
+                'company' => $company,
+                'description' => $description,
+                'location' => $location,
+                'work_model' => $workModel,
+                'employment_type' => $employmentType,
+                'application_url' => $applicationUrl,
+                'application_email' => $applicationEmail,
+                'application_subject' => $applicationSubject,
+                'status' => 'rejected',
+                'decision_reason' => 'Publicação com candidatura somente por e-mail não apresenta detalhes suficientes da vaga (empresa, localidade, responsabilidades e requisitos).',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
 
         $reason = $this->validateBusinessRules(
             $title,
@@ -874,8 +904,52 @@ class LinkedInPostCandidateProcessor
 
         return array_values(array_unique(array_filter(
             $normalizedUrls,
-            fn ($url) => filter_var($url, FILTER_VALIDATE_URL)
+            fn ($url) => filter_var($url, FILTER_VALIDATE_URL) && $this->isRelevantPostLink($url)
         )));
+    }
+
+    private function isRelevantPostLink(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        if ($host === 'lnkd.in' || str_ends_with($host, '.lnkd.in')) {
+            return true;
+        }
+
+        // Perfis, hashtags e buscas do LinkedIn não são páginas de candidatura.
+        return ($host === 'linkedin.com' || str_ends_with($host, '.linkedin.com'))
+            ? preg_match('~^/jobs/(?:view|collections)/~i', $path) === 1
+            : true;
+    }
+
+    private function hasSufficientEmailOnlyDetails(
+        ?string $title,
+        ?string $company,
+        ?string $location,
+        string $text
+    ): bool {
+        if (blank($title) || blank($company) || blank($location)) {
+            return false;
+        }
+
+        $plain = preg_replace('~https?://[^\\s<>"\\']+~iu', ' ', $text) ?? $text;
+        $plain = preg_replace('/[A-Z0-9._%+\\-]+@[A-Z0-9.\\-]+\\.[A-Z]{2,}/i', ' ', $plain) ?? $plain;
+        $plain = preg_replace('/#[\\p{L}\\p{N}_]+/u', ' ', $plain) ?? $plain;
+        $normalized = $this->normalize($plain);
+
+        $hasResponsibilities = preg_match(
+            '/\\b(responsabilidades|atividades|o que voce vai fazer|o que voce fara|what you will do|responsibilities)\\b/',
+            $normalized
+        ) === 1;
+        $hasRequirements = preg_match(
+            '/\\b(requisitos|qualificacoes|competencias|o que esperamos|requirements|qualifications|skills)\\b/',
+            $normalized
+        ) === 1;
+
+        return mb_strlen(trim($normalized)) >= 180
+            && $hasResponsibilities
+            && $hasRequirements;
     }
 
     /**
@@ -977,9 +1051,17 @@ class LinkedInPostCandidateProcessor
     {
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
-        return $host !== ''
-            && !str_contains($host, 'linkedin.com')
-            && !str_contains($host, 'lnkd.in');
+        if ($host === '' || $host === 'lnkd.in' || str_ends_with($host, '.lnkd.in')) {
+            return false;
+        }
+
+        if ($host === 'linkedin.com' || str_ends_with($host, '.linkedin.com')) {
+            $path = (string) parse_url($url, PHP_URL_PATH);
+
+            return preg_match('~^/jobs/(?:view|collections)/~i', $path) === 1;
+        }
+
+        return true;
     }
 
     private function normalizeUrl(string $url): string

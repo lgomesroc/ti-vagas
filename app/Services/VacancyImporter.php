@@ -134,7 +134,7 @@ class VacancyImporter
             $sourceUrl = is_string($data['source_url'] ?? null) && trim($data['source_url']) !== '' ? trim($data['source_url']) : ($applicationUrl !== null && $this->isValidHttpUrl($applicationUrl) ? $applicationUrl : null);
             $validApplicationUrl = $applicationUrl === null || $this->isValidApplicationUrl($applicationUrl);
             $validApplicationEmail = $applicationEmail === null || filter_var($applicationEmail, FILTER_VALIDATE_EMAIL) !== false;
-            $hasApplicationChannel = $applicationUrl !== null || $applicationEmail !== null;
+            $hasApplicationChannel = $applicationUrl !== null;
             $validSourceUrl = $sourceUrl === null || $this->isValidHttpUrl($sourceUrl);
 
             if (!$valid || !$validApplicationUrl || !$validApplicationEmail || !$hasApplicationChannel || !$validSourceUrl || ($applicationUrl === null && $sourceUrl === null) || empty($data['original_published_at'])) {
@@ -279,9 +279,7 @@ class VacancyImporter
 
     private function isValidApplicationUrl(string $url): bool
     {
-        return $this->isValidHttpUrl($url)
-            || (str_starts_with(strtolower($url), 'mailto:')
-                && filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false);
+        return $this->isValidHttpUrl($url);
     }
 
     private function isValidHttpUrl(string $url): bool

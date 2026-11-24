@@ -72,30 +72,31 @@
             </section>
 
             <div class="details-actions">
-                @if ($vacancy->application_email)
-                    <a href="mailto:{{ $vacancy->application_email }}@if ($vacancy->application_subject)?subject={{ rawurlencode($vacancy->application_subject) }}@endif" class="button">Enviar currículo por e-mail</a>
-                    <p class="vacancy-date">
-                        E-mail para candidatura: <a href="mailto:{{ $vacancy->application_email }}">{{ $vacancy->application_email }}</a>
-                        @if ($vacancy->application_subject)<br>Assunto: {{ $vacancy->application_subject }}@endif
-                    </p>
-                    @if ($vacancy->application_url)
-                        <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">Acessar página de candidatura</a>
-                    @elseif ($vacancy->source_url)
-                        <a href="{{ $vacancy->source_url }}" target="_blank" rel="noopener noreferrer" class="button">Ver publicação original</a>
-                    @endif
-                @elseif ($vacancy->application_url)
-                    <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">Candidatar-se na empresa</a>
+                @if ($vacancy->application_url)
+                    @php
+                        $applicationHost = strtolower((string) parse_url($vacancy->application_url, PHP_URL_HOST));
+                        $isOriginalPost = $applicationHost === 'linkedin.com' || str_ends_with($applicationHost, '.linkedin.com');
+                    @endphp
+                    <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">
+                        {{ $isOriginalPost ? 'Ver publicação original' : 'Acessar página da vaga' }}
+                    </a>
+                @elseif ($vacancy->source_url)
+                    <a href="{{ $vacancy->source_url }}" target="_blank" rel="noopener noreferrer" class="button">Ver publicação original</a>
                 @endif
+
+                @if ($vacancy->application_email)
+                    <p class="vacancy-date">
+                        Contato informado na publicação: {{ $vacancy->application_email }}
+                        @if ($vacancy->application_subject)
+                            <br>Assunto indicado: {{ $vacancy->application_subject }}
+                        @endif
+                    </p>
+                @endif
+
                 <a href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}" class="button">Ver outras vagas</a>
             </div>
 
-            <p class="vacancy-date">
-                @if ($vacancy->application_email)
-                    A candidatura é realizada pelo endereço de e-mail informado na publicação original.
-                @else
-                    O processo de candidatura é realizado diretamente no site da empresa ou plataforma responsável pela oportunidade.
-                @endif
-            </p>
+            <p class="vacancy-date">O TI Vagas direciona você à página da vaga ou à publicação original. A candidatura acontece diretamente com a empresa ou recrutador.</p>
 
         </article>
 

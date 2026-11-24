@@ -11,7 +11,7 @@ class VacancyEmailApplicationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_imports_a_vacancy_with_corporate_email_and_source_post_without_application_url(): void
+    public function test_it_imports_a_vacancy_with_corporate_email_and_linkedin_post_as_destination(): void
     {
         $postUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7530395139467337728/';
         $result = app(VacancyImporter::class)->importFetched('linkedin-posts', [[
@@ -21,7 +21,7 @@ class VacancyEmailApplicationTest extends TestCase
             'location' => 'Curitiba/PR',
             'work_model' => null,
             'employment_type' => null,
-            'application_url' => null,
+            'application_url' => $postUrl,
             'application_email' => 'junior@b4x.com.br',
             'application_subject' => 'Vaga Backend Júnior — PHP',
             'source_url' => $postUrl,
@@ -34,7 +34,7 @@ class VacancyEmailApplicationTest extends TestCase
             'source' => 'linkedin-posts',
             'external_id' => 'urn:li:activity:7530395139467337728',
             'company' => 'B4X',
-            'application_url' => null,
+            'application_url' => 'https://www.linkedin.com/feed/update/urn:li:activity:7530395139467337728/',
             'application_email' => 'junior@b4x.com.br',
             'application_subject' => 'Vaga Backend Júnior — PHP',
             'source_url' => $postUrl,
@@ -82,9 +82,12 @@ class VacancyEmailApplicationTest extends TestCase
 
         $html = view('vacancies.show', ['vacancy' => $vacancy])->render();
 
-        $this->assertStringContainsString('mailto:junior@b4x.com.br?subject=', $html);
+        $this->assertStringNotContainsString('mailto:', $html);
         $this->assertStringContainsString('Vaga Backend Júnior', $html);
         $this->assertStringContainsString('Ver publicação original', $html);
+        $this->assertStringContainsString('href="https://www.linkedin.com/feed/update/urn:li:activity:7530395139467337728/"', $html);
+        $this->assertStringContainsString('junior@b4x.com.br', $html);
+        $this->assertStringNotContainsString('Enviar currículo por e-mail', $html);
         $this->assertStringNotContainsString('Candidatar-se na empresa', $html);
     }
 }

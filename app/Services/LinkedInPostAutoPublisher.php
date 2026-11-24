@@ -74,7 +74,7 @@ class LinkedInPostAutoPublisher
 
         if (filled($applicationUrl) && !$this->isValidApplicationUrl($applicationUrl)) $missing[] = 'application_url';
         if (filled($applicationEmail) && filter_var($applicationEmail, FILTER_VALIDATE_EMAIL) === false) $missing[] = 'application_email';
-        if (blank($applicationUrl) && blank($applicationEmail)) $missing[] = 'application_url_or_email';
+        if (blank($applicationUrl)) $missing[] = 'application_url';
 
         if ($missing !== []) {
             $candidate->forceFill([
@@ -147,7 +147,6 @@ class LinkedInPostAutoPublisher
             );
         }
 
-        return str_starts_with(strtolower($url), 'mailto:')
-            && filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false;
+        return false;
     }
 }
