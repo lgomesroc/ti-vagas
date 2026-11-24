@@ -290,24 +290,39 @@ class NortJobsSource implements VacancySource
             $salary = $match[1];
         }
 
+        $isTech = preg_match('~"isTech":true~', $html) === 1;
+        $seniority = null;
+        if (preg_match('~"attributes":\{.{0,1200}?"seniority":"([^"]+)"~s', $html, $seniorityMatch)) {
+            $seniority = strtolower($seniorityMatch[1]);
+        } elseif (preg_match('~"seniority":"(entry|junior|intern|mid|senior|lead|executive)"~', $html, $seniorityMatch)) {
+            $seniority = strtolower($seniorityMatch[1]);
+        }
+
         return [
             'description' => $description !== '' ? $description : 'Consulte os detalhes da oportunidade e os requisitos diretamente na página da Nort.',
             'application_url' => $applicationUrl,
             'employment_type' => $employmentType,
             'salary' => $salary,
+            'is_tech' => $isTech,
+            'seniority' => $seniority,
         ];
     }
 
     private function isEligible(array $detail, array $card): bool
     {
-        $html = $detail['raw'] ?? '';
-        unset($html);
+        // Exige classificação explícita de tecnologia e nível inicial/júnior.
+        // "intern" (estágio), pleno e níveis superiores são sempre descartados.
+        if (($detail['is_tech'] ?? false) !== true) {
+            return false;
+        }
 
-        // O catálogo de desenvolvimento já restringe a senioridade na origem.
-        // Para o catálogo geral, o detalhe precisa indicar área de tecnologia
-        // e senioridade inicial/júnior; estágio nunca é aceito.
-        if ($this->sourceName === 'vagas-dev-nort') {
-            return !preg_match('/\best[aá]gio\b/iu', $card['title']);
+        if (!in_array($detail['seniority'] ?? null, ['entry', 'junior'], true)) {
+            return false;
+        }
+
+        $text = $card['title'] . ' ' . $detail['description'];
+        if (preg_match('/\b(est[aá]gio|intern(ship)?|pleno|mid[- ]level|s[eê]nior|senior|lead|staff|principal|especialista)\b/iu', $text)) {
+            return false;
         }
 
         return true;
