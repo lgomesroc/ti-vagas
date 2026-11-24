@@ -20,6 +20,7 @@ class LinkedInPostEmailApplicationTest extends TestCase
             'postId' => 'urn:li:activity:manaus-generic-001',
             'postUrl' => 'https://www.linkedin.com/feed/update/urn:li:activity:manaus-generic-001/',
             'authorName' => 'Antonelly',
+            'authorType' => 'company',
             'datePosted' => now()->subDay()->toIso8601String(),
             'isPromoted' => false,
             'text' => 'Nova oportunidade | Analista de T.I. JR. Se você tem interesse em fazer parte do nosso time, confira os requisitos e candidate-se! Envie seu currículo para selecaoantonellymanaus@gmail.com. #VagasManaus #AnalistaDeTI #Antonelly',
@@ -33,6 +34,46 @@ class LinkedInPostEmailApplicationTest extends TestCase
             'post_id' => 'urn:li:activity:manaus-generic-001',
             'status' => 'rejected',
             'decision_reason' => 'Publicação com candidatura somente por e-mail não apresenta detalhes suficientes da vaga (empresa, localidade, responsabilidades e requisitos).',
+        ]);
+    }
+
+    public function test_external_application_link_found_in_public_comment_is_used_as_destination(): void
+    {
+        $this->mock(LinkedInUrlInspector::class)
+            ->shouldReceive('inspect')
+            ->once()
+            ->with('https://acme.example/jobs/456')
+            ->andReturn([
+                'valid' => true,
+                'verified' => true,
+                'blocked' => false,
+                'final_url' => 'https://acme.example/jobs/456',
+                'reason' => null,
+                'page_title' => 'Desenvolvedor PHP Júnior',
+                'page_description' => 'Vaga para Desenvolvedor PHP Júnior na Acme Tecnologia.',
+                'page_text' => 'Candidate-se pela página oficial.',
+            ]);
+
+        $post = [
+            'postId' => 'urn:li:activity:comment-link-001',
+            'postUrl' => 'https://www.linkedin.com/feed/update/urn:li:activity:comment-link-001/',
+            'authorName' => 'Acme Tecnologia',
+            'authorType' => 'company',
+            'datePosted' => now()->subDay()->toIso8601String(),
+            'isPromoted' => false,
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Responsabilidades: desenvolver APIs. Requisitos: PHP, SQL e Git. Envie currículo para talentos@acme.com.',
+            'topComments' => [
+                ['text' => 'Acesse a página oficial da vaga: https://acme.example/jobs/456'],
+            ],
+        ];
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:comment-link-001',
+            'status' => 'pending_publication',
+            'application_url' => 'https://acme.example/jobs/456',
+            'application_email' => 'talentos@acme.com',
         ]);
     }
 
