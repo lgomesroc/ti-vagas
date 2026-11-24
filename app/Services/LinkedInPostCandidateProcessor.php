@@ -69,7 +69,7 @@ class LinkedInPostCandidateProcessor
         }
 
         if ($publishedAt === null || $publishedAt->lt(now()->subHours(
-            (int) config('linkedin.lookback_hours', 72)
+            (int) config('linkedin.lookback_hours', 168)
         ))) {
             $candidate->fill($base + [
                 'status' => 'rejected',
