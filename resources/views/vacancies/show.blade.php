@@ -72,28 +72,29 @@
             </section>
 
             <div class="details-actions">
-
-                <a
-                    href="{{ $vacancy->application_url }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="button"
-                >
-                    Candidatar-se na empresa
-                </a>
-
-                <a
-                    href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}"
-                    class="button"
-                >
-                    Ver outras vagas
-                </a>
-
+                @if ($vacancy->application_email)
+                    <a href="mailto:{{ $vacancy->application_email }}@if ($vacancy->application_subject)?subject={{ rawurlencode($vacancy->application_subject) }}@endif" class="button">Enviar currículo por e-mail</a>
+                    <p class="vacancy-date">
+                        E-mail para candidatura: <a href="mailto:{{ $vacancy->application_email }}">{{ $vacancy->application_email }}</a>
+                        @if ($vacancy->application_subject)<br>Assunto: {{ $vacancy->application_subject }}@endif
+                    </p>
+                    @if ($vacancy->application_url)
+                        <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">Acessar página de candidatura</a>
+                    @elseif ($vacancy->source_url)
+                        <a href="{{ $vacancy->source_url }}" target="_blank" rel="noopener noreferrer" class="button">Ver publicação original</a>
+                    @endif
+                @elseif ($vacancy->application_url)
+                    <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">Candidatar-se na empresa</a>
+                @endif
+                <a href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}" class="button">Ver outras vagas</a>
             </div>
 
             <p class="vacancy-date">
-                O processo de candidatura é realizado diretamente no site
-                da empresa ou plataforma responsável pela oportunidade.
+                @if ($vacancy->application_email)
+                    A candidatura é realizada pelo endereço de e-mail informado na publicação original.
+                @else
+                    O processo de candidatura é realizado diretamente no site da empresa ou plataforma responsável pela oportunidade.
+                @endif
             </p>
 
         </article>

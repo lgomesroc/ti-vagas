@@ -31,6 +31,8 @@ class LinkedInPostCandidate extends Model
         'employment_type',
         'salary',
         'application_url',
+        'application_email',
+        'application_subject',
         'status',
         'decision_reason',
         'duplicate_of_vacancy_id',

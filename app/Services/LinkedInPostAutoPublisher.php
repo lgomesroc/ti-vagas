@@ -70,13 +70,11 @@ class LinkedInPostAutoPublisher
         }
 
         $applicationUrl = $candidate->application_url;
+        $applicationEmail = $candidate->application_email;
 
-        if (
-            blank($applicationUrl)
-            || !$this->isValidApplicationUrl($applicationUrl)
-        ) {
-            $missing[] = 'application_url';
-        }
+        if (filled($applicationUrl) && !$this->isValidApplicationUrl($applicationUrl)) $missing[] = 'application_url';
+        if (filled($applicationEmail) && filter_var($applicationEmail, FILTER_VALIDATE_EMAIL) === false) $missing[] = 'application_email';
+        if (blank($applicationUrl) && blank($applicationEmail)) $missing[] = 'application_url_or_email';
 
         if ($missing !== []) {
             $candidate->forceFill([
@@ -91,7 +89,7 @@ class LinkedInPostAutoPublisher
         $source = new class($candidate, $applicationUrl) implements VacancySource {
             public function __construct(
                 private readonly LinkedInPostCandidate $candidate,
-                private readonly string $applicationUrl
+                private readonly ?string $applicationUrl
             ) {
             }
 
@@ -111,6 +109,9 @@ class LinkedInPostAutoPublisher
                     'employment_type' => $this->candidate->employment_type,
                     'salary' => $this->candidate->salary,
                     'application_url' => $this->applicationUrl,
+                    'application_email' => $this->candidate->application_email,
+                    'application_subject' => $this->candidate->application_subject,
+                    'source_url' => $this->candidate->post_url,
                     'external_id' => $this->candidate->post_id,
                     'original_published_at' => $this->candidate->published_at,
                 ]];

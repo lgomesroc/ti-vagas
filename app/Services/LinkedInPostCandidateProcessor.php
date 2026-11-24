@@ -131,6 +131,8 @@ class LinkedInPostCandidateProcessor
         ));
         $hasPersonalEmails = count($emails) < count($detectedEmails);
         $hasApplicationEmail = $this->hasCorporateEmail($emails);
+        $applicationEmail = $emails[0] ?? null;
+        $applicationSubject = $this->extractApplicationSubject($combinedText);
 
         if (
             (
@@ -162,7 +164,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        foreach ($hasApplicationEmail ? [] : $links as $link) {
+        foreach ($links as $link)
             $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
             $duplicateCandidate = $this->findDuplicateCandidate(
                 null,
@@ -229,13 +231,6 @@ class LinkedInPostCandidateProcessor
             }
         }
 
-        // Quando a publicação oferece e-mail, o TI Vagas exibe a própria
-        // publicação como origem da oportunidade. O e-mail permanece no texto
-        // original para que o candidato veja as instruções da pessoa recrutadora.
-        if ($hasApplicationEmail) {
-            $applicationUrl = $postUrl;
-        }
-
         $enrichedText = trim($text . "\n" . $pageContent);
         $postTitle = $this->stringValue($post, ['title']);
         $title = $this->extractTitle(
@@ -244,6 +239,7 @@ class LinkedInPostCandidateProcessor
         $company = $this->extractCompany($enrichedText, $post);
         $location = $this->extractLocation($enrichedText);
         $workModel = $this->classifyWorkModel($combinedText . "\n" . $pageContent);
+        $employmentType = $this->extractEmploymentType($combinedText . "\n" . $pageContent);
         $description = trim(
             $enrichedText
             . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
@@ -287,7 +283,10 @@ class LinkedInPostCandidateProcessor
                 'description' => $description,
                 'location' => $location,
                 'work_model' => $workModel,
+                'employment_type' => $employmentType,
                 'application_url' => $applicationUrl,
+                'application_email' => $applicationEmail,
+                'application_subject' => $applicationSubject,
                 'status' => 'duplicate',
                 'decision_reason' => $duplicate !== null
                     ? 'Possível duplicidade com vaga já cadastrada: #' . $duplicate->id
@@ -307,7 +306,10 @@ class LinkedInPostCandidateProcessor
             'description' => $description,
             'location' => $location,
             'work_model' => $workModel,
+            'employment_type' => $employmentType,
             'application_url' => $applicationUrl,
+            'application_email' => $applicationEmail,
+            'application_subject' => $applicationSubject,
             'status' => $reason === null ? 'pending_publication' : 'rejected',
             'decision_reason' => $reason ?? 'Passou pelos filtros automáticos e aguarda publicação automática.',
         ])->save();
@@ -574,8 +576,8 @@ class LinkedInPostCandidateProcessor
         // anti-spam e validação de canal público de candidatura. Não aplicar aqui
         // filtros rígidos de senioridade, anos de experiência ou área: preservar
         // a oportunidade permite corrigir a regra sem perder o post de origem.
-        if ($applicationUrl === null) {
-            return 'Sem link de candidatura ou e-mail informado na publicação.';
+        if ($applicationUrl === null && !$this->hasCorporateEmail($emails)) {
+            return 'Sem link de candidatura ou e-mail corporativo informado na publicação.';
         }
 
         // Mantém a regra geográfica do projeto para não transformar vagas
@@ -761,53 +763,47 @@ class LinkedInPostCandidateProcessor
 
     private function extractTitle(string $text): ?string
     {
-        // Em posts de uma linha, captura apenas o cargo anunciado.
-        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
-
-        if (preg_match($rolePattern, $text, $matches)) {
-            return mb_substr(trim($matches[1]), 0, 255);
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (preg_match('/(?:^|\\R)\\s*#?\\s*(?:🚀\\s*)?vaga\\s+aberta\\s*[|:—-]\\s*([^\\r\\n]+)/iu', $plain, $m)) {
+            return mb_substr(trim($m[1]), 0, 255);
         }
-
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])));
-
-        foreach ($lines as $line) {
+        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
+        if (preg_match($rolePattern, $text, $m)) return mb_substr(trim($m[1]), 0, 255);
+        foreach (array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])) as $line) {
             if (preg_match('/\\b(j[uú]nior|jr\\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\\b/i', $line)) {
                 return mb_substr(trim(preg_replace('/^[#\\-\\s]+/', '', $line)), 0, 255);
             }
         }
-
-        if (preg_match('/(?:vaga|oportunidade)\\s+(?:para|de|em)?\\s*([^\\n.!]{5,100})/iu', $text, $matches)) {
-            return mb_substr(trim($matches[1]), 0, 255);
-        }
-
         return null;
     }
 
     private function extractCompany(string $text, array $post): ?string
     {
         $company = $this->stringValue($post, ['companyName', 'company', 'organizationName']);
-        if ($company !== null) {
-            return $company;
+        if ($company !== null) return $company;
+        foreach (($post['taggedCompanies'] ?? []) as $tagged) {
+            if (is_array($tagged) && is_string($tagged['name'] ?? null) && trim($tagged['name']) !== '') return trim($tagged['name']);
         }
-
-        $taggedCompanies = $post['taggedCompanies'] ?? [];
-        if (is_array($taggedCompanies)) {
-            foreach ($taggedCompanies as $taggedCompany) {
-                $name = is_array($taggedCompany)
-                    ? ($taggedCompany['name'] ?? null)
-                    : null;
-
-                if (is_string($name) && trim($name) !== '') {
-                    return trim($name);
-                }
-            }
-        }
-
-        if (preg_match('/(?:empresa\s*:\s*|(?:na|no|para a|para o|at|for)\s+)([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $matches)) {
-            return trim($matches[1]);
-        }
-
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (preg_match('/\\b(?:a|o)\\s+([A-Z][A-Za-z0-9&.-]{1,60})\\s+(?:est[aá]\\s+em\\s+busca|est[aá]\\s+contratando|est[aá]\\s+procurando)\\b/iu', $plain, $m)) return trim($m[1]);
+        if (preg_match('/empresa\\s*:\\s*([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $m)) return trim($m[1]);
         return null;
+    }
+
+    private function extractApplicationSubject(string $text): ?string
+    {
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (!preg_match('/\\bassunto(?:\\s+do\\s+e-?mail)?\\s*[:—-]?\\s*["“]?([^\\r\\n"]+)/iu', $plain, $m)) return null;
+        $subject = trim($m[1], " \\t\\n\\r\\\"'“”.,;");
+        return $subject !== '' ? mb_substr($subject, 0, 180) : null;
+    }
+
+    private function extractEmploymentType(string $text): ?string
+    {
+        $n = $this->normalize($text);
+        $clt = preg_match('/\\bclt\\b/', $n) === 1;
+        $pj = preg_match('/\\bpj\\b/', $n) === 1;
+        return $clt === $pj ? null : ($clt ? 'CLT' : 'PJ');
     }
 
     private function extractLocation(string $text): ?string

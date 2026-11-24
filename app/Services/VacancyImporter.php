@@ -114,12 +114,7 @@ class VacancyImporter
                 continue;
             }
 
-            $requiredFields = [
-                'title',
-                'company',
-                'description',
-                'application_url',
-            ];
+            $requiredFields = ['title', 'company', 'description'];
 
             $valid = true;
 
@@ -134,12 +129,16 @@ class VacancyImporter
                 }
             }
 
-            if (
-                !$valid ||
-                !$this->isValidApplicationUrl($data['application_url']) ||
-                empty($data['original_published_at'])
-            ) {
-                 $reason = !$valid ? 'missing_required_field' : (!$this->isValidApplicationUrl($data['application_url']) ? 'invalid_application_url' : 'missing_original_published_at');
+            $applicationUrl = is_string($data['application_url'] ?? null) && trim($data['application_url']) !== '' ? trim($data['application_url']) : null;
+            $applicationEmail = is_string($data['application_email'] ?? null) && trim($data['application_email']) !== '' ? strtolower(trim($data['application_email'])) : null;
+            $sourceUrl = is_string($data['source_url'] ?? null) && trim($data['source_url']) !== '' ? trim($data['source_url']) : ($applicationUrl !== null && $this->isValidHttpUrl($applicationUrl) ? $applicationUrl : null);
+            $validApplicationUrl = $applicationUrl === null || $this->isValidApplicationUrl($applicationUrl);
+            $validApplicationEmail = $applicationEmail === null || filter_var($applicationEmail, FILTER_VALIDATE_EMAIL) !== false;
+            $hasApplicationChannel = $applicationUrl !== null || $applicationEmail !== null;
+            $validSourceUrl = $sourceUrl === null || $this->isValidHttpUrl($sourceUrl);
+
+            if (!$valid || !$validApplicationUrl || !$validApplicationEmail || !$hasApplicationChannel || !$validSourceUrl || ($applicationUrl === null && $sourceUrl === null) || empty($data['original_published_at'])) {
+                $reason = !$valid ? 'missing_required_field' : (!$validApplicationUrl ? 'invalid_application_url' : (!$validApplicationEmail ? 'invalid_application_email' : (!$hasApplicationChannel ? 'missing_application_channel' : (!$validSourceUrl ? 'invalid_source_url' : 'missing_original_published_at'))));
                 $this->skip($result, $sourceName, $data, $reason);
                 continue;
             }
@@ -218,7 +217,10 @@ class VacancyImporter
                 'work_model' => $data['work_model'] ?? null,
                 'employment_type' => $data['employment_type'] ?? null,
                 'salary' => $data['salary'] ?? null,
-                'application_url' => trim($data['application_url']),
+                'application_url' => $applicationUrl,
+                'application_email' => $applicationEmail,
+                'application_subject' => is_string($data['application_subject'] ?? null) ? (trim($data['application_subject']) ?: null) : null,
+                'source_url' => $sourceUrl,
                 'source' => $legacyVacancy !== null
                     ? $legacyVacancy->source
                     : $sourceName,
@@ -277,18 +279,15 @@ class VacancyImporter
 
     private function isValidApplicationUrl(string $url): bool
     {
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
-            return in_array(
-                strtolower((string) parse_url($url, PHP_URL_SCHEME)),
-                ['http', 'https'],
-                true
-            );
-        }
-
-        if (str_starts_with(strtolower($url), 'mailto:')) {
-            return filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false;
-        }
-
-        return false;
+        return $this->isValidHttpUrl($url)
+            || (str_starts_with(strtolower($url), 'mailto:')
+                && filter_var(substr($url, 7), FILTER_VALIDATE_EMAIL) !== false);
     }
+
+    private function isValidHttpUrl(string $url): bool
+    {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false
+            && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
+    }
+
 }
