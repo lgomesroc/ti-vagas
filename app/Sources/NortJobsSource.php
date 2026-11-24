@@ -42,6 +42,7 @@ class NortJobsSource implements VacancySource
             'Detalhes consultados' => 0,
             'Vagas de TI júnior enviadas' => 0,
             'Descartadas por senioridade/área' => 0,
+            'Descartadas fora do Brasil' => 0,
             'Falhas' => 0,
         ];
 
@@ -99,6 +100,15 @@ class NortJobsSource implements VacancySource
                 $detail = $this->parseDetail($detailHtml, $card);
                 if (!$this->isEligible($detail, $card)) {
                     $this->stats['Descartadas por senioridade/área']++;
+                    $this->delay();
+                    continue;
+                }
+
+                // O catálogo geral também pode listar oportunidades de outros países.
+                // Para o TI Vagas, só aceitamos localizações explicitamente brasileiras.
+                $location = trim((string) ($card['location'] ?? ''));
+                if ($location !== '' && !preg_match('/\\b(brasil|brazil)\\b/iu', $location)) {
+                    $this->stats['Descartadas fora do Brasil']++;
                     $this->delay();
                     continue;
                 }
