@@ -14,11 +14,6 @@
         <testsuite name="CI">
             <directory>tests/Unit</directory>
             <directory>tests/Feature</directory>
-            <exclude>tests/Feature/LinkedInJobsRateLimitTest.php</exclude>
-            <exclude>tests/Feature/LinkedInJobsSourceTest.php</exclude>
-            <exclude>tests/Feature/LinkedInPostCandidateProcessorTest.php</exclude>
-            <exclude>tests/Feature/LinkedInPostSearchClientTest.php</exclude>
-            <exclude>tests/Feature/LinkedInRuntimeConfigTest.php</exclude>
         </testsuite>
     </testsuites>
     <source>
