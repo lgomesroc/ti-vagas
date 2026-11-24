@@ -53,7 +53,11 @@ export function inspectStorageState(raw, nowSeconds = Date.now() / 1000) {
   }
 
   const cookies = Array.isArray(state?.cookies) ? state.cookies : [];
-  const liAt = cookies.find(c => c.name === 'li_at' && /(^|\.)linkedin\.com$/i.test(c.domain ?? ''));
+  const liAt = cookies.find(c => {
+    const domain = String(c.domain ?? '').replace(/^\./, '').toLowerCase();
+    return c.name === 'li_at' &&
+      (domain === 'linkedin.com' || domain.endsWith('.linkedin.com'));
+  });
 
   if (!liAt) {
     return {
