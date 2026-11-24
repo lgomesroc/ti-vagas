@@ -290,11 +290,13 @@ class NortJobsSource implements VacancySource
             $salary = $match[1];
         }
 
-        $isTech = preg_match('~"isTech":true~', $html) === 1;
+        // Next.js mantém os metadados dentro de strings JSON escapadas no HTML.
+        $structured = str_replace('\\"', '"', $html);
+        $isTech = preg_match('~"isTech":true~', $structured) === 1;
         $seniority = null;
-        if (preg_match('~"attributes":\{.{0,1200}?"seniority":"([^"]+)"~s', $html, $seniorityMatch)) {
+        if (preg_match('~"attributes":\{.{0,1200}?"seniority":"([^"]+)"~s', $structured, $seniorityMatch)) {
             $seniority = strtolower($seniorityMatch[1]);
-        } elseif (preg_match('~"seniority":"(entry|junior|intern|mid|senior|lead|executive)"~', $html, $seniorityMatch)) {
+        } elseif (preg_match('~"seniority":"(entry|junior|intern|mid|senior|lead|executive)"~', $structured, $seniorityMatch)) {
             $seniority = strtolower($seniorityMatch[1]);
         }
 
