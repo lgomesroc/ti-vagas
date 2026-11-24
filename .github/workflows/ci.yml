@@ -87,6 +87,9 @@ jobs:
       - name: Instalar dependências Node
         run: npm ci
 
+      - name: Instalar Chromium para testes de navegador offline
+        run: npx playwright install --with-deps chromium
+
       - name: Verificar sintaxe dos coletores LinkedIn
         run: |
           node --check scripts/linkedin/jobs.mjs
@@ -95,7 +98,7 @@ jobs:
           node --check scripts/linkedin/restore-session.mjs
           node --check scripts/linkedin/export-session.mjs
 
-      - name: Executar testes Node offline (inclui E2E com servidor HTTP local)
+      - name: Executar testes Node offline (HTTP local e Chromium com LinkedIn simulado)
         run: npm run test:linkedin
 
       - name: Compilar frontend
