@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\LinkedInPostCandidate;
-use App\\Services\\LinkedInPostCandidateProcessor;
-use App\\Services\\LinkedInUrlInspector;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Models\LinkedInPostCandidate;
+use App\Services\LinkedInPostCandidateProcessor;
+use App\Services\LinkedInUrlInspector;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class LinkedInPostEmailApplicationTest extends TestCase
 {

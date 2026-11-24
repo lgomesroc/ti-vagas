@@ -19,7 +19,6 @@
             <exclude>tests/Feature/LinkedInPostCandidateProcessorTest.php</exclude>
             <exclude>tests/Feature/LinkedInPostSearchClientTest.php</exclude>
             <exclude>tests/Feature/LinkedInRuntimeConfigTest.php</exclude>
-            <exclude>tests/Feature/LinkedInPostEmailApplicationTest.php</exclude>
         </testsuite>
     </testsuites>
     <source>
