@@ -157,6 +157,14 @@ class NortJobsSource implements VacancySource
 
     private function parseCards(string $html): array
     {
+        // Prioriza o HTML renderizado: os atributos data-* são mais estáveis
+        // que a estrutura interna do payload Flight do Next.js.
+        $htmlCards = $this->parseCardsFromHtml($html);
+        if ($htmlCards !== []) {
+            return $htmlCards;
+        }
+
+        // Fallback para versões que publiquem os cartões apenas em self.__next_f.
         // O catálogo Next.js serializa os cartões em self.__next_f.
         // Decodifica os segmentos Flight antes de extrair os atributos.
         $payload = $html;
@@ -235,6 +243,129 @@ class NortJobsSource implements VacancySource
         }
 
         return $cards;
+    }
+
+    private function parseCardsFromHtml(string $html): array
+    {
+        if (!class_exists(\\DOMDocument::class)) {
+            return [];
+        }
+
+        $previous = libxml_use_internal_errors(true);
+        $dom = new \\DOMDocument();
+        $loaded = $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (!$loaded) {
+            return [];
+        }
+
+        $xpath = new \\DOMXPath($dom);
+        $markers = $xpath->query('//*[@data-catalog-job]');
+        if (!$markers || $markers->length === 0) {
+            return [];
+        }
+
+        $cards = [];
+        foreach ($markers as $marker) {
+            if (!$marker instanceof \\DOMElement) {
+                continue;
+            }
+
+            $externalId = trim($marker->getAttribute('data-catalog-job'));
+            if ($externalId === '') {
+                continue;
+            }
+
+            // Sobe a árvore até encontrar o contêiner que reúne empresa e data.
+            $container = $marker;
+            for ($level = 0; $level < 8 && $container->parentNode instanceof \\DOMElement; $level++) {
+                $container = $container->parentNode;
+                $companyNodes = $xpath->query('.//*[@data-job-company]', $container);
+                $dateNodes = $xpath->query('.//*[@data-job-date]', $container);
+                if (($companyNodes && $companyNodes->length > 0) && ($dateNodes && $dateNodes->length > 0)) {
+                    break;
+                }
+            }
+
+            $companyNode = $xpath->query('.//*[@data-job-company]', $container)?->item(0);
+            $company = $companyNode ? $this->cleanText($companyNode->textContent) : '';
+
+            $positionNode = $xpath->query('.//*[@data-catalog-position]', $container)?->item(0);
+            $title = $positionNode ? $this->cleanText($positionNode->textContent) : '';
+
+            $detailPath = '';
+            if ($marker->hasAttribute('href')) {
+                $detailPath = $marker->getAttribute('href');
+            } else {
+                $anchors = $xpath->query('.//a[@href]', $container);
+                if ($anchors) {
+                    foreach ($anchors as $anchor) {
+                        $href = $anchor->getAttribute('href');
+                        if (str_contains($href, '/pt-BR/vagas/')) {
+                            $detailPath = $href;
+                            if ($title === '') {
+                                $title = $this->cleanText($anchor->textContent);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($title === '' && $marker instanceof \\DOMElement) {
+                $title = $this->cleanText($marker->textContent);
+            }
+
+            $dateNode = $xpath->query('.//*[@data-job-date]', $container)?->item(0);
+            $dateValue = '';
+            if ($dateNode instanceof \\DOMElement) {
+                $dateValue = $dateNode->getAttribute('datetime')
+                    ?: $dateNode->getAttribute('dateTime')
+                    ?: $dateNode->getAttribute('data-date')
+                    ?: $this->cleanText($dateNode->textContent);
+            }
+
+            if ($company === '' || $title === '' || $detailPath === '' || $dateValue === '') {
+                continue;
+            }
+
+            try {
+                $publishedAt = CarbonImmutable::parse($dateValue)->toIso8601String();
+            } catch (Throwable) {
+                continue;
+            }
+
+            $locationNode = $xpath->query('.//*[@data-job-location]', $container)?->item(0);
+            $location = $locationNode ? $this->cleanText($locationNode->textContent) : null;
+
+            $modeNode = $xpath->query('.//*[@data-mode]', $container)?->item(0);
+            $mode = $modeNode instanceof \\DOMElement ? strtolower($modeNode->getAttribute('data-mode')) : null;
+            $workModel = match ($mode) {
+                'remote' => 'Remoto',
+                'hybrid' => 'Híbrido',
+                'onsite' => 'Presencial',
+                default => null,
+            };
+
+            $detailUrl = $this->absoluteUrl($detailPath, $this->catalogUrl);
+            if ($detailUrl === null) {
+                continue;
+            }
+
+            $cards[$externalId] = [
+                'external_id' => $externalId,
+                'company' => $company,
+                'title' => $title,
+                'published_at' => $publishedAt,
+                'location' => $location,
+                'work_model' => $workModel,
+                'detail_url' => $detailUrl,
+            ];
+        }
+
+        return array_values($cards);
     }
 
     private function parseDetail(string $html, array $card): array
