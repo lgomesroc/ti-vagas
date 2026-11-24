@@ -19,24 +19,31 @@ class VacancyDuplicateDetector
         string $sourceName,
         string $externalId
     ): ?Vacancy {
-        $url = $this->normalizeApplicationUrl(
-            (string) ($data['application_url'] ?? '')
-        );
+        $applicationUrl = trim((string) ($data['application_url'] ?? ''));
+        $sourceUrl = trim((string) ($data['source_url'] ?? ''));
+        $urls = array_values(array_unique(array_filter([
+            $this->normalizeApplicationUrl($applicationUrl),
+            $this->normalizeApplicationUrl($sourceUrl),
+        ])));
 
-        if ($url === '') {
-            return null;
-        }
+        if ($urls !== []) {
+            $directMatch = Vacancy::query()
+                ->where('source', '!=', $sourceName)
+                ->where(function (Builder $query) use ($applicationUrl, $sourceUrl, $urls): void {
+                    if ($applicationUrl !== '') {
+                        $query->whereIn('application_url', array_unique([$applicationUrl, ...$urls]));
+                    }
 
-        $directMatch = Vacancy::query()
-            ->where('source', '!=', $sourceName)
-            ->whereIn('application_url', array_unique([
-                trim((string) ($data['application_url'] ?? '')),
-                $url,
-            ]))
-            ->first();
+                    if ($sourceUrl !== '') {
+                        $method = $applicationUrl !== '' ? 'orWhereIn' : 'whereIn';
+                        $query->{$method}('source_url', array_unique([$sourceUrl, ...$urls]));
+                    }
+                })
+                ->first();
 
-        if ($directMatch !== null) {
-            return $directMatch;
+            if ($directMatch !== null) {
+                return $directMatch;
+            }
         }
 
         $title = trim((string) ($data['title'] ?? ''));
@@ -84,8 +91,8 @@ class VacancyDuplicateDetector
 
         foreach ($query->limit(100)->get() as $candidate) {
             if (
-                $this->normalizeApplicationUrl($candidate->application_url)
-                === $url
+                in_array($this->normalizeApplicationUrl($candidate->application_url), $urls, true)
+                || in_array($this->normalizeApplicationUrl($candidate->source_url), $urls, true)
             ) {
                 return $candidate;
             }

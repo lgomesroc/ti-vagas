@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   php:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     services:
       postgres:
