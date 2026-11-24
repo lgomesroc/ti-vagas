@@ -49,7 +49,7 @@ function isLinkedInUrl(value) {
 
     return isMockLinkedInOrigin
       ? url.origin === linkedinBaseUrl
-      : /(^|\\.)linkedin\\.com$/i.test(url.hostname);
+      : /(^|\.)linkedin\.com$/i.test(url.hostname);
   } catch {
     return false;
   }
@@ -534,7 +534,7 @@ async function extractCard(page, card, keyword) {
     ...new Set(
       anchors
         .map(a => a.href)
-        .filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url))
+        .filter(url => /^https?:/i.test(url) && !isLinkedInUrl(url))
     ),
   ];
 
