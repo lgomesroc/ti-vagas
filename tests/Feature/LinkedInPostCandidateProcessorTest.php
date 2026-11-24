@@ -64,7 +64,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     public function test_seniority_mismatch_is_preserved_for_later_editorial_review(): void
     {
         $post = $this->makePost([
-            'text' => 'Estamos contratando Analista de Suporte Sênior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para recrutamento@acme.com.',
+            'text' => 'Estamos contratando Analista de Suporte Sênior. Empresa: Acme Tecnologia. Remoto Brasil. Responsabilidades: atender usuários, investigar incidentes técnicos, documentar soluções, acompanhar chamados e apoiar a operação dos serviços internos. Requisitos: experiência com Windows, Active Directory, redes TCP/IP, ferramentas de service desk e atendimento ao usuário. Envie seu currículo para recrutamento@acme.com.',
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
@@ -114,7 +114,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     public function test_ordinary_public_comment_does_not_trigger_engagement_bait_rejection(): void
     {
         $post = $this->makePost([
-            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Remoto Brasil. Envie currículo para talentos@acme.com.',
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Responsabilidades: desenvolver e manter APIs, corrigir falhas, escrever testes automatizados, revisar código e colaborar com o time de produto. Requisitos: conhecimento em PHP, orientação a objetos, SQL, HTTP, APIs REST e Git. Envie currículo para talentos@acme.com.',
             'topComments' => [
                 ['text' => 'Tenho interesse e vou me candidatar pelo canal informado.'],
             ],
@@ -286,7 +286,7 @@ class LinkedInPostCandidateProcessorTest extends TestCase
     public function test_post_with_corporate_email_only_uses_original_post_as_application_source(): void
     {
         $post = $this->makePost([
-            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Envie seu currículo para talentos@acme.com.',
+            'text' => 'Estamos contratando Desenvolvedor PHP Júnior. Empresa: Acme Tecnologia. Remoto Brasil. Responsabilidades: desenvolver e manter APIs, corrigir falhas, escrever testes automatizados, revisar código e colaborar com o time de produto. Requisitos: conhecimento em PHP, orientação a objetos, SQL, HTTP, APIs REST e Git. Envie seu currículo para talentos@acme.com.',
         ]);
 
         $result = app(LinkedInPostCandidateProcessor::class)->process($post);
