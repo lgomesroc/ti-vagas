@@ -1,15 +1,11 @@
-
 name: TI Vagas - CI
 
 on:
   push:
     branches:
-      - developer
       - main
-
   pull_request:
     branches:
-      - developer
       - main
 
 permissions:
@@ -17,7 +13,7 @@ permissions:
 
 jobs:
   php:
-    name: Validar PHP
+    name: Validar PHP e suíte completa
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -59,15 +55,15 @@ jobs:
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Verificar sintaxe PHP
+      - name: Verificar sintaxe de todos os arquivos PHP
         run: |
-          find app bootstrap config database routes -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+          find app bootstrap config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 
-      - name: Executar testes automatizados
+      - name: Executar suíte PHP completa (inclui LinkedIn offline)
         run: php artisan test --compact --testsuite=CI
 
   frontend:
-    name: Compilar frontend
+    name: Testar Node e compilar frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -78,9 +74,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
-      - name: Instalar dependências
-        run: npm install
+      - name: Instalar dependências Node
+        run: npm ci
+
+      - name: Verificar sintaxe dos coletores LinkedIn
+        run: |
+          node --check scripts/linkedin/jobs.mjs
+          node --check scripts/linkedin/secondary-account.mjs
+          node --check scripts/linkedin/runtime.mjs
+          node --check scripts/linkedin/restore-session.mjs
+          node --check scripts/linkedin/export-session.mjs
+
+      - name: Executar testes Node offline (inclui E2E com servidor HTTP local)
+        run: npm run test:linkedin
 
       - name: Compilar frontend
         run: npm run build
