@@ -125,6 +125,11 @@ class VacancyEditorialFilter
             return false;
         }
 
+        // Telecomunicações especializadas (operadoras/NOC de telecom) não fazem parte do escopo atual.
+        if ($this->isOutOfScopeTelecomRole($titleText, $descriptionText)) {
+            return false;
+        }
+
         if ($this->containsAny($titleText, self::EXCLUDED_SENIORITY_TERMS)) {
             return false;
         }
@@ -170,7 +175,7 @@ class VacancyEditorialFilter
             return false;
         }
 
-        if (!$this->isTechnologyRole($titleText)) {
+        if (!$this->isTechnologyRole($titleText, $descriptionText)) {
             return false;
         }
 
@@ -191,11 +196,56 @@ class VacancyEditorialFilter
         );
     }
 
-    private function isTechnologyRole(string $title): bool
+    private function isOutOfScopeTelecomRole(string $title, string $description): bool
     {
-        return $this->containsAny($title, self::DEVELOPMENT_TERMS)
+        if ($this->containsAny($title, ['telecom', 'telecomunicacoes', 'telecommunications'])) {
+            return true;
+        }
+
+        // Também identifica anúncios cujo título é apenas um código, mas a descrição
+        // deixa explícita a atuação em operadora e exige protocolos de telecom.
+        $telecomOperator = $this->containsAny($description, [
+            'operadora de internet', 'operadora de telecom', 'telecom operator',
+        ]);
+        $telecomTechnologies = [
+            'bgp', 'ospf', 'is-is', 'eigrp', 'dwdm', 'mpls',
+        ];
+        $matchedTechnologies = 0;
+
+        foreach ($telecomTechnologies as $technology) {
+            if ($this->containsAny($description, [$technology])) {
+                $matchedTechnologies++;
+            }
+        }
+
+        return $telecomOperator && $matchedTechnologies >= 2;
+    }
+
+    private function isTechnologyRole(string $title, string $description): bool
+    {
+        if (
+            $this->containsAny($title, self::DEVELOPMENT_TERMS)
             || $this->containsAny($title, self::SUPPORT_TERMS)
-            || $this->containsAny($title, self::INFRASTRUCTURE_TERMS);
+            || $this->containsAny($title, self::INFRASTRUCTURE_TERMS)
+        ) {
+            return true;
+        }
+
+        // Títulos genéricos (ex.: códigos internos) podem ser reconhecidos pela
+        // descrição, desde que haja atividade de suporte E contexto técnico concreto.
+        $supportActivity = $this->containsAny($description, [
+            'suporte tecnico', 'suporte de ti', 'suporte n1', 'suporte nivel 1',
+            'service desk', 'help desk', 'atendimento de chamados',
+            'resolucao de incidentes', 'diagnostico de problemas', 'troubleshooting',
+        ]);
+        $technicalContext = $this->containsAny($description, [
+            'sistemas operacionais', 'windows', 'linux', 'active directory',
+            'office 365', 'microsoft 365', 'servidores', 'infraestrutura de ti',
+            'redes corporativas', 'banco de dados', 'hardware', 'software',
+            'aplicacoes', 'ambiente cloud',
+        ]);
+
+        return $supportActivity && $technicalContext;
     }
 
     private function containsAny(string $text, array $terms): bool
