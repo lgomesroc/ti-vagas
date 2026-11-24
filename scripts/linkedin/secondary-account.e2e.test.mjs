@@ -24,6 +24,12 @@ test('navegador extrai publicação e contato de um LinkedIn simulado localmente
       return;
     }
 
+    if (request.url === '/favicon.ico') {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+
     if ((request.url ?? '').startsWith('/search/results/content/')) {
       const publishedAt = new Date().toISOString();
       const postUrl = `${baseUrl}/feed/update/urn:li:activity:7530395139467337728/`;
@@ -114,7 +120,7 @@ test('navegador extrai publicação e contato de um LinkedIn simulado localmente
     assert.ok(posts[0].emails.includes('talentos@acme.com.br'));
     assert.ok(posts[0].links.includes('https://careers.acme.example/vagas/123'));
     assert.ok(requests.some(url => url.startsWith('/search/results/content/')));
-    assert.ok(requests.every(url => url.startsWith('/feed/') || url.startsWith('/search/results/content/')));
+    assert.ok(requests.every(url => url.startsWith('/feed/') || url.startsWith('/search/results/content/') || url === '/favicon.ico'));
   } finally {
     await new Promise(resolve => server.close(resolve));
     rmSync(directory, { recursive: true, force: true });
