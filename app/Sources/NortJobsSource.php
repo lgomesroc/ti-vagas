@@ -45,13 +45,18 @@ class NortJobsSource implements VacancySource
             'Falhas' => 0,
         ];
 
-        $pages = $this->catalogPages();
+        // Reaproveita a primeira resposta: antes o catálogo era solicitado
+        // duas vezes seguidas (uma na paginação e outra no processamento).
+        $catalogHtml = $this->get($this->catalogUrl);
+        $pages = $this->catalogPages($catalogHtml);
         $jobs = [];
         $seen = [];
 
         foreach ($pages as $pageUrl) {
             try {
-                $html = $this->get($pageUrl);
+                $html = $pageUrl === $this->catalogUrl
+                    ? $catalogHtml
+                    : $this->get($pageUrl);
             } catch (Throwable $exception) {
                 $this->stats['Falhas']++;
                 Log::warning('NortJobs: falha ao consultar catálogo.', [
@@ -124,17 +129,8 @@ class NortJobsSource implements VacancySource
         return array_values($jobs);
     }
 
-    private function catalogPages(): array
+    private function catalogPages(string $html): array
     {
-        try {
-            $html = $this->get($this->catalogUrl);
-        } catch (Throwable $exception) {
-            throw new RuntimeException(
-                "Não foi possível abrir o catálogo {$this->sourceName}: {$exception->getMessage()}",
-                previous: $exception
-            );
-        }
-
         $urls = [$this->catalogUrl];
 
         // Segue somente links de paginação publicados pelo próprio catálogo.
@@ -332,19 +328,46 @@ class NortJobsSource implements VacancySource
 
     private function get(string $url): string
     {
-        $response = Http::timeout(30)
-            ->withOptions(['verify' => $this->caBundle ?: true])
-            ->withUserAgent('Mozilla/5.0 (compatible; TI-Vagas/1.0; +https://github.com/lgomesroc/ti-vagas)')
-            ->accept('text/html,application/xhtml+xml')
-            ->withHeaders(['Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8'])
-            ->get($url);
+        $maxAttempts = 4;
 
-        $response->throw();
-        if (trim($response->body()) === '') {
-            throw new RuntimeException('A Nort retornou uma página vazia.');
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $response = Http::timeout(30)
+                ->withOptions(['verify' => $this->caBundle ?: true])
+                ->withUserAgent('Mozilla/5.0 (compatible; TI-Vagas/1.0; +https://github.com/lgomesroc/ti-vagas)')
+                ->accept('text/html,application/xhtml+xml')
+                ->withHeaders(['Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8'])
+                ->get($url);
+
+            if ($response->status() === 429 && $attempt < $maxAttempts) {
+                $retryAfter = $response->header('Retry-After');
+                $waitSeconds = is_numeric($retryAfter)
+                    ? (int) $retryAfter
+                    : (10 * (2 ** ($attempt - 1)));
+
+                // Evita espera excessiva por cabeçalhos inválidos ou abusivos.
+                $waitSeconds = max(1, min($waitSeconds, 120));
+
+                Log::warning('NortJobs: limite de requisições atingido; aguardando antes de tentar novamente.', [
+                    'source' => $this->sourceName,
+                    'url' => $url,
+                    'attempt' => $attempt,
+                    'wait_seconds' => $waitSeconds,
+                ]);
+
+                sleep($waitSeconds);
+                continue;
+            }
+
+            $response->throw();
+
+            if (trim($response->body()) === '') {
+                throw new RuntimeException('A Nort retornou uma página vazia.');
+            }
+
+            return $response->body();
         }
 
-        return $response->body();
+        throw new RuntimeException("A Nort continuou retornando HTTP 429 após {$maxAttempts} tentativas.");
     }
 
     private function absoluteUrl(string $href, string $baseUrl): ?string
