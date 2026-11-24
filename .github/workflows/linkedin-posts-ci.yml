@@ -1,78 +1,16 @@
 name: TI Vagas - LinkedIn Integration CI
 
+# Desativado intencionalmente: a validação offline agora é executada em ci.yml.
+# Nenhuma coleta, login, restauração de sessão ou acesso ao LinkedIn deve ser iniciado por este workflow.
 on:
-  push:
-    branches:
-      - feature/linkedin-recruiter-posts
-      - developer
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  php:
-    if: github.ref != 'refs/heads/main'
+  disabled:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_DB: ti_vagas_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d ti_vagas_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_DATABASE: ti_vagas_test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_URL: ""
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Validar sintaxe dos coletores LinkedIn
-        run: |
-          node --check scripts/linkedin/jobs.mjs
-          node --check scripts/linkedin/secondary-account.mjs
-          node --check scripts/linkedin/runtime.mjs
-          node --check scripts/linkedin/restore-session.mjs
-          node --check scripts/linkedin/export-session.mjs
-
-      - name: Testar limitação de requisições do LinkedIn Jobs
-        run: node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/restore-session.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs
-
-      - name: Configurar PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.3"
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, curl, zip
-          coverage: none
-
-      - name: Validar Composer
-        run: composer validate --no-check-publish
-
-      - name: Instalar dependências
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Verificar sintaxe PHP
-        run: |
-          find app config database tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
-
-      - name: Executar testes
-        run: php artisan test --compact
+      - run: echo "Workflow desativado. Consulte o CI principal para testes offline."
