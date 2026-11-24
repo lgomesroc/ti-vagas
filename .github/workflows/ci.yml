@@ -52,6 +52,9 @@ jobs:
       - name: Validar composer.json
         run: composer validate --no-check-publish
 
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
       - name: Garantir que o agendador não inicia coleta LinkedIn
         shell: bash
         run: |
@@ -59,9 +62,6 @@ jobs:
             echo "::error::O agendador ainda contém uma coleta automática do LinkedIn."
             exit 1
           fi
-
-      - name: Instalar dependências
-        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Verificar sintaxe de todos os arquivos PHP
         run: |
