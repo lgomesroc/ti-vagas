@@ -14,6 +14,7 @@ use App\Sources\GupyGlobalSource;
 use App\Sources\InhireGlobalSource;
 use App\Sources\IbmSource;
 use App\Sources\MicrosoftSource;
+use App\Sources\NortJobsSource;
 use App\Sources\NerdinSource;
 use App\Sources\NetVagasSource;
 use App\Sources\JobConvoSource;
@@ -619,6 +620,21 @@ class VacancySourceFactory
         $microsoft = config('vacancy_sources.microsoft', []);
         $microsoftSource = new MicrosoftSource(caBundle: $microsoft['ca_bundle'] ?? null, maxJobs: (int) ($microsoft['max_jobs'] ?? 300), locationFilter: $this->locationFilter);
         $sources[$microsoftSource->name()] = $microsoftSource;
+
+        // Nort e Vagas Dev compartilham o mesmo parser, mas mantêm origens
+        // distintas para rastreabilidade e deduplicação no importador.
+        $nort = config('nort', []);
+        foreach ($nort['sources'] ?? [] as $sourceName => $sourceConfig) {
+            $source = new NortJobsSource(
+                sourceName: $sourceName,
+                catalogUrl: $sourceConfig['url'],
+                maxPages: (int) ($nort['max_pages'] ?? 3),
+                maxJobs: (int) ($nort['max_jobs'] ?? 120),
+                requestDelayMs: (int) ($nort['request_delay_ms'] ?? 150),
+                caBundle: $nort['ca_bundle'] ?? null,
+            );
+            $sources[$source->name()] = $source;
+        }
 
         return $sources;
     }
