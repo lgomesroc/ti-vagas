@@ -816,7 +816,13 @@ class LinkedInPostCandidateProcessor
         }
         $plain = str_replace(['**', '__', '*', '_'], '', $text);
         if (preg_match('/\\b(?:a|o)\\s+([A-Z][A-Za-z0-9&.-]{1,60})\\s+(?:est[aá]\\s+em\\s+busca|est[aá]\\s+contratando|est[aá]\\s+procurando)\\b/iu', $plain, $m)) return trim($m[1]);
-        if (preg_match('/empresa\\s*:\\s*([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $m)) return trim($m[1]);
+        if (preg_match(
+            '/\\bempresa\\s*:\\s*(.{3,80}?)(?=\\s+\\b(?:remoto|remote|h[ií]brido|hybrid|presencial|on-site|responsabilidades|atividades|requisitos|qualificacoes)\\b|[;|\\r\\n]|$)/iu',
+            $text,
+            $m
+        )) {
+            return trim($m[1], " \\t\\n\\r\\0\\x0B.,:-");
+        }
         return null;
     }
 
