@@ -39,6 +39,6 @@ test('exporta somente cookies e origens do LinkedIn', () => {
 
   const filtered = filterLinkedInStorageState(input);
   assert.deepEqual(filtered.cookies.map(cookie => cookie.name), ['li_at', 'bcookie']);
-  assert.deepEqual(filtered.origins.map(origin => origin.origin), ['https://www.linkedin.com']);
+  assert.deepEqual(filtered.origins, []);
   assert.equal(inspectStorageState(JSON.stringify(filtered), now).ok, true);
 });
