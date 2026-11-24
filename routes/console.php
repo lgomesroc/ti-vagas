@@ -13,30 +13,6 @@ Schedule::command('vacancies:collect')
     ->timezone('America/Sao_Paulo')
     ->withoutOverlapping();
 
-/*
- * LinkedIn: separa a pesquisa pública via DuckDuckGo do navegador autenticado.
- * Os horários são fixos em America/Sao_Paulo e não se sobrepõem.
- */
-Schedule::command('linkedin:collect-posts --mode=bot')
-    ->dailyAt('00:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
-Schedule::command('linkedin:collect-posts --mode=bot')
-    ->dailyAt('12:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
-Schedule::command('linkedin:collect-posts --mode=duckduckgo')
-    ->dailyAt('06:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
-Schedule::command('linkedin:collect-posts --mode=duckduckgo')
-    ->dailyAt('18:00')
-    ->timezone('America/Sao_Paulo')
-    ->withoutOverlapping();
-
 // Listas de Tor, VPN, proxies, datacenters e abuso. Roda no GitHub Actions
 // (que executa schedule:run a cada seis horas) e grava no cache compartilhado.
 Schedule::command('network:update-lists')
