@@ -78,7 +78,7 @@
                         $isOriginalPost = $applicationHost === 'linkedin.com' || str_ends_with($applicationHost, '.linkedin.com');
                     @endphp
                     <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">
-                        {{ $isOriginalPost ? 'Ver publicação original' : 'Acessar página da vaga' }}
+                        {{ $isOriginalPost ? 'Ver publicação original' : 'Candidatar-se na empresa' }}
                     </a>
                 @elseif ($vacancy->source_url)
                     <a href="{{ $vacancy->source_url }}" target="_blank" rel="noopener noreferrer" class="button">Ver publicação original</a>

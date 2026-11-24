@@ -33,6 +33,30 @@ class LinkedInPostEmailApplicationTest extends TestCase
         $this->assertDatabaseHas('linkedin_post_candidates', [
             'post_id' => 'urn:li:activity:manaus-generic-001',
             'status' => 'rejected',
+            'decision_reason' => 'E-mail de provedor pessoal/gratuito não é aceito como canal de candidatura.',
+        ]);
+    }
+
+    public function test_corporate_email_only_post_without_job_details_is_rejected(): void
+    {
+        $this->mock(LinkedInUrlInspector::class)->shouldNotReceive('inspect');
+
+        $post = [
+            'postId' => 'urn:li:activity:email-sparse-001',
+            'postUrl' => 'https://www.linkedin.com/feed/update/urn:li:activity:email-sparse-001/',
+            'authorName' => 'Acme Tecnologia',
+            'authorType' => 'company',
+            'datePosted' => now()->subDay()->toIso8601String(),
+            'isPromoted' => false,
+            'text' => 'Nova oportunidade | Analista de TI Júnior. Empresa: Acme Tecnologia. Manaus/AM. Envie seu currículo para selecao@acme.com.br.',
+            'topComments' => [],
+        ];
+
+        app(LinkedInPostCandidateProcessor::class)->process($post);
+
+        $this->assertDatabaseHas('linkedin_post_candidates', [
+            'post_id' => 'urn:li:activity:email-sparse-001',
+            'status' => 'rejected',
             'decision_reason' => 'Publicação com candidatura somente por e-mail não apresenta detalhes suficientes da vaga (empresa, localidade, responsabilidades e requisitos).',
         ]);
     }
