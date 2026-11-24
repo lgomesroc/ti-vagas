@@ -116,7 +116,7 @@ const keywords = [
 ];
 
 const lookbackHours = Number(
-  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72
+  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 168
 );
 
 const keywordDiagnostics = new Map();

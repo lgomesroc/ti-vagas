@@ -44,7 +44,7 @@ class CollectLinkedInSecondary extends Command
                     'LINKEDIN_SECONDARY_ACCOUNT_PROFILE' => (string) config('linkedin.secondary_account.profile'),
                     'LINKEDIN_STORAGE_STATE_PATH' => (string) config('linkedin.secondary_account.storage_state'),
                     'LINKEDIN_HEADLESS' => config('linkedin.headless') ? 'true' : 'false',
-                    'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 72),
+                    'LINKEDIN_POSTS_LOOKBACK_HOURS' => (string) config('linkedin.lookback_hours', 168),
                     'LINKEDIN_POSTS_TIME_BUDGET_SECONDS' => (string) config('linkedin.secondary_account.time_budget', 480),
                     'LINKEDIN_JOBS_TIME_BUDGET_SECONDS' => (string) config('linkedin.jobs.time_budget', 900),
                 ])

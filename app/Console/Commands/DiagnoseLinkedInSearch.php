@@ -17,7 +17,7 @@ class DiagnoseLinkedInSearch extends Command
         $this->info('Diagnóstico de busca do LinkedIn (não grava candidatos nem publica vagas).');
         $this->line('Coleta habilitada: ' . (config('linkedin.enabled') ? 'sim' : 'não'));
         $this->line('Extensão PHP DOM: ' . (class_exists(\DOMDocument::class) ? 'disponível' : 'ausente'));
-        $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 72) . ' horas');
+        $this->line('Janela de busca: últimas ' . (int) config('linkedin.lookback_hours', 168) . ' horas');
         $profile = base_path((string) config('linkedin.secondary_account.profile'));
         $this->line('Conta secundária habilitada: ' . (config('linkedin.secondary_account.enabled') ? 'sim' : 'não'));
         $this->line('Sessão local da conta secundária: ' . (is_dir($profile) ? 'perfil encontrado' : 'ainda não configurada'));
