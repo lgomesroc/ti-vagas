@@ -788,6 +788,19 @@ return [
                 'name' => 'AeC',
                 'url' => 'https://aec.pandape.infojobs.com.br/',
             ],
+
+            'sodexo-interno' => [
+                'name' => 'Sodexo — Corporativo',
+                'url' => 'https://sodexointerno.pandape.infojobs.com.br/',
+            ],
+            'sodexo-operacao' => [
+                'name' => 'Sodexo — Operações',
+                'url' => 'https://sodexoonsiteoperacao.pandape.infojobs.com.br/',
+            ],
+            'sodexo-administrativo' => [
+                'name' => 'Sodexo — Administrativo',
+                'url' => 'https://sodexoonsiteadministrativo.pandape.infojobs.com.br/',
+            ],
         ],
     ],
 
