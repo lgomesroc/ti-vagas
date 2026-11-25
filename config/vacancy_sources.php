@@ -863,6 +863,12 @@ return [
                 'url' => 'https://recrutamentomagis5.vagas.solides.com.br',
             ],
 
+            'aztecnologia' => [
+                'name' => 'AZ TECNOLOGIA EM GESTÃO',
+                'slug' => 'aztecnologia',
+                'url' => 'https://aztecnologia.vagas.solides.com.br',
+            ],
+
             'cashway' => [
                 'name' => 'CashWay',
                 'slug' => 'cashway',
