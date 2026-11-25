@@ -22,6 +22,7 @@ return [
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
+            'agibank' => 'Agibank',
         ],
     ],
 
@@ -879,6 +880,12 @@ return [
                 'name' => 'SONDOTECNICA ENGENHARIA DE SOLOS S A',
                 'slug' => 'sondotecnica',
                 'url' => 'https://sondotecnica.vagas.solides.com.br',
+            ],
+
+            'grupoabril' => [
+                'name' => 'Grupo Abril',
+                'slug' => 'grupoabril',
+                'url' => 'https://grupoabril.vagas.solides.com.br',
             ],
         ],
     ],
