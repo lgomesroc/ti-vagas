@@ -1,4 +1,4 @@
-name: TI Vagas - Coleta isolada Abler
+name: TI Vagas - Coleta global Abler
 
 on:
   schedule:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  abler:
+  abler_global:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -82,5 +82,5 @@ jobs:
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Coletar somente Abler
+      - name: Coletar globalmente na Abler
         run: php artisan vacancies:collect-source abler-global
