@@ -12,8 +12,8 @@ Referência dos workflows versionados em `.github/workflows`. A branch que cont�
 | `gupy.yml` | main e developer | main | 00h, 06h, 12h, 18h e manual | Coleta global Gupy |
 | `linkedin-jobs.yml` | main | main | 00h30, 06h30, 12h30, 18h30 e manual | Coleta LinkedIn Jobs |
 | `linkedin-posts-ci.yml` | main | Branch do evento | Push, pull request em main/developer/feature e manual | CI offline de integração LinkedIn |
-| `linkedin-posts.yml` | main e developer | github.ref | 00h, 12h e manual | Publicações de recrutamento, sem sessão secundária |
-| `linkedin-secondary-search.yml` | main e developer | developer | 06h, 18h e manual | Publicações via conta secundária autenticada |
+| `linkedin-posts.yml` | main e developer | github.ref | Desativado intencionalmente | Publicações de recrutamento (não executa) |
+| `linkedin-secondary-search.yml` | main e developer | developer | Desativado intencionalmente | Conta secundária LinkedIn (não executa) |
 | `vacancies.yml` | main e developer | main | 00h, 06h, 12h, 18h; segunda 03h; manual | Scheduler Laravel, coleta geral e fila vacancies |
 
 Os agendamentos usam `America/Sao_Paulo`. O GitHub pode iniciar execuções com pequeno atraso em relação ao horário configurado.
@@ -69,7 +69,7 @@ A cópia usa `pg_dump --format=custom --no-owner --no-privileges` e `pg_restore 
 
 O token Render precisa conseguir consultar o serviço, ler/escrever variáveis de ambiente e executar deploy. `DB_URL` deve estar definida como variável do próprio serviço Render, pois o workflow procura essa chave na lista de variáveis do serviço.
 
-**Concorrência varia entre branches:** em `main`, `vacancies.yml` também usa `ti-vagas-database-operations`, compartilhando o bloqueio com o failover. Em `developer`, `vacancies.yml` usa `ti-vagas-vacancies`, portanto não compartilha o bloqueio com o failover. Em ambas as branches, `gupy.yml` e os workflows LinkedIn usam grupos próprios e não compartilham o bloqueio com o failover. Portanto, nem mesmo em `main` existe bloqueio global entre failover e todas as coletas. Além disso, os workflows de coleta configuram `DB_URL` diretamente com `NEON_DATABASE_URL`; não consultam a variável `DB_URL` do Render. Assim, mudar o banco usado pela aplicação no Render não redireciona automaticamente os jobs do GitHub Actions. Essa diferença precisa ser considerada na operação do failover.
+**Concorrência na branch `main`:** `vacancies.yml`, `gupy.yml`, `linkedin-jobs.yml`, `abler.yml` e `inhire.yml` compartilham `ti-vagas-database-operations`, serializando as operações que gravam no banco operacional. O CI LinkedIn usa banco PostgreSQL descartável e não participa desse grupo. Os workflows LinkedIn Jobs, Abler e InHire resolvem a `DB_URL` atualmente configurada no Render antes de conectar. A conta secundária e o fluxo regular de publicações permanecem desativados. A branch `developer` mantém configurações próprias; este inventário descreve a operação solicitada em `main`.
 
 ## 4. Coleta global Gupy — `gupy.yml`
 
@@ -124,7 +124,7 @@ O tratamento de HTTP 429, variáveis de backoff e reagendamento está detalhado 
 
 ## 7. Publicações de recrutamento — `linkedin-posts.yml`
 
-Agenda 00h e 12h, além de execução manual. Faz checkout de `github.ref`, configura PHP 8.3 e Node.js 22, instala Composer e npm, instala Chromium pelo Playwright, aplica migrações e executa `php artisan linkedin:collect-posts` (modo padrão `all`).
+Atualmente desativado intencionalmente por `if: false`; não realiza coleta nem restaura sessão. O YAML foi mantido como referência operacional.
 
 O workflow define janela de 72 horas, navegador headless e `LINKEDIN_SECONDARY_ACCOUNT_ENABLED=false`. Portanto, a etapa que restauraria o arquivo de sessão é ignorada; essa execução não usa a sessão autenticada da conta secundária.
 
@@ -146,7 +146,7 @@ Aplica migrações e executa:
 php artisan linkedin:collect-posts --mode=bot
 ```
 
-A conta secundária é habilitada nesse workflow por `LINKEDIN_SECONDARY_ACCOUNT_ENABLED=true`.
+A conta secundária permanece desativada, conforme solicitado.
 
 Arquivos relacionados:
 - `scripts/linkedin/secondary-account.mjs`;
