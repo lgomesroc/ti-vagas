@@ -37,6 +37,14 @@ class GreenhouseSourceTest extends TestCase
         $this->assertStringNotContainsString('<p>', $vacancies[0]['description']);
     }
 
+    public function test_knowbe4_and_incognia_greenhouse_boards_are_registered(): void
+    {
+        $companies = config('vacancy_sources.greenhouse.companies');
+
+        $this->assertSame('KnowBe4', $companies['knowbe4']);
+        $this->assertSame('Incognia', $companies['incognia']);
+    }
+
     public function test_it_ignores_incomplete_job_records(): void
     {
         Http::fake([
