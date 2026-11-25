@@ -166,6 +166,9 @@ return [
             'recargapay' => [
                 'name' => 'RecargaPay',
             ],
+            'workana-premium' => [
+                'name' => 'Workana',
+            ],
         ],
     ],
 
