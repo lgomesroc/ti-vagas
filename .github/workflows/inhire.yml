@@ -1,4 +1,4 @@
-name: TI Vagas - Coleta isolada InHire
+name: TI Vagas - Coleta global InHire
 
 on:
   schedule:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  inhire:
+  inhire_global:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -74,5 +74,5 @@ jobs:
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Coletar e importar InHire
+      - name: Coletar e importar InHire global
         run: php artisan vacancies:collect-inhire
