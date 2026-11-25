@@ -170,7 +170,7 @@ Dispara em push e pull request direcionados a `main`, `developer` e `feature/lin
 
 | Grupo | Workflow |
 |---|---|
-| `ti-vagas-database-operations` | Failover PostgreSQL; também `vacancies.yml` em `main` e `abler.yml` em `developer` |
+| `ti-vagas-database-operations` | Failover PostgreSQL, `vacancies.yml`, `linkedin-jobs.yml`, `abler.yml` e `inhire.yml` em `main` |
 | `ti-vagas-vacancies` | `vacancies.yml` em `developer` |
 | `ti-vagas-gupy-global` | Gupy global |
 | `ti-vagas-linkedin-jobs` | LinkedIn Jobs |
