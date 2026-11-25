@@ -23,6 +23,8 @@ return [
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
             'agibank' => 'Agibank',
+            'knowbe4' => 'KnowBe4',
+            'incognia' => 'Incognia',
         ],
     ],
 
