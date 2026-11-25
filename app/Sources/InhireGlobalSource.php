@@ -26,6 +26,8 @@ class InhireGlobalSource implements VacancySource
         'brivia', 'idwall', 'rposolutions', 'aarin', 'uhuu', 'amaro', 'bionexo', 'cerc', 'enjoei', 'alelo',
         'mjv', 'instacarro', 'bancopine', 'riachuelo', 'fiap', 'alura',
         'pm3', 'avenue', 'dtidigital', 'trinca', 'brq', 'mottu',
+        // Empresas adicionais com portais públicos InHire identificados.
+        'livelo', 'webmotors', 'nibo',
     ];
 
     private const EXCLUDED_TENANTS = [
