@@ -98,6 +98,17 @@ class PandapeSourceTest extends TestCase
         ]);
     }
 
+    public function test_tivit_is_registered_with_its_verified_pandape_portal(): void
+    {
+        $company = config('vacancy_sources.pandape.companies.tivit');
+
+        $this->assertSame('TIVIT', $company['name']);
+        $this->assertSame(
+            'https://tivitalmavivagroup.pandape.infojobs.com.br/',
+            $company['url']
+        );
+    }
+
     public function test_source_name_uses_company_key(): void
     {
         $source = $this->makeSource();
