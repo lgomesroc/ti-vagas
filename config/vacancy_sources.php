@@ -806,6 +806,11 @@ return [
                 'url' => 'https://sodexoonsiteadministrativo.pandape.infojobs.com.br/',
             ],
 
+            'ilhaservicetecnologia' => [
+                'name' => 'Ilha Service Tecnologia',
+                'url' => 'https://ilhaservicetecnologia.pandape.infojobs.com.br/',
+            ],
+
 
 
         ],
@@ -931,6 +936,12 @@ return [
                 'name' => 'AMLabs',
                 'slug' => 'amlabsventures',
                 'url' => 'https://amlabsventures.vagas.solides.com.br',
+            ],
+
+            'g4f' => [
+                'name' => 'G4F',
+                'slug' => 'g4f',
+                'url' => 'https://g4f.vagas.solides.com.br',
             ],
         ],
     ],
