@@ -1,16 +1,76 @@
 name: TI Vagas - LinkedIn Conta Secundária
 
-# Desativado intencionalmente: a validação offline agora é executada em ci.yml.
-# Nenhuma coleta, login, restauração de sessão ou acesso ao LinkedIn deve ser iniciado por este workflow.
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: linkedin-secondary-search
+  cancel-in-progress: false
+
 jobs:
-  disabled:
-    if: ${{ false }}
+  secondary-search:
+    name: Validar sessão e pesquisar publicações
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-secondary-profile/storage-state.json
+      LINKEDIN_POSTS_LOOKBACK_HOURS: "168"
+      LINKEDIN_POSTS_TIME_BUDGET_SECONDS: "480"
+
     steps:
-      - run: echo "Workflow desativado. Consulte o CI principal para testes offline."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Restaurar e validar estrutura da sessão
+        env:
+          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
+        run: node scripts/linkedin/restore-session.mjs
+
+      - name: Validar autenticação e pesquisar publicações
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Iniciando validação da autenticação da conta secundária."
+          npm run linkedin:secondary:search > "$RUNNER_TEMP/linkedin-secondary-posts.json"
+
+          node --input-type=module - "$RUNNER_TEMP/linkedin-secondary-posts.json" <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const file = process.argv[2];
+          const posts = JSON.parse(readFileSync(file, 'utf8'));
+
+          if (!Array.isArray(posts)) {
+            throw new Error('A resposta da pesquisa não é uma lista válida.');
+          }
+
+          console.log('LINKEDIN_AUTH: VALID');
+          console.log(`POSTS_FOUND: ${posts.length}`);
+          NODE
+
+      - name: Resumo da execução
+        if: always()
+        run: |
+          {
+            echo "## LinkedIn — conta secundária"
+            echo "- Execução manual."
+            echo "- A sessão é restaurada e validada antes da pesquisa."
+            echo "- Nenhum cookie, token ou conteúdo da sessão é exibido."
+            echo "- A pesquisa não altera nem publica conteúdo na conta."
+          } >> "$GITHUB_STEP_SUMMARY"
