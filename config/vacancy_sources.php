@@ -829,6 +829,11 @@ return [
                 'url' => 'https://sodexoonsiteadministrativo.pandape.infojobs.com.br/',
             ],
 
+            'ik' => [
+                'name' => 'iK Ecossistema da Inovação',
+                'url' => 'https://ik.pandape.infojobs.com.br/',
+            ],
+
             'ilhaservicetecnologia' => [
                 'name' => 'Ilha Service Tecnologia',
                 'url' => 'https://ilhaservicetecnologia.pandape.infojobs.com.br/',
