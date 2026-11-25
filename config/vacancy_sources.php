@@ -67,6 +67,14 @@ return [
                 'name' => 'ABC Fitness',
             ],
 
+            'unilever' => [
+                'host' => 'unilever.wd3.myworkdayjobs.com',
+                'tenant' => 'unilever',
+                'site' => 'Unilever_Experienced_Professionals',
+                'locale' => 'en-US',
+                'name' => 'Unilever',
+            ],
+
             'thomson-reuters' => [
                 'host' => 'thomsonreuters.wd5.myworkdayjobs.com',
                 'tenant' => 'thomsonreuters',
@@ -184,6 +192,21 @@ return [
                 'name' => 'Brasilprev',
                 'url' => 'https://brasilprev.gupy.io/',
                 'technology_only' => true,
+            ],
+
+            'ciee' => [
+                'name' => 'CIEE',
+                'url' => 'https://ciee.gupy.io/',
+            ],
+
+            'solarcocacola' => [
+                'name' => 'Solar Coca-Cola',
+                'url' => 'https://solarcocacola.gupy.io/',
+            ],
+
+            'semparar' => [
+                'name' => 'Sem Parar Corpay',
+                'url' => 'https://semparar.gupy.io/',
             ],
 
             'globalweb' => [
@@ -809,6 +832,11 @@ return [
             'ilhaservicetecnologia' => [
                 'name' => 'Ilha Service Tecnologia',
                 'url' => 'https://ilhaservicetecnologia.pandape.infojobs.com.br/',
+            ],
+
+            'animaeducacao' => [
+                'name' => 'Ânima Educação',
+                'url' => 'https://animaeducacao.pandape.infojobs.com.br/',
             ],
 
             'tivit' => [
