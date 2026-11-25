@@ -1000,7 +1000,7 @@ return [
             ],
             'capgemini-br' => [
                 'name' => 'Capgemini',
-                'url' => 'https://careers.capgemini.com/search/?q=&locationsearch=Brazil',
+                'url' => 'https://jobs.capgemini.com/viewalljobs/',
             ],
         ],
     ],
