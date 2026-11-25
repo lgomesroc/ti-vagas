@@ -27,7 +27,7 @@ class InhireGlobalSource implements VacancySource
         'mjv', 'instacarro', 'bancopine', 'riachuelo', 'fiap', 'alura',
         'pm3', 'avenue', 'dtidigital', 'trinca', 'brq', 'mottu',
         // Empresas adicionais com portais públicos InHire identificados.
-        'livelo', 'webmotors', 'nibo', 'icatu', 'brasoftware', 'radix',
+        'livelo', 'webmotors', 'nibo', 'icatu', 'brasoftware', 'radix', 'olist',
     ];
 
     private const EXCLUDED_TENANTS = [
