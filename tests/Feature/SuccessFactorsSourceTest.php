@@ -25,5 +25,7 @@ class SuccessFactorsSourceTest extends TestCase
         $this->assertSame('https://vagas.cpfl.com.br/viewalljobs/', $companies['cpfl']['url']);
         $this->assertSame('TAESA', $companies['taesa']['name']);
         $this->assertSame('https://vagas.taesa.com.br/search/', $companies['taesa']['url']);
+        $this->assertSame('Capgemini', $companies['capgemini-br']['name']);
+        $this->assertSame('https://careers.capgemini.com/search/?q=&locationsearch=Brazil', $companies['capgemini-br']['url']);
     }
 }
