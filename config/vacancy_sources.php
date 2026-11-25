@@ -83,6 +83,14 @@ return [
                 'name' => 'Thomson Reuters',
             ],
 
+            'avanade' => [
+                'host' => 'accenture.wd103.myworkdayjobs.com',
+                'tenant' => 'accenture',
+                'site' => 'AvanadeCareers',
+                'locale' => 'en-US',
+                'name' => 'Avanade',
+            ],
+
 
         ],
     ],
