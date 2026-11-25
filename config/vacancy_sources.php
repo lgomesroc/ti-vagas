@@ -1038,6 +1038,11 @@ return [
                 'name' => 'EDITORA GLOBO',
                 'url' => 'https://trabalheconosco.vagas.com.br/editoragloboeradio/oportunidades',
             ],
+
+            'vagas-com' => [
+                'name' => 'Vagas.com',
+                'url' => 'https://trabalheconosco.vagas.com.br/vagas',
+            ],
         ],
     ],
 
