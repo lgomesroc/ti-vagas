@@ -1,0 +1,65 @@
+name: TI Vagas - Monitor da Sessão LinkedIn
+
+on:
+  schedule:
+    # 06:15 no horário de Brasília (UTC-3).
+    - cron: "15 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linkedin-secondary-session-monitor
+  cancel-in-progress: false
+
+jobs:
+  session-monitor:
+    name: Verificar validade real da sessão secundária
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: "true"
+      LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-secondary-profile/storage-state.json
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Restaurar sessão do secret
+        env:
+          LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
+        run: node scripts/linkedin/restore-session.mjs
+
+      - name: Verificar sessão no LinkedIn
+        id: session
+        run: node scripts/linkedin/session-check.mjs
+
+      - name: Resumo da verificação
+        if: always()
+        run: |
+          {
+            echo "## Monitor da sessão LinkedIn"
+            echo "- Verificação agendada diariamente às 06:15 (horário de Brasília), ou manual."
+            echo "- O teste abre o feed com a sessão restaurada e verifica redirecionamentos de autenticação."
+            echo "- Nenhum cookie, token ou conteúdo privado é exibido."
+            if [ "${{ steps.session.outcome }}" = "success" ]; then
+              echo "- Resultado: sessão aceita na navegação verificada."
+            else
+              echo "- Resultado: falha na validação. É necessário revisar o login e, se solicitado pelo LinkedIn, autenticar novamente e atualizar o secret."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
