@@ -638,6 +638,18 @@ return [
                 'technology_only' => true,
             ],
 
+            'mrvco' => [
+                'name' => 'MRV&CO',
+                'url' => 'https://vagas-mrveco.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'keeggotech' => [
+                'name' => 'Keeggo Tech',
+                'url' => 'https://keeggotech.gupy.io/',
+                'technology_only' => true,
+            ],
+
 
 
         ],
