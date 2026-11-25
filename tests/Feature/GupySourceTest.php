@@ -140,6 +140,20 @@ class GupySourceTest extends TestCase
         $this->assertSame('https://globo.gupy.io/', $globo['url']);
     }
 
+    public function test_mrvco_and_keeggo_tech_are_registered_as_technology_only_gupy_sources(): void
+    {
+        $mrvco = config('vacancy_sources.gupy.companies.mrvco');
+        $keeggoTech = config('vacancy_sources.gupy.companies.keeggotech');
+
+        $this->assertSame('MRV&CO', $mrvco['name']);
+        $this->assertSame('https://vagas-mrveco.gupy.io/', $mrvco['url']);
+        $this->assertTrue($mrvco['technology_only']);
+
+        $this->assertSame('Keeggo Tech', $keeggoTech['name']);
+        $this->assertSame('https://keeggotech.gupy.io/', $keeggoTech['url']);
+        $this->assertTrue($keeggoTech['technology_only']);
+    }
+
     public function test_light_is_registered_as_a_technology_only_gupy_source(): void
     {
         $light = config('vacancy_sources.gupy.companies.talentoslight');
