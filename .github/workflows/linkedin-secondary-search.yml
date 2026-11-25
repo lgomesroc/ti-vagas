@@ -74,3 +74,4 @@ jobs:
             echo "- Nenhum cookie, token ou conteúdo da sessão é exibido."
             echo "- A pesquisa não altera nem publica conteúdo na conta."
           } >> "$GITHUB_STEP_SUMMARY"
+
