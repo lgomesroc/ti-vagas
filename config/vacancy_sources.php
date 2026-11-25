@@ -74,6 +74,22 @@ return [
                 'locale' => 'pt-BR',
                 'name' => 'Thomson Reuters',
             ],
+
+            'edenred' => [
+                'host' => 'wd3.myworkdaysite.com',
+                'tenant' => 'edenpeople',
+                'site' => 'Edenred_Careers',
+                'locale' => '',
+                'name' => 'Edenred Brasil',
+            ],
+
+            'santander-tech' => [
+                'host' => 'santander.wd3.myworkdayjobs.com',
+                'tenant' => 'santander',
+                'site' => 'SantanderCareers',
+                'locale' => 'pt-BR',
+                'name' => 'Santander Tecnologia (F1RST)',
+            ],
         ],
     ],
 
@@ -613,6 +629,17 @@ return [
                 'technology_only' => true,
             ],
 
+            'bmg' => [
+                'name' => 'Banco Bmg',
+                'url' => 'https://bmg.gupy.io/',
+            ],
+
+            'grupo-olx' => [
+                'name' => 'Grupo OLX',
+                'url' => 'https://vemsergrupoolx.gupy.io/',
+                'technology_only' => true,
+            ],
+
         ],
 
 
@@ -800,6 +827,21 @@ return [
             'sodexo-administrativo' => [
                 'name' => 'Sodexo — Administrativo',
                 'url' => 'https://sodexoonsiteadministrativo.pandape.infojobs.com.br/',
+            ],
+
+            'carrefour-corporativo' => [
+                'name' => 'Grupo Carrefour Brasil (Corporativo)',
+                'url' => 'https://corporativo-grupocarrefourbrasil.pandape.infojobs.com.br/',
+            ],
+
+            'loccitane' => [
+                'name' => "L'OCCITANE Group",
+                'url' => 'https://loccitane.pandape.infojobs.com.br/',
+            ],
+
+            'gurgelmix' => [
+                'name' => 'Loja do Mecânico — Grupo GurgelMix',
+                'url' => 'https://gurgelmixmaquinaseferramentas.pandape.infojobs.com.br/',
             ],
         ],
     ],
@@ -1042,6 +1084,11 @@ return [
             'vagas-com' => [
                 'name' => 'Vagas.com',
                 'url' => 'https://trabalheconosco.vagas.com.br/vagas',
+            ],
+
+            'ey' => [
+                'name' => 'EY',
+                'url' => 'https://trabalheconosco.vagas.com.br/ey',
             ],
         ],
     ],
