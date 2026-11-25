@@ -9,8 +9,6 @@ As tarefas abaixo estão declaradas em `routes/console.php` e são disparadas pe
 | Comando | Frequência | Responsabilidade |
 |---|---|---|
 | `vacancies:collect` | A cada 6 horas | Despacha a coleta das fontes registradas na fábrica, exceto Gupy global |
-| `linkedin:collect-posts --mode=bot` | Diariamente às 00h e 12h | Pesquisa via conta secundária |
-| `linkedin:collect-posts --mode=duckduckgo` | Diariamente às 06h e 18h | Pesquisa pública via DuckDuckGo |
 | `network:update-lists` | A cada 6 horas | Atualiza listas de reputação de rede |
 | `vacancies:check-links --limit=500` | A cada 6 horas | Verifica links de candidatura |
 | `vacancies:prune-expired` | Segunda-feira às 03h, semanas ISO pares | Remove vagas expiradas conforme a política de retenção |
