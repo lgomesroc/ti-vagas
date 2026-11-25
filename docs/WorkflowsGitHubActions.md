@@ -6,12 +6,12 @@ Referência dos workflows versionados em `.github/workflows`. A branch que cont�
 
 | Arquivo | Presença | Checkout | Agenda / evento | Função |
 |---|---|---|---|---|
-| `abler.yml` | developer | developer | Manual (`workflow_dispatch`) | Coleta exclusivamente a fonte `abler-global` |
+| `abler.yml` | main | main | 01h, 07h, 13h, 19h e manual | Coleta exclusivamente a fonte `abler-global` |
 | `ci.yml` | main e developer | Branch do evento | Push e pull request para main/developer | CI PHP, testes PostgreSQL e build frontend |
 | `database-failover.yml` | **Somente main** | Não faz checkout | A cada 5 min e manual | Sincroniza Neon/Prisma e altera DB_URL do Render |
 | `gupy.yml` | main e developer | main | 00h, 06h, 12h, 18h e manual | Coleta global Gupy |
-| `linkedin-jobs.yml` | main e developer | developer | 00h30, 06h30, 12h30, 18h30 e manual | Coleta LinkedIn Jobs |
-| `linkedin-posts-ci.yml` | main e developer | Branch do push | Push em feature/linkedin-recruiter-posts, developer e main | CI de integração LinkedIn |
+| `linkedin-jobs.yml` | main | main | 00h30, 06h30, 12h30, 18h30 e manual | Coleta LinkedIn Jobs |
+| `linkedin-posts-ci.yml` | main | Branch do evento | Push, pull request em main/developer/feature e manual | CI offline de integração LinkedIn |
 | `linkedin-posts.yml` | main e developer | github.ref | 00h, 12h e manual | Publicações de recrutamento, sem sessão secundária |
 | `linkedin-secondary-search.yml` | main e developer | developer | 06h, 18h e manual | Publicações via conta secundária autenticada |
 | `vacancies.yml` | main e developer | main | 00h, 06h, 12h, 18h; segunda 03h; manual | Scheduler Laravel, coleta geral e fila vacancies |
@@ -20,13 +20,13 @@ Os agendamentos usam `America/Sao_Paulo`. O GitHub pode iniciar execuções com 
 
 ## 1. Coleta isolada Abler — `abler.yml`
 
-Disponível somente em `developer`, com disparo manual e checkout explícito da própria branch `developer`. O workflow configura PHP 8.3, instala as dependências Composer e executa exclusivamente:
+Disponível em `main`, com quatro execuções diárias (01h, 07h, 13h e 19h) e disparo manual. Faz checkout explícito de `main`, resolve a `DB_URL` atualmente configurada no serviço Render usando `RENDER_API_KEY` e `RENDER_SERVICE_ID`, configura PHP 8.3 e Node.js 22, instala Composer/npm e Chromium e executa exclusivamente:
 
 ```bash
 php artisan vacancies:collect-source abler-global
 ```
 
-Não chama `vacancies:collect`, scheduler, atualização de listas de rede nem workers de fila. Usa `APP_KEY` e `NEON_DATABASE_URL` como secrets, com `DB_CONNECTION=pgsql` e `DB_SSLMODE=require`. A execução grava os resultados importáveis no banco Neon; não é um dry run. O grupo `ti-vagas-database-operations` serializa essa gravação com o workflow de failover que utiliza o mesmo grupo.
+Não chama `vacancies:collect`, scheduler, atualização de listas de rede nem workers de fila. Usa `APP_KEY`, `RENDER_API_KEY` e `RENDER_SERVICE_ID` como secrets e grava no banco atualmente ativo do Render; não é um dry run. O grupo `ti-vagas-database-operations` serializa essa gravação com o failover e as coletas que usam o mesmo grupo.
 
 O workflow não corrige bloqueios impostos pela própria API da Abler. Um HTTP 403 como `API_PROXY_DIRECT_ACCESS_BLOCKED` significa que a chamada direta foi recusada pelo proxy da plataforma; a execução manual serve para confirmar o comportamento no runner do GitHub, não para contornar a política de acesso.
 
@@ -108,9 +108,9 @@ Arquivos relacionados:
 
 ## 6. LinkedIn Jobs — `linkedin-jobs.yml`
 
-Agenda 00h30, 06h30, 12h30 e 18h30, além de execução manual. Faz checkout explícito de `developer`, configura PHP 8.3 e Node.js 22, instala Composer, aplica migrações, executa `php artisan linkedin:collect-jobs` e processa a fila `linkedin` com `--stop-when-empty --timeout=1800 --tries=1`.
+Agenda 00h30, 06h30, 12h30 e 18h30, além de execução manual. Faz checkout explícito de `main`, resolve a `DB_URL` atualmente configurada no serviço Render, configura PHP 8.3 e Node.js 22, instala Composer/npm e Chromium, aplica migrações, executa `php artisan linkedin:collect-jobs` e mantém um worker da fila `linkedin` ativo por até 40 minutos para processar a coleta e reagendamentos por HTTP 429.
 
-Configura `LINKEDIN_JOBS_ENABLED=true` e janela de 168 horas. A conexão do job usa diretamente `NEON_DATABASE_URL`.
+Configura `LINKEDIN_JOBS_ENABLED=true` e janela de 168 horas. A conexão usa a `DB_URL` resolvida do serviço Render. O grupo de concorrência é `ti-vagas-database-operations`.
 
 Arquivos relacionados:
 - `app/Console/Commands/CollectLinkedInJobs.php`;
@@ -158,9 +158,9 @@ Arquivos relacionados:
 
 ## 9. CI específico LinkedIn — `linkedin-posts-ci.yml`
 
-Dispara em push nas branches `feature/linkedin-recruiter-posts`, `developer` e `main`; não declara evento `pull_request`. Executa:
-- Node.js 22 e `node --check` em `jobs.mjs` e `secondary-account.mjs`;
-- testes Node `rate-limit.test.mjs` e `jobs.e2e.test.mjs`;
+Dispara em push e pull request direcionados a `main`, `developer` e `feature/linkedin-recruiter-posts`, além de execução manual. Executa dois jobs isolados:
+- Node.js 22, verificação de sintaxe e testes automatizados offline com endpoints HTTP locais simulados e Chromium;
+- PostgreSQL 18 descartável, Composer, sintaxe PHP e suíte PHP `CI`;
 - PHP 8.3 e PostgreSQL 18 descartável;
 - validação e instalação Composer;
 - sintaxe PHP em `app`, `config`, `database` e `tests`;
