@@ -66,6 +66,14 @@ return [
                 'locale' => '',
                 'name' => 'ABC Fitness',
             ],
+
+            'thomson-reuters' => [
+                'host' => 'thomsonreuters.wd5.myworkdayjobs.com',
+                'tenant' => 'thomsonreuters',
+                'site' => 'External_Career_Site',
+                'locale' => 'pt-BR',
+                'name' => 'Thomson Reuters',
+            ],
         ],
     ],
 
@@ -594,6 +602,17 @@ return [
                 'technology_only' => true,
             ],
 
+            'bancosofisa' => [
+                'name' => 'Banco Sofisa',
+                'url' => 'https://bancosofisa.gupy.io/',
+            ],
+
+            'inmetrics' => [
+                'name' => 'Inmetrics',
+                'url' => 'https://inmetrics.gupy.io/',
+                'technology_only' => true,
+            ],
+
         ],
 
 
@@ -886,6 +905,12 @@ return [
                 'name' => 'Grupo Abril',
                 'slug' => 'grupoabril',
                 'url' => 'https://grupoabril.vagas.solides.com.br',
+            ],
+
+            'amlabs' => [
+                'name' => 'AMLabs',
+                'slug' => 'amlabsventures',
+                'url' => 'https://amlabsventures.vagas.solides.com.br',
             ],
         ],
     ],
