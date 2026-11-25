@@ -26,8 +26,10 @@ A lista completa, com branch de checkout, cron, secrets, jobs, concorrência, se
 Na branch `developer` estão os seguintes arquivos:
 - `ci.yml`: CI geral PHP, PostgreSQL de teste e build frontend;
 - `gupy.yml`: coleta global Gupy, fazendo checkout de `main`;
-- `linkedin-jobs.yml`: coleta LinkedIn Jobs, fazendo checkout de `developer`;
-- `linkedin-posts-ci.yml`: testes de integração LinkedIn;
+- `linkedin-jobs.yml`: coleta LinkedIn Jobs, agendada e manual, fazendo checkout de `main`;
+- `abler.yml`: coleta isolada Abler, agendada e manual, fazendo checkout de `main`;
+- `inhire.yml`: coleta isolada InHire, agendada e manual, fazendo checkout de `main`;
+- `linkedin-posts-ci.yml`: CI de integração LinkedIn em modo offline, com testes Node e PHP sem sessão autenticada;
 - `linkedin-posts.yml`: coleta pública de publicações, usando a referência do evento;
 - `linkedin-secondary-search.yml`: coleta via conta secundária, fazendo checkout de `developer`;
 - `vacancies.yml`: scheduler e coleta geral, fazendo checkout de `main`.
@@ -43,6 +45,8 @@ O workflow `database-failover.yml` está **somente na branch `main`**. Ele sincr
 - A coleta global da Gupy é executada pelo comando dedicado e não é despachada como uma fonte individual na fila geral.
 
 No workflow `vacancies.yml`, o worker processa a fila `vacancies` em ciclos, consultando `vacancies:queue-size` entre os ciclos para continuar quando há jobs pendentes ou em backoff. No workflow `linkedin-jobs.yml`, a fila `linkedin` é processada após o despacho do comando.
+
+Os workflows isolados Abler e InHire têm agenda própria e `workflow_dispatch`, fazem checkout de `main` e resolvem a `DB_URL` ativa do Render antes de gravar. O LinkedIn Jobs também tem agenda e disparo manual em `main`; após despachar o job, mantém o worker da fila `linkedin` ativo para processar a coleta e reagendamentos por HTTP 429. Esses três fluxos compartilham o grupo de concorrência `ti-vagas-database-operations`. O CI específico do LinkedIn executa testes Node com endpoints locais simulados e testes PHP com PostgreSQL descartável, sem secrets operacionais, sessão autenticada ou acesso ao LinkedIn real.
 
 ## Banco de testes
 
