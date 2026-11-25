@@ -87,7 +87,7 @@ return [
                 'host' => 'accenture.wd103.myworkdayjobs.com',
                 'tenant' => 'accenture',
                 'site' => 'AvanadeCareers',
-                'locale' => 'en-US',
+                'locale' => 'pt-BR',
                 'name' => 'Avanade',
             ],
 
