@@ -42,6 +42,9 @@ jobs:
           LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
         run: node scripts/linkedin/restore-session.mjs
 
+      - name: Validar sessão diretamente no feed do LinkedIn
+        run: npm run --silent linkedin:secondary:check
+
       - name: Validar autenticação e pesquisar publicações
         shell: bash
         run: |
