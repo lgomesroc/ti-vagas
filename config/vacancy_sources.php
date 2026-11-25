@@ -811,6 +811,11 @@ return [
                 'url' => 'https://ilhaservicetecnologia.pandape.infojobs.com.br/',
             ],
 
+            'tivit' => [
+                'name' => 'TIVIT',
+                'url' => 'https://tivitalmavivagroup.pandape.infojobs.com.br/',
+            ],
+
 
 
         ],
@@ -992,6 +997,10 @@ return [
             'taesa' => [
                 'name' => 'TAESA',
                 'url' => 'https://vagas.taesa.com.br/search/',
+            ],
+            'capgemini-br' => [
+                'name' => 'Capgemini',
+                'url' => 'https://careers.capgemini.com/search/?q=&locationsearch=Brazil',
             ],
         ],
     ],
