@@ -1,16 +1,105 @@
 name: TI Vagas - LinkedIn Integration CI
 
-# Desativado intencionalmente: a validação offline agora é executada em ci.yml.
-# Nenhuma coleta, login, restauração de sessão ou acesso ao LinkedIn deve ser iniciado por este workflow.
 on:
+  push:
+    branches:
+      - main
+      - developer
+      - feature/linkedin-recruiter-posts
+  pull_request:
+    branches:
+      - main
+      - developer
+      - feature/linkedin-recruiter-posts
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: linkedin-integration-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  disabled:
-    if: ${{ false }}
+  node:
+    name: Testes Node offline do LinkedIn
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Workflow desativado. Consulte o CI principal para testes offline."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Chromium para testes locais simulados
+        run: npx playwright install --with-deps chromium
+
+      - name: Verificar sintaxe dos scripts LinkedIn
+        run: |
+          node --check scripts/linkedin/jobs.mjs
+          node --check scripts/linkedin/secondary-account.mjs
+          node --check scripts/linkedin/runtime.mjs
+          node --check scripts/linkedin/restore-session.mjs
+          node --check scripts/linkedin/export-session.mjs
+
+      - name: Executar testes Node com endpoints locais simulados
+        run: npm run test:linkedin
+
+  php:
+    name: Testes PHP de integração LinkedIn
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: ti_vagas_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ti_vagas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: ti_vagas_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_URL: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preparar ambiente de teste
+        run: cp .env.example .env
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, curl, zip
+          coverage: none
+
+      - name: Validar Composer
+        run: composer validate --no-check-publish
+
+      - name: Instalar dependências PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Verificar sintaxe PHP
+        run: |
+          find app config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Executar suíte PHP CI (sem acesso ao LinkedIn real)
+        run: php artisan test --compact --testsuite=CI
