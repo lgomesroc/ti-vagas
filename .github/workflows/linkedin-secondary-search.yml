@@ -18,7 +18,7 @@ jobs:
     env:
       CI: "true"
       LINKEDIN_STORAGE_STATE_PATH: .local/linkedin-secondary-profile/storage-state.json
-      LINKEDIN_POSTS_LOOKBACK_HOURS: "168"
+      LINKEDIN_POSTS_LOOKBACK_HOURS: "72"
       LINKEDIN_POSTS_TIME_BUDGET_SECONDS: "480"
 
     steps:
@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
 
           echo "Iniciando validação da autenticação da conta secundária."
-          npm run linkedin:secondary:search > "$RUNNER_TEMP/linkedin-secondary-posts.json"
+          npm run --silent linkedin:secondary:search > "$RUNNER_TEMP/linkedin-secondary-posts.json"
 
           node --input-type=module - "$RUNNER_TEMP/linkedin-secondary-posts.json" <<'NODE'
           import { readFileSync } from 'node:fs';
