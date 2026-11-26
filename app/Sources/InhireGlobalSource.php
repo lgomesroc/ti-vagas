@@ -29,6 +29,7 @@ class InhireGlobalSource implements VacancySource
         // Empresas adicionais com portais públicos InHire identificados.
         'livelo', 'webmotors', 'nibo', 'icatu', 'brasoftware', 'radix', 'olist',
         'skopiadigital',
+        'deloitte',
     ];
 
     private const EXCLUDED_TENANTS = [
