@@ -1040,6 +1040,10 @@ return [
                 'name' => 'Finaya',
                 'url' => 'https://jobs.quickin.io/finayatech/jobs',
             ],
+            'domvsit' => [
+                'name' => 'DOMVS iT',
+                'url' => 'https://jobs.quickin.io/domvsit/jobs',
+            ],
         ],
     ],
 
