@@ -1071,6 +1071,10 @@ return [
                 'name' => 'Capgemini',
                 'url' => 'https://jobs.capgemini.com/viewalljobs/',
             ],
+            'gft' => [
+                'name' => 'GFT Technologies',
+                'url' => 'https://career5.successfactors.eu/careers?clientId=jobs2web&company=gfttechnol&lang=pt_BR&site=',
+            ],
         ],
     ],
 
