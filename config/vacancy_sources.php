@@ -1073,7 +1073,7 @@ return [
             ],
             'gft' => [
                 'name' => 'GFT Technologies',
-                'url' => 'https://career5.successfactors.eu/careers?clientId=jobs2web&company=gfttechnol&lang=pt_BR&site=',
+                'url' => 'https://jobs.gft.com/Brazil/?locale=pt_BR',
             ],
         ],
     ],
