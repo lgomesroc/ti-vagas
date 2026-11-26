@@ -1301,6 +1301,11 @@ return [
                 'name' => 'Cognizant',
                 'url' => 'https://careers.cognizant.com/latam-pt/vagas/',
             ],
+
+            'ntt-data' => [
+                'name' => 'NTT DATA',
+                'url' => 'https://careers.nttdata.com/br/pt/search-results',
+            ],
         ],
     ],
 
