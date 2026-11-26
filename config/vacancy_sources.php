@@ -1302,6 +1302,11 @@ return [
                 'url' => 'https://careers.cognizant.com/latam-pt/vagas/',
             ],
 
+            'accenture' => [
+                'name' => 'Accenture',
+                'url' => 'https://www.accenture.com/br-pt/careers/jobsearch',
+            ],
+
             'ntt-data' => [
                 'name' => 'NTT DATA',
                 'url' => 'https://careers.nttdata.com/br/pt/search-results',
