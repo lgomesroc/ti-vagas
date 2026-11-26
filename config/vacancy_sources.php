@@ -1284,6 +1284,11 @@ return [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
             ],
+
+            'cognizant' => [
+                'name' => 'Cognizant',
+                'url' => 'https://careers.cognizant.com/latam-pt/vagas/',
+            ],
         ],
     ],
 
