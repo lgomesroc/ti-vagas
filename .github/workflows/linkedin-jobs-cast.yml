@@ -1,0 +1,100 @@
+name: TI Vagas - LinkedIn Jobs CAST Group
+
+on:
+  schedule:
+    - cron: "30 3,9,15,21 * * *"
+      timezone: "America/Sao_Paulo"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-database-operations
+  cancel-in-progress: false
+
+jobs:
+  linkedin-jobs-cast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_SSLMODE: require
+      QUEUE_CONNECTION: database
+      DB_QUEUE: linkedin
+      DB_QUEUE_RETRY_AFTER: "1860"
+      CACHE_STORE: database
+      LINKEDIN_JOBS_ENABLED: "true"
+      LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
+      LINKEDIN_JOBS_COMPANY_FILTER: "CAST"
+      LINKEDIN_JOBS_SEARCH_TERMS: "desenvolvedor júnior;desenvolvedor backend júnior;desenvolvedor frontend júnior;desenvolvedor full stack júnior;programador júnior;analista de suporte júnior;técnico de suporte júnior;help desk júnior;service desk júnior;infraestrutura júnior;analista de redes júnior;analista de QA júnior;junior software engineer;junior developer;junior IT support"
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolver banco atualmente ativo no Render
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for name in APP_KEY RENDER_API_KEY RENDER_SERVICE_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::A variável/secret $name não está configurada."
+              exit 1
+            fi
+          done
+
+          response="$(curl --fail --silent --show-error --retry 3 \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Accept: application/json")"
+
+          active_url="$(jq -r '[.[] | select(.envVar.key == "DB_URL") | .envVar.value] | first // empty' <<< "$response")"
+
+          if [ -z "$active_url" ]; then
+            echo "::error::Não foi possível obter DB_URL das variáveis de ambiente do serviço Render."
+            exit 1
+          fi
+
+          echo "::add-mask::$active_url"
+          echo "DB_URL=$active_url" >> "$GITHUB_ENV"
+          echo "Banco ativo do Render resolvido para LinkedIn Jobs CAST Group."
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
+          coverage: none
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Instalar dependências Node
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Aplicar migrações
+        run: php artisan migrate --force
+
+      - name: Despachar coleta LinkedIn Jobs da CAST
+        run: php artisan linkedin:collect-jobs
+
+      - name: Processar fila LinkedIn e aguardar reagendamentos por HTTP 429
+        run: php artisan queue:work database --queue=linkedin --max-time=2400 --timeout=1800 --tries=5 --sleep=10
