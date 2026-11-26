@@ -1036,6 +1036,10 @@ return [
                 'name' => 'Paraná Banco',
                 'url' => 'https://jobs.quickin.io/paranabanco/jobs',
             ],
+            'finayatech' => [
+                'name' => 'Finaya',
+                'url' => 'https://jobs.quickin.io/finayatech/jobs',
+            ],
         ],
     ],
 
