@@ -470,6 +470,12 @@ return [
                 'technology_only' => true,
             ],
 
+            'yduqs-tech' => [
+                'name' => 'YDUQS - Vagas Tech',
+                'url' => 'https://yduqstech.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'uol' => [
                 'name' => 'UOL',
                 'url' => 'https://uol.gupy.io/',
