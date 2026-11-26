@@ -28,7 +28,7 @@ jobs:
       DB_QUEUE_RETRY_AFTER: "1860"
       CACHE_STORE: database
       LINKEDIN_JOBS_ENABLED: "true"
-      LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
+      LINKEDIN_JOBS_LOOKBACK_HOURS: "72"
       LINKEDIN_JOBS_COMPANY_FILTER: "GFT"
       LINKEDIN_JOBS_SEARCH_TERMS: "desenvolvedor júnior;desenvolvedor backend júnior;desenvolvedor frontend júnior;desenvolvedor full stack júnior;programador júnior;analista de suporte júnior;técnico de suporte júnior;help desk júnior;service desk júnior;infraestrutura júnior;analista de redes júnior;analista de QA júnior;junior software engineer;junior developer;junior IT support"
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
