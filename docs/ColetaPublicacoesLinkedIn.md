@@ -84,7 +84,7 @@ php artisan linkedin:collect-jobs
 php artisan linkedin:collect-jobs --sync
 ```
 
-A execução padrão envia um job para a fila `linkedin`; a opção `--sync` executa diretamente. O workflow `linkedin-jobs.yml` despacha e processa a fila geral. O workflow `linkedin-jobs-brq.yml` executa uma busca adicional restrita à BRQ, com os mesmos critérios editoriais e histórico de anúncios consultados.
+A execução padrão envia um job para a fila `linkedin`; a opção `--sync` executa diretamente. O workflow `linkedin-jobs.yml` despacha e processa a fila geral. O workflow `linkedin-jobs-brq.yml` executa uma busca adicional restrita à BRQ, e `linkedin-jobs-cast.yml` executa outra busca restrita à CAST, ambas com os mesmos critérios editoriais e histórico de anúncios consultados.
 
 O coletor pesquisa termos de desenvolvimento, suporte e infraestrutura, com localização configurável (padrão: Brasil), janela de até 168 horas e paginação limitada. Os termos podem ser substituídos por execução via `LINKEDIN_JOBS_SEARCH_TERMS` (separados por ponto e vírgula) e a empresa pode ser restringida por `LINKEDIN_JOBS_COMPANY_FILTER`; sem essas variáveis, mantém-se a busca geral. Primeiro reúne e deduplica os cartões; depois remove os IDs já registrados no histórico de consultas ou já importados como `linkedin-jobs:*`. Somente os IDs ainda não consultados recebem uma requisição de detalhe. A descrição completa continua sendo obtida antes de qualquer decisão editorial: nenhum filtro de senioridade, área ou experiência foi antecipado para o cartão. Os anúncios extraídos passam pelo importador e pelos critérios editoriais gerais do TI Vagas.
 
