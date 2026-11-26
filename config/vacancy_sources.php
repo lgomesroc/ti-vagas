@@ -770,6 +770,9 @@ return [
             'hostinger' => [
                 'name' => 'Hostinger',
             ],
+            'toku' => [
+                'name' => 'Toku',
+            ],
         ],
     ],
 
