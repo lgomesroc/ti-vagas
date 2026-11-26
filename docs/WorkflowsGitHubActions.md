@@ -12,6 +12,7 @@ Referência dos workflows versionados em `.github/workflows`. A branch que cont�
 | `gupy.yml` | main e developer | main | 00h, 06h, 12h, 18h e manual | Coleta global Gupy |
 | `linkedin-jobs.yml` | main | main | 00h30, 06h30, 12h30, 18h30 e manual | Coleta geral LinkedIn Jobs |
 | `linkedin-jobs-brq.yml` | main | main | 03h30, 09h30, 15h30, 21h30 e manual | Coleta dedicada LinkedIn Jobs da BRQ |
+| `linkedin-jobs-cast.yml` | main | main | 04h30, 10h30, 16h30, 22h30 e manual | Coleta dedicada LinkedIn Jobs da CAST Group |
 | `linkedin-posts-ci.yml` | main | Branch do evento | Push, pull request em main/developer/feature e manual | CI offline de integração LinkedIn |
 | `linkedin-posts.yml` | main e developer | github.ref | Desativado intencionalmente | Publicações de recrutamento (não executa) |
 | `linkedin-secondary-search.yml` | main e developer | developer | Desativado intencionalmente | Conta secundária LinkedIn (não executa) |
@@ -70,7 +71,7 @@ A cópia usa `pg_dump --format=custom --no-owner --no-privileges` e `pg_restore 
 
 O token Render precisa conseguir consultar o serviço, ler/escrever variáveis de ambiente e executar deploy. `DB_URL` deve estar definida como variável do próprio serviço Render, pois o workflow procura essa chave na lista de variáveis do serviço.
 
-**Concorrência na branch `main`:** `vacancies.yml`, `gupy.yml`, `linkedin-jobs.yml`, `linkedin-jobs-brq.yml`, `abler.yml` e `inhire.yml` compartilham `ti-vagas-database-operations`, serializando as operações que gravam no banco operacional. O CI LinkedIn usa banco PostgreSQL descartável e não participa desse grupo. Os workflows LinkedIn Jobs, Abler e InHire resolvem a `DB_URL` atualmente configurada no Render antes de conectar. A conta secundária e o fluxo regular de publicações permanecem desativados. A branch `developer` mantém configurações próprias; este inventário descreve a operação solicitada em `main`.
+**Concorrência na branch `main`:** `vacancies.yml`, `gupy.yml`, `linkedin-jobs.yml`, `linkedin-jobs-brq.yml`, `linkedin-jobs-cast.yml`, `abler.yml` e `inhire.yml` compartilham `ti-vagas-database-operations`, serializando as operações que gravam no banco operacional. O CI LinkedIn usa banco PostgreSQL descartável e não participa desse grupo. Os workflows LinkedIn Jobs, Abler e InHire resolvem a `DB_URL` atualmente configurada no Render antes de conectar. A conta secundária e o fluxo regular de publicações permanecem desativados. A branch `developer` mantém configurações próprias; este inventário descreve a operação solicitada em `main`.
 
 ## 4. Coleta global Gupy — `gupy.yml`
 
@@ -129,7 +130,13 @@ Agenda 03h30, 09h30, 15h30 e 21h30, além de execução manual. Faz checkout exp
 
 Variáveis específicas: `LINKEDIN_JOBS_COMPANY_FILTER=BRQ` e `LINKEDIN_JOBS_SEARCH_TERMS`. O histórico de IDs consultados é compartilhado com a coleta geral; anúncios já detalhados não são consultados novamente. O workflow compartilha o grupo de concorrência `ti-vagas-database-operations` e a fila `linkedin`.
 
-## 8. Publicações de recrutamento — `linkedin-posts.yml`
+## 8. Coleta dedicada CAST Group — `linkedin-jobs-cast.yml`
+
+Agenda 04h30, 10h30, 16h30 e 22h30, além de execução manual. Faz checkout explícito de `main`, resolve a `DB_URL` ativa do Render, instala PHP/Node/Chromium, aplica migrações e despacha o mesmo job de LinkedIn Jobs com configuração específica da empresa. Usa janela de 168 horas, filtro de empresa contendo `CAST` e os termos de cargo configurados no workflow. O resultado continua passando pelos filtros editoriais e pela deduplicação central do TI Vagas.
+
+O workflow compartilha o histórico de anúncios consultados, o grupo de concorrência `ti-vagas-database-operations` e a fila `linkedin`.
+
+## 9. Publicações de recrutamento — `linkedin-posts.yml`
 
 Atualmente desativado intencionalmente por `if: false`; não realiza coleta nem restaura sessão. O YAML foi mantido como referência operacional.
 
@@ -143,7 +150,7 @@ Arquivos relacionados:
 - `app/Services/LinkedInPostAutoPublisher.php`;
 - `config/linkedin.php`.
 
-## 9. Conta secundária LinkedIn — `linkedin-secondary-search.yml`
+## 10. Conta secundária LinkedIn — `linkedin-secondary-search.yml`
 
 Agenda 06h e 18h, além de execução manual. Faz checkout de `developer`, configura PHP 8.3, Node.js 22 e Chromium, instala dependências e exige o secret `LINKEDIN_STORAGE_STATE_B64`. O conteúdo é decodificado para `.local/linkedin-storage-state.json`, com permissão restrita, e não deve ser versionado.
 
@@ -163,7 +170,7 @@ Arquivos relacionados:
 - `app/Services/LinkedInPostAutoPublisher.php`;
 - `config/linkedin.php`.
 
-## 10. CI específico LinkedIn — `linkedin-posts-ci.yml`
+## 11. CI específico LinkedIn — `linkedin-posts-ci.yml`
 
 Dispara em push e pull request direcionados a `main`, `developer` e `feature/linkedin-recruiter-posts`, além de execução manual. Executa dois jobs isolados:
 - Node.js 22, verificação de sintaxe e testes automatizados offline com endpoints HTTP locais simulados e Chromium;
@@ -177,7 +184,7 @@ Dispara em push e pull request direcionados a `main`, `developer` e `feature/lin
 
 | Grupo | Workflow |
 |---|---|
-| `ti-vagas-database-operations` | Failover PostgreSQL, `vacancies.yml`, `linkedin-jobs.yml`, `linkedin-jobs-brq.yml`, `abler.yml` e `inhire.yml` em `main` |
+| `ti-vagas-database-operations` | Failover PostgreSQL, `vacancies.yml`, `linkedin-jobs.yml`, `linkedin-jobs-brq.yml`, `linkedin-jobs-cast.yml`, `abler.yml` e `inhire.yml` em `main` |
 | `ti-vagas-vacancies` | `vacancies.yml` em `developer` |
 | `ti-vagas-gupy-global` | Gupy global |
 | `ti-vagas-linkedin-jobs` | LinkedIn Jobs |
