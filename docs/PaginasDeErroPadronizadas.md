@@ -12,6 +12,7 @@ A implementação utiliza o mecanismo nativo de tratamento de exceções e rende
 - **Interface independente:** as views de erro não estendem `layouts.app`. Assim, não dependem do fluxo de aceite, sessão, localização, consultas ao banco, Analytics, AdSense ou scripts da aplicação.
 - **Identidade visual consistente:** layout responsivo, acessível e com CSS local.
 - **Privacidade e segurança:** não exibir stack trace, mensagens de exceção, SQL, caminhos internos, variáveis de ambiente, tokens ou credenciais.
+- **Configuração de produção:** manter `APP_DEBUG=false` no ambiente de produção. Com o modo de depuração ativado, o Laravel pode apresentar páginas detalhadas de exceção em vez das páginas amigáveis. O `APP_DEBUG=true` do ambiente local não deve ser copiado para produção.
 - **Status preservado:** cada página é renderizada com o código HTTP original; a página não transforma uma falha em resposta `200 OK`.
 - **Negociação de conteúdo preservada:** requisições que esperam JSON continuam sob o tratamento JSON configurado em `bootstrap/app.php`; as páginas HTML não substituem respostas de API.
 - **Sem dependências adicionais:** não foi instalado pacote para tratar páginas de erro.
