@@ -1279,6 +1279,21 @@ return [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
     ],
 
+    'radancy' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 10,
+        'max_jobs' => 200,
+        'companies' => [
+            'loreal' => [
+                'name' => "L'Oréal",
+                'url' => 'https://careers.loreal.com/en',
+                'countries' => ['Brazil'],
+                'technology_facet_name' => 'Professional Field',
+                'technology_facet_value' => 'Tech & Data',
+            ],
+        ],
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
