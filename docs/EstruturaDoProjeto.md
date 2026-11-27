@@ -47183,3 +47183,31 @@ p
 ├── render.yaml
 └── vite.config.js
 ```
+
+## Arquivos adicionados pelo PWA
+
+A árvore acima corresponde ao commit de referência. A funcionalidade de PWA acrescentou os arquivos abaixo, sem remover arquivos ou pastas existentes. Detalhes em [Aplicativo Progressivo (PWA)](AplicativoPWA.md).
+
+```text
+├── docs/
+│   └── AplicativoPWA.md
+├── public/
+│   ├── icons/
+│   │   ├── apple-touch-icon.png
+│   │   ├── icon-192.png
+│   │   ├── icon-512.png
+│   │   ├── icon-maskable-192.png
+│   │   ├── icon-maskable-512.png
+│   │   └── icon-maskable.svg
+│   ├── manifest.webmanifest
+│   ├── offline.html
+│   └── sw.js
+├── resources/
+│   └── views/
+│       └── partials/
+│           ├── pwa-head.blade.php
+│           └── pwa-register.blade.php
+└── tests/
+    └── Feature/
+        └── PwaTest.php
+```

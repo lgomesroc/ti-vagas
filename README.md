@@ -12,6 +12,7 @@ Este README é a porta de entrada. As regras e os procedimentos detalhados estã
 
 | Documento | Conteúdo |
 |---|---|
+| [Aplicativo Progressivo (PWA)](docs/AplicativoPWA.md) | Instalação como aplicativo, service worker, cache e modo offline. |
 | [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Camadas, responsabilidades e percurso dos dados. |
 | [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Registro das alterações relevantes incorporadas ao projeto. |
 | [Automação e Testes](docs/AutomacaoETestes.md) | Scheduler, filas, comandos operacionais e testes. |

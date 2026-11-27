@@ -4,6 +4,19 @@ Este documento registra alterações relevantes incorporadas à branch `main`. O
 
 ## 1. Atualizações de 27/11/2026
 
+### Aplicativo Progressivo (PWA)
+
+O portal passou a poder ser instalado como aplicativo em celulares, tablets e computadores.
+
+- Manifesto `public/manifest.webmanifest`, ícones em `public/icons/` e metadados no layout;
+- Service worker `public/sw.js` com cache somente de arquivos estáticos; páginas HTML nunca são armazenadas, preservando sessão, CSRF, consentimento e regionalização;
+- Página `public/offline.html` exibida em navegações sem conexão;
+- Botão "Instalar app" no cabeçalho, exibido apenas quando o navegador oferece a instalação;
+- Cabeçalhos do manifesto e do service worker em `public/.htaccess`;
+- Testes em `tests/Feature/PwaTest.php`.
+
+Nenhum arquivo ou pasta existente foi removido. Detalhes em [Aplicativo Progressivo (PWA)](AplicativoPWA.md).
+
 ### Reativação do workflow de publicações de recrutamento do LinkedIn
 
 O arquivo `.github/workflows/linkedin-posts.yml` foi restaurado como workflow operacional na branch `main`.

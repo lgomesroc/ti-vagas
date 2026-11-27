@@ -23,3 +23,25 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# PWA: tipo correto do manifesto e cache HTTP do service worker.
+# Ver docs/AplicativoPWA.md.
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+    # O navegador deve sempre verificar se há uma nova versão do service worker.
+    <Files "sw.js">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Service-Worker-Allowed "/"
+    </Files>
+
+    <Files "manifest.webmanifest">
+        Header set Cache-Control "public, max-age=3600"
+    </Files>
+
+    <Files "offline.html">
+        Header set Cache-Control "no-cache"
+    </Files>
+</IfModule>

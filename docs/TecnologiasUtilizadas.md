@@ -13,6 +13,7 @@ Esta página descreve as tecnologias identificadas na branch `main`. As versões
 | Blade | Renderização das páginas no servidor |
 | Tailwind CSS 4 | Estilização da interface |
 | Vite 8 | Build e desenvolvimento dos recursos frontend |
+| PWA (Web App Manifest e Service Worker) | Instalação como aplicativo e página offline; ver [Aplicativo Progressivo (PWA)](AplicativoPWA.md) |
 | Node.js 22 | Scripts auxiliares e automações JavaScript |
 | Playwright | Automação de navegador para integrações que dependem de páginas renderizadas |
 | Laravel Scheduler | Agendamento de rotinas |
