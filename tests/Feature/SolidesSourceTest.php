@@ -39,7 +39,7 @@ class SolidesSourceTest extends TestCase
                     'recruitmentContractType' => [
                         ['name' => 'CLT'],
                     ],
-                    'createdAt' => now()->subDays(10)->toDateString(),
+                    'createdAt' => now('UTC')->subDays(10)->toDateString(),
                     'isHiddenJob' => false,
                     'isDisabled' => false,
                     'hardSkills' => [['name' => 'Suporte TI']],
