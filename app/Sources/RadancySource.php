@@ -228,7 +228,9 @@ class RadancySource implements VacancySource
     private function extractCards(string $html, string $origin): array
     {
         $xpath = $this->xpath($html);
-        $nodes = $xpath->query('//a[contains(@href, "/job/") and (@data-job-id or contains(@class, "job-link") or contains(@class, "jobtitle"))]');
+        // TalentBrew/Radancy's modern markup uses a stable BEM list-item
+        // class; legacy tenants put the data-job-id directly on the anchor.
+        $nodes = $xpath->query('//a[contains(@href, "/job/") and @data-job-id]');
         $cards = [];
         $seen = [];
 
@@ -242,13 +244,13 @@ class RadancySource implements VacancySource
             }
 
             $href = trim($node->getAttribute('href'));
-            $title = $this->cleanText($node->textContent);
             $id = trim($node->getAttribute('data-job-id'));
             if ($id === '') {
-                preg_match_all('~/([0-9]+)(?:[/?#]|$)~', $href, $matches);
-                $id = $matches[1] !== [] ? end($matches[1]) : $href;
+                continue;
             }
 
+            $titleNode = $xpath->query('.//h1|.//h2|.//h3|.//h4|.//*[contains(concat(" ", normalize-space(@class), " "), " job-title ")]|.//*[contains(concat(" ", normalize-space(@class), " "), " jobtitle ")]', $node)?->item(0);
+            $title = $this->cleanText($titleNode?->textContent ?? $node->textContent);
             if ($href === '' || $title === '' || isset($seen[$id])) {
                 continue;
             }
@@ -258,19 +260,8 @@ class RadancySource implements VacancySource
                 continue;
             }
 
-            $container = $node->parentNode;
-            for ($i = 0; $i < 4 && $container?->parentNode !== null; $i++) {
-                if ($container instanceof DOMElement && preg_match('/job|result|card/i', $container->getAttribute('class'))) {
-                    break;
-                }
-                $container = $container->parentNode;
-            }
-
-            $containerHtml = $container instanceof DOMElement ? ($container->ownerDocument?->saveHTML($container) ?? '') : '';
-            $location = '';
-            if (preg_match('/(?:job-location|job-info--location|location)[^>]*>\s*(?:<[^>]+>\s*)*([^<]+)/i', $containerHtml, $locationMatch)) {
-                $location = $this->cleanText($locationMatch[1]);
-            }
+            $locationNode = $xpath->query('.//*[contains(concat(" ", normalize-space(@class), " "), " job-location ")]|.//*[contains(concat(" ", normalize-space(@class), " "), " location ")]', $node)?->item(0);
+            $location = $this->cleanText($locationNode?->textContent ?? '');
 
             $seen[$id] = true;
             $cards[] = ['id' => $id, 'title' => $title, 'url' => $url, 'location' => $location];
