@@ -1056,6 +1056,10 @@ return [
                 'name' => 'DOMVS iT',
                 'url' => 'https://jobs.quickin.io/domvsit/jobs',
             ],
+            'qintess' => [
+                'name' => 'Qintess (antiga Resource IT)',
+                'url' => 'https://jobs.quickin.io/qintess/jobs',
+            ],
         ],
     ],
 
