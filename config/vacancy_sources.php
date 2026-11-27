@@ -1015,6 +1015,12 @@ return [
                 'slug' => 'g4f',
                 'url' => 'https://g4f.vagas.solides.com.br',
             ],
+
+            'fast2mine' => [
+                'name' => 'FAST2 MINE',
+                'slug' => 'fast2mine',
+                'url' => 'https://fast2mine.vagas.solides.com.br',
+            ],
         ],
     ],
 
