@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class RadancySourceTest extends TestCase
 {
-    public function test_it_collects_country_results_and_the_technology_facet_without_duplicates(): void
+    public function test_it_collects_only_the_configured_country_and_technology_facet(): void
     {
         $listing = <<<'HTML'
 <section id="search-results" data-total-pages="1" data-total-results="1">
@@ -85,18 +85,12 @@ HTML;
 
             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
 
-            return ($query['Location'] ?? null) === 'Brazil';
+            return ($query['Location'] ?? null) === 'Brazil'
+                && ($query['FacetTerm'] ?? null) === 'Tech & Data'
+                && ($query['CustomFacetName'] ?? null) === 'Professional Field';
         });
 
-        Http::assertSent(function (Request $request): bool {
-            if (!str_contains($request->url(), '/results?')) {
-                return false;
-            }
-
-            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
-
-            return ($query['FacetTerm'] ?? null) === 'Tech & Data';
-        });
+        Http::assertSentCount(2); // One filtered listing request and one detail request.
     }
 
     public function test_it_ignores_postings_without_a_verifiable_original_publication_date(): void
