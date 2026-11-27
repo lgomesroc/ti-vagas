@@ -104,5 +104,8 @@ jobs:
       - name: Executar testes Node offline (HTTP local e Chromium com LinkedIn simulado)
         run: npm run test:linkedin
 
+      - name: Executar testes do service worker do PWA (Chromium)
+        run: npm run test:pwa
+
       - name: Compilar frontend
         run: npm run build

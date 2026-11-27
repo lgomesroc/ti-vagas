@@ -2,6 +2,8 @@
     PWA: registro do service worker e botão "Instalar app".
 
     - O service worker só é registrado em contexto seguro (https ou localhost).
+    - `updateViaCache: 'none'` faz o navegador buscar o sw.js sempre na rede,
+      ignorando o cache HTTP, para detectar novas versões sem atraso.
     - O botão fica oculto e só aparece quando o navegador dispara
       `beforeinstallprompt` (Chrome, Edge, Android). Em navegadores sem esse
       evento (Safari/iOS), a instalação é feita pelo menu "Adicionar à Tela de
@@ -16,7 +18,7 @@
 
         window.addEventListener('load', function () {
             navigator.serviceWorker
-                .register(@json(asset('sw.js')), { scope: '/' })
+                .register(@json(asset('sw.js')), { scope: '/', updateViaCache: 'none' })
                 .catch(function (error) {
                     // Falhas no registro não podem afetar o uso do portal.
                     if (window.console && console.warn) {

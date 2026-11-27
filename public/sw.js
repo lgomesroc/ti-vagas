@@ -11,14 +11,27 @@
  *   requisições de outras origens (Google Analytics, AdSense, fontes) não são
  *   interceptadas: seguem exatamente o comportamento padrão do navegador.
  * - Apenas arquivos estáticos públicos (ícones, manifesto, favicon, página
- *   offline e arquivos versionados de /build/) são guardados em cache.
+ *   offline e arquivos versionados de /build/assets/) são guardados em cache.
+ * - Somente respostas com status exatamente 200, da própria origem, são
+ *   gravadas. Outros 2xx ficam de fora: 206 (conteúdo parcial) é recusado pela
+ *   Cache API e 204 não tem corpo para reaproveitar.
+ * - Uma falha de rede sem cópia em cache sempre produz uma resposta válida
+ *   (503), nunca uma promessa rejeitada ou `undefined` no respondWith.
  *
- * Para publicar uma nova versão do cache, altere CACHE_VERSION.
+ * Para publicar uma nova versão do cache, altere CACHE_VERSION. Ver
+ * docs/AplicativoPWA.md, seção "Atualização e substituição da versão".
  */
 
 const CACHE_VERSION = 'v1';
 const CACHE_PREFIX = 'ti-vagas-';
 const STATIC_CACHE = `${CACHE_PREFIX}static-${CACHE_VERSION}`;
+const BUILD_CACHE = `${CACHE_PREFIX}build-${CACHE_VERSION}`;
+const CURRENT_CACHES = [STATIC_CACHE, BUILD_CACHE];
+
+// Arquivos do Vite têm hash no nome; cada deploy gera nomes novos. O limite
+// impede que versões antigas se acumulem indefinidamente no aparelho.
+const MAX_BUILD_ENTRIES = 60;
+
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
@@ -36,7 +49,11 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(STATIC_CACHE)
             // cache: 'reload' evita gravar uma cópia antiga vinda do cache HTTP.
+            // Se qualquer arquivo falhar, a instalação falha e a versão
+            // anterior continua ativa, com o cache anterior intacto.
             .then((cache) => cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' }))))
+            // Pré-cache incompleto não pode ficar ocupando espaço no aparelho.
+            .catch((error) => caches.delete(STATIC_CACHE).then(() => Promise.reject(error)))
             // Como nenhuma página HTML fica em cache, ativar a nova versão
             // imediatamente não deixa abas com conteúdo misturado.
             .then(() => self.skipWaiting())
@@ -48,7 +65,7 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((keys) => Promise.all(
                 keys
-                    .filter((key) => key.startsWith(CACHE_PREFIX) && key !== STATIC_CACHE)
+                    .filter((key) => key.startsWith(CACHE_PREFIX) && !CURRENT_CACHES.includes(key))
                     .map((key) => caches.delete(key))
             ))
             .then(() => self.clients.claim())
@@ -70,8 +87,64 @@ function isStaticAsset(url) {
 }
 
 function isVersionedBuildAsset(url) {
-    // Arquivos gerados pelo Vite têm hash no nome: o conteúdo nunca muda.
     return url.pathname.startsWith('/build/assets/');
+}
+
+function isCacheable(response) {
+    return response.status === 200 && response.type === 'basic';
+}
+
+function unavailableResponse() {
+    return new Response('Recurso indisponível sem conexão.', {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-store',
+        },
+    });
+}
+
+function offlineFallbackPage() {
+    return new Response(
+        '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">'
+        + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        + '<title>Sem conexão | TI Vagas</title></head><body>'
+        + '<h1>Você está sem conexão</h1><p>Verifique sua internet e tente novamente.</p>'
+        + '</body></html>',
+        {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store',
+            },
+        }
+    );
+}
+
+async function trimCache(cacheName, maxEntries) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+
+    // cache.keys() devolve na ordem de inserção: remove os mais antigos.
+    await Promise.all(
+        keys.slice(0, Math.max(0, keys.length - maxEntries)).map((key) => cache.delete(key))
+    );
+}
+
+async function store(cacheName, request, response, maxEntries) {
+    try {
+        const cache = await caches.open(cacheName);
+
+        await cache.put(request, response);
+
+        if (maxEntries) {
+            await trimCache(cacheName, maxEntries);
+        }
+    } catch (error) {
+        // Cota excedida ou cache removido: a resposta já foi entregue.
+    }
 }
 
 async function networkFirstNavigation(request) {
@@ -79,54 +152,55 @@ async function networkFirstNavigation(request) {
         // Sempre da rede, sem gravar a resposta: ver comentário no topo.
         return await fetch(request);
     } catch (error) {
-        const cache = await caches.open(STATIC_CACHE);
-        const offline = await cache.match(OFFLINE_URL);
+        const offline = await caches.match(OFFLINE_URL, { cacheName: STATIC_CACHE });
 
-        return offline || new Response(
-            '<!DOCTYPE html><html lang="pt-BR"><meta charset="utf-8"><title>Sem conexão | TI Vagas</title><p>Sem conexão com a internet.</p></html>',
-            { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        );
+        return offline || offlineFallbackPage();
     }
 }
 
-async function cacheFirst(request) {
-    const cache = await caches.open(STATIC_CACHE);
-    const cached = await cache.match(request);
+async function cacheFirst(request, event) {
+    const cached = await caches.match(request, { cacheName: BUILD_CACHE });
 
     if (cached) {
         return cached;
     }
 
-    const response = await fetch(request);
+    try {
+        const response = await fetch(request);
 
-    if (response.ok && response.type === 'basic') {
-        cache.put(request, response.clone());
+        if (isCacheable(response)) {
+            event.waitUntil(store(BUILD_CACHE, request, response.clone(), MAX_BUILD_ENTRIES));
+        }
+
+        return response;
+    } catch (error) {
+        return unavailableResponse();
     }
-
-    return response;
 }
 
 async function staleWhileRevalidate(request, event) {
-    const cache = await caches.open(STATIC_CACHE);
-    const cached = await cache.match(request);
+    const cached = await caches.match(request, { cacheName: STATIC_CACHE });
 
-    const network = fetch(request)
-        .then((response) => {
-            if (response.ok && response.type === 'basic') {
-                return cache.put(request, response.clone()).then(() => response);
-            }
+    const network = fetch(request).then(async (response) => {
+        if (isCacheable(response)) {
+            await store(STATIC_CACHE, request, response.clone());
+        }
 
-            return response;
-        })
-        .catch(() => cached);
+        return response;
+    });
 
     if (cached) {
+        // Atualiza em segundo plano; uma falha de rede mantém a cópia atual.
         event.waitUntil(network.catch(() => undefined));
 
         return cached;
     }
 
-    return network;
+    try {
+        return await network;
+    } catch (error) {
+        return unavailableResponse();
+    }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -149,7 +223,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (isVersionedBuildAsset(url)) {
-        event.respondWith(cacheFirst(request));
+        event.respondWith(cacheFirst(request, event));
 
         return;
     }

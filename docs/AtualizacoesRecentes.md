@@ -17,6 +17,17 @@ O portal passou a poder ser instalado como aplicativo em celulares, tablets e co
 
 Nenhum arquivo ou pasta existente foi removido. Detalhes em [Aplicativo Progressivo (PWA)](AplicativoPWA.md).
 
+#### Ajustes do service worker do PWA
+
+- Somente respostas com status exatamente 200 são gravadas (antes, qualquer 2xx; respostas 206 causavam erro na Cache API);
+- Falha de rede sem cópia em cache passa a responder 503, em vez de erro no `respondWith`;
+- Navegação sem conexão com `offline.html` ausente do cache responde com página mínima 503;
+- Cache separado para `/build/assets/`, limitado a 60 arquivos;
+- Instalação com falha no pré-cache apaga o cache incompleto e mantém a versão anterior; a ativação remove todos os caches que não pertencem à versão atual;
+- Registro com `updateViaCache: 'none'`;
+- Novo teste de comportamento real no Chromium (`npm run test:pwa`), incluído no CI;
+- Seção própria do PWA no `README.md` e árvore de `docs/EstruturaDoProjeto.md` regenerada.
+
 ### Reativação do workflow de publicações de recrutamento do LinkedIn
 
 O arquivo `.github/workflows/linkedin-posts.yml` foi restaurado como workflow operacional na branch `main`.

@@ -58,6 +58,35 @@ Não são o público-alvo estágios, trainee, programas de formação corporativ
 
 Os filtros automatizados reduzem anúncios incompatíveis, mas não garantem a exatidão de todos os dados nem a disponibilidade em tempo real. Consulte [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md).
 
+## Aplicativo instalável (PWA)
+
+O TI Vagas pode ser instalado como aplicativo no celular, tablet ou computador. O botão **Instalar app** aparece no cabeçalho quando o navegador oferece a instalação (Chrome, Edge e Android); no iPhone e iPad, a instalação é feita pelo Safari em **Compartilhar → Adicionar à Tela de Início**. O aplicativo abre em janela própria e segue as mesmas regras do site: termos, cookies, localização validada no servidor e filtros editoriais.
+
+| Recurso | Arquivo |
+|---|---|
+| Manifesto | `public/manifest.webmanifest` |
+| Ícones | `public/icons/` |
+| Service worker | `public/sw.js` |
+| Página sem conexão | `public/offline.html` |
+| Registro e botão de instalação | `resources/views/partials/pwa-head.blade.php` e `pwa-register.blade.php` |
+
+Regras de cache do service worker:
+
+- **Páginas HTML nunca são armazenadas**, pois carregam sessão, token CSRF, consentimento e região validada;
+- apenas arquivos estáticos públicos (ícones, manifesto, favicon, página offline e `/build/assets/`) são gravados, e somente quando a resposta tem **status 200** da própria origem — outros 2xx, como 206 e 204, não são armazenados;
+- **navegação sem conexão** exibe a página offline, preservando o endereço para nova tentativa;
+- **falha de rede sem cópia em cache** devolve uma resposta 503, nunca um erro no service worker;
+- **atualização da versão do cache**: alterar `CACHE_VERSION` em `public/sw.js` instala a nova versão, remove os caches anteriores e descarta pré-caches incompletos se a instalação falhar.
+
+Testes:
+
+```bash
+php artisan test --filter=PwaTest   # integridade dos arquivos e do layout
+npm run test:pwa                    # comportamento real do service worker no Chromium
+```
+
+Consulte [Aplicativo Progressivo (PWA)](docs/AplicativoPWA.md) para a documentação completa.
+
 ## Páginas de erro padronizadas
 
 O portal utiliza páginas próprias para comunicar falhas de forma clara, sem expor detalhes internos da aplicação. O tratamento considera apenas os códigos pertinentes ao funcionamento do TI Vagas e mantém respostas JSON para requisições de API. Consulte [Páginas de Erro Padronizadas](docs/PaginasDeErroPadronizadas.md) para conhecer os códigos cobertos, os fallbacks, as limitações da hospedagem e os testes.

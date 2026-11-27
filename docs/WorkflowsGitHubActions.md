@@ -43,6 +43,7 @@ Dispara em push e pull request direcionados a `main`. Possui dois jobs:
 - instalação de Chromium para os testes locais simulados;
 - verificação de sintaxe dos scripts LinkedIn;
 - execução de `npm run test:linkedin`;
+- execução de `npm run test:pwa` (service worker do PWA no Chromium, com servidor HTTP local);
 - compilação com `npm run build`.
 
 O CI não utiliza o banco de produção nem exige sessão autenticada do LinkedIn.

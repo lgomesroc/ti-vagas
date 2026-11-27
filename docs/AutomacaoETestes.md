@@ -82,6 +82,7 @@ php artisan linkedin:collect-posts
 php artisan linkedin:collect-posts --mode=duckduckgo
 php artisan linkedin:collect-posts --mode=bot
 npm run test:linkedin
+npm run test:pwa
 npm run build
 ```
 

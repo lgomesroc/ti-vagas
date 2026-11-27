@@ -102,6 +102,20 @@ class PwaTest extends TestCase
             'Páginas HTML não podem ser gravadas no cache do service worker.'
         );
 
+        // Somente status 200 é gravado; 206 é recusado pela Cache API.
+        $this->assertStringContainsString('response.status === 200', $script);
+        $this->assertStringNotContainsString('response.ok', $script);
+
+        // Falha de rede sem cópia em cache responde 503, nunca undefined.
+        $this->assertStringContainsString('function unavailableResponse()', $script);
+        $this->assertStringContainsString('status: 503', $script);
+
+        // Troca de versão remove caches antigos e pré-cache incompleto.
+        $this->assertStringContainsString('!CURRENT_CACHES.includes(key)', $script);
+        $this->assertStringContainsString('caches.delete(STATIC_CACHE)', $script);
+
+        // O comportamento real é coberto por tests/pwa/service-worker.e2e.test.mjs.
+
         // Arquivos pré-armazenados precisam existir.
         preg_match('/const PRECACHE_URLS = \[(.*?)\];/s', $script, $matches);
         preg_match_all("/'(\/[^']+)'/", $matches[1] ?? '', $urls);
@@ -137,6 +151,7 @@ class PwaTest extends TestCase
         $response->assertSee('<meta name="theme-color" content="#172554">', false);
         $response->assertSee("navigator.serviceWorker", false);
         $response->assertSee(json_encode(asset('sw.js')), false);
+        $response->assertSee("updateViaCache: 'none'", false);
         $response->assertSee('id="pwa-install-button"', false);
     }
 
