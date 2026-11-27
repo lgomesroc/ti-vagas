@@ -1298,6 +1298,12 @@ return [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
         'companies' => [
+            // Agregador de vagas: consulta limitada à categoria Informática / TI.
+            'jobbol' => [
+                'name' => 'Jobbol (agregador de vagas de TI)',
+                'url' => 'https://www.jobbol.com.br/areas/informatica-ti?nacional=1',
+            ],
+
             // Agregador: consultar somente a categoria de Informática / TI.
             'jobbol' => [
                 'name' => 'Jobbol (agregador de vagas de TI)',
