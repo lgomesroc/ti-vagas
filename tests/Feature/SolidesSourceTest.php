@@ -10,6 +10,8 @@ class SolidesSourceTest extends TestCase
 {
     public function test_it_collects_recent_company_jobs_using_the_original_created_at_date(): void
     {
+        $publishedAt = now('UTC')->subDays(10)->startOfDay();
+
         Http::fake([
             'apigw.solides.com.br/jobs/v3/companies/nethouserj/vacancies*' => Http::response([
                 'totalPages' => 1,
@@ -39,7 +41,7 @@ class SolidesSourceTest extends TestCase
                     'recruitmentContractType' => [
                         ['name' => 'CLT'],
                     ],
-                    'createdAt' => now('UTC')->subDays(10)->toDateString(),
+                    'createdAt' => $publishedAt->toDateString(),
                     'isHiddenJob' => false,
                     'isDisabled' => false,
                     'hardSkills' => [['name' => 'Suporte TI']],
@@ -69,7 +71,7 @@ class SolidesSourceTest extends TestCase
         $this->assertSame('R$ 1.600 - R$ 2.200', $vacancies[0]['salary']);
 
         $this->assertSame(
-            now('UTC')->subDays(10)->startOfDay()->toIso8601String(),
+            $publishedAt->toIso8601String(),
             $vacancies[0]['original_published_at']
         );
 
