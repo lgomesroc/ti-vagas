@@ -43,16 +43,8 @@ class RadancySource implements VacancySource
         $jobs = [];
         $seen = [];
 
-        // Sweep 1: all vacancies for each configured country. This is the
-        // authoritative inventory; do not restrict it to the employer's
-        // category because relevant IT roles can be misclassified upstream.
-        foreach ($this->countries as $country) {
-            $this->collectSearch($listUrl, ['Location' => $country], $jobs, $seen);
-        }
-
-        // Sweep 2: the employer's official Tech & Data facet for each country.
-        // Merge it with the country inventory to protect against inconsistent
-        // location/category indexing and retain provenance for editorial review.
+        // Restrict the source query to the configured country AND the
+        // employer's official technology facet before importing any posting.
         foreach ($this->countries as $country) {
             $this->collectSearch($listUrl, [
                 'Location' => $country,
