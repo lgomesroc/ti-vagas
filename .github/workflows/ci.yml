@@ -1,15 +1,11 @@
-
 name: TI Vagas - CI
 
 on:
   push:
     branches:
-      - developer
       - main
-
   pull_request:
     branches:
-      - developer
       - main
 
 permissions:
@@ -17,7 +13,7 @@ permissions:
 
 jobs:
   php:
-    name: Validar PHP
+    name: Validar PHP e suíte completa
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -46,6 +42,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Preparar ambiente de teste
+        run: cp .env.example .env
+
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -59,15 +58,23 @@ jobs:
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Verificar sintaxe PHP
+      - name: Garantir que o agendador não inicia coleta LinkedIn
+        shell: bash
         run: |
-          find app bootstrap config database routes -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+          if php artisan schedule:list | grep -Eiq 'linkedin:(collect-posts|collect-secondary|collect-jobs)'; then
+            echo "::error::O agendador ainda contém uma coleta automática do LinkedIn."
+            exit 1
+          fi
 
-      - name: Executar testes automatizados
-        run: php artisan test --compact
+      - name: Verificar sintaxe de todos os arquivos PHP
+        run: |
+          find app bootstrap config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Executar suíte PHP completa (inclui LinkedIn offline)
+        run: php artisan test --compact --display-warnings --testsuite=CI
 
   frontend:
-    name: Compilar frontend
+    name: Testar Node e compilar frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -78,9 +85,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
-      - name: Instalar dependências
-        run: npm install
+      - name: Instalar dependências Node
+        run: npm ci
+
+      - name: Instalar Chromium para testes de navegador offline
+        run: npx playwright install --with-deps chromium
+
+      - name: Verificar sintaxe dos coletores LinkedIn
+        run: |
+          node --check scripts/linkedin/jobs.mjs
+          node --check scripts/linkedin/secondary-account.mjs
+          node --check scripts/linkedin/runtime.mjs
+          node --check scripts/linkedin/restore-session.mjs
+          node --check scripts/linkedin/export-session.mjs
+
+      - name: Executar testes Node offline (HTTP local e Chromium com LinkedIn simulado)
+        run: npm run test:linkedin
+
+      - name: Executar testes do service worker do PWA (Chromium)
+        run: npm run test:pwa
 
       - name: Compilar frontend
         run: npm run build

@@ -11,7 +11,7 @@ import {
 } from './rate-limit.mjs';
 import { createTimeBudget } from './runtime.mjs';
 
-const SEARCH_TERMS = [
+const DEFAULT_SEARCH_TERMS = [
   'desenvolvedor júnior',
   'desenvolvedor backend júnior',
   'desenvolvedor frontend júnior',
@@ -28,6 +28,10 @@ const SEARCH_TERMS = [
   'junior developer',
   'junior IT support',
 ];
+const SEARCH_TERMS = (process.env.LINKEDIN_JOBS_SEARCH_TERMS ?? '')
+  .split(';').map(value => value.trim()).filter(Boolean);
+if (SEARCH_TERMS.length === 0) SEARCH_TERMS.push(...DEFAULT_SEARCH_TERMS);
+const COMPANY_FILTER = (process.env.LINKEDIN_JOBS_COMPANY_FILTER ?? '').trim().toLocaleLowerCase();
 
 const LOOKBACK_HOURS = Math.max(1, Number(process.env.LINKEDIN_JOBS_LOOKBACK_HOURS ?? 168));
 const MAX_PAGES = Math.max(1, Number(process.env.LINKEDIN_JOBS_MAX_PAGES ?? 5));
@@ -290,6 +294,7 @@ export async function collectLinkedInJobs() {
 
   log(
     'Busca pública sem login. Localização: ' + LOCATION + ' | janela: ' + LOOKBACK_HOURS + 'h | ' +
+    'empresa: ' + (COMPANY_FILTER || 'todas') + ' | termos: ' + SEARCH_TERMS.length + ' | ' +
     'intervalo mínimo: ' + RATE_LIMIT.requestDelayMs + 'ms | orçamento: ' +
     (TIME_BUDGET_SECONDS > 0 ? TIME_BUDGET_SECONDS + 's' : 'sem limite') + ' | até ' +
     RATE_LIMIT.maxRetries + ' novas tentativas por 429'
@@ -303,6 +308,7 @@ export async function collectLinkedInJobs() {
 
     try {
       for (const job of await searchJobs(term, geo, searchExpired)) {
+        if (COMPANY_FILTER && !job.company.toLocaleLowerCase().includes(COMPANY_FILTER)) continue;
         if (!unique.has(job.id)) unique.set(job.id, { ...job, matchedKeywords: [term] });
         else unique.get(job.id).matchedKeywords.push(term);
       }

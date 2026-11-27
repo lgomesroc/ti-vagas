@@ -23,9 +23,12 @@ class InhireGlobalSource implements VacancySource
         'db1', 'zappts', 'lyncas', 'bixtecnologia', 'programmers',
         'jump', 'orizon', 'dock', 'rentbrella', 'edge', 'ninecon', 'mambape',
         // Empresas InHire identificadas e selecionadas para o TI Vagas.
-        'brivia', 'idwall', 'rposolutions', 'aarin', 'uhuu', 'amaro', 'bionexo', 'cerc', 'enjoei',
+        'brivia', 'idwall', 'rposolutions', 'aarin', 'uhuu', 'amaro', 'bionexo', 'cerc', 'enjoei', 'alelo',
         'mjv', 'instacarro', 'bancopine', 'riachuelo', 'fiap', 'alura',
         'pm3', 'avenue', 'dtidigital', 'trinca', 'brq', 'mottu',
+        // Empresas adicionais com portais públicos InHire identificados.
+        'livelo', 'webmotors', 'nibo', 'icatu', 'brasoftware', 'radix', 'olist',
+        'skopiadigital', 'deloitte', 'venturus', 'deal',
     ];
 
     private const EXCLUDED_TENANTS = [

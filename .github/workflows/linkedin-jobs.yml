@@ -2,7 +2,7 @@ name: TI Vagas - LinkedIn Jobs
 
 on:
   schedule:
-    - cron: "30 6,12,18,0 * * *"
+    - cron: "30 0,6,12,18 * * *"
       timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
@@ -10,35 +10,34 @@ permissions:
   contents: read
 
 concurrency:
-  group: ti-vagas-linkedin-jobs
+  group: ti-vagas-database-operations
   cancel-in-progress: false
 
 jobs:
-  collect-linkedin-jobs:
+  linkedin-jobs:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     env:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: ${{ secrets.APP_KEY }}
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       DB_CONNECTION: pgsql
       DB_SSLMODE: require
-      CACHE_STORE: database
       QUEUE_CONNECTION: database
-      DB_QUEUE_RETRY_AFTER: "1700"
+      DB_QUEUE: linkedin
+      DB_QUEUE_RETRY_AFTER: "1860"
+      CACHE_STORE: database
       LINKEDIN_JOBS_ENABLED: "true"
-      LINKEDIN_JOBS_LOOKBACK_HOURS: "168"
-      # Mais rápido: menos páginas por termo e orçamento de 15 min. Ao esgotar, a coleta
-      # entrega o que já tem; o restante fica para a próxima execução (mais recentes primeiro).
-      LINKEDIN_JOBS_MAX_PAGES: "3"
-      LINKEDIN_JOBS_DELAY_MS: "1800"
-      LINKEDIN_JOBS_JITTER_MS: "400"
-      LINKEDIN_JOBS_TIME_BUDGET_SECONDS: "900"
-      LINKEDIN_JOBS_TIMEOUT: "1200"
+      LINKEDIN_JOBS_LOOKBACK_HOURS: "72"
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
 
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
       - name: Resolver banco atualmente ativo no Render
         shell: bash
         run: |
@@ -65,11 +64,7 @@ jobs:
 
           echo "::add-mask::$active_url"
           echo "DB_URL=$active_url" >> "$GITHUB_ENV"
-          echo "Banco ativo do Render resolvido para a automação LinkedIn."
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: developer
+          echo "Banco ativo do Render resolvido para LinkedIn Jobs."
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
@@ -82,17 +77,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Instalar dependências Node
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Aplicar migrações
         run: php artisan migrate --force
 
-      - name: Coletar vagas do LinkedIn Jobs e importar no banco
-        timeout-minutes: 25
-        run: |
-          php artisan linkedin:collect-jobs
-          # --timeout (1500s) fica abaixo do limite do passo (25 min), então o worker
-          # encerra o job de forma limpa em vez de ser morto (exit 137).
-          php artisan queue:work database --queue=linkedin --stop-when-empty --timeout=1500 --tries=1
+      - name: Despachar coleta LinkedIn Jobs
+        run: php artisan linkedin:collect-jobs
+
+      - name: Processar fila LinkedIn e aguardar reagendamentos por HTTP 429
+        run: php artisan queue:work database --queue=linkedin --max-time=2400 --timeout=1800 --tries=5 --sleep=10

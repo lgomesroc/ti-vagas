@@ -18,6 +18,8 @@ class CheckVacancyLinks extends Command
         $limit = max(1, (int) $this->option('limit'));
 
         $vacancies = Vacancy::query()
+            ->whereNotNull('application_url')
+            ->where('application_url', '!=', '')
             ->whereIn('availability_status', ['active', 'suspect'])
             ->orderByRaw('availability_checked_at IS NULL DESC')
             ->orderBy('availability_checked_at')

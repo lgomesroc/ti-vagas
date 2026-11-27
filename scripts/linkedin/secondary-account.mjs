@@ -37,6 +37,32 @@ const storageStatePath = process.env.LINKEDIN_STORAGE_STATE_PATH
   : null;
 
 const mode = process.argv[2] ?? 'search';
+const linkedinBaseUrl = new URL(
+  process.env.LINKEDIN_BASE_URL ?? 'https://www.linkedin.com'
+).origin;
+
+const isMockLinkedInOrigin = linkedinBaseUrl !== 'https://www.linkedin.com';
+
+function isLinkedInUrl(value) {
+  try {
+    const url = new URL(value);
+
+    return isMockLinkedInOrigin
+      ? url.origin === linkedinBaseUrl
+      : /(^|\.)linkedin\.com$/i.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isLinkedInPostUrl(value) {
+  try {
+    const url = new URL(value);
+    return isLinkedInUrl(value) && /\/(?:feed\/update|posts)\//i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
 
 function normalizePostUrl(value) {
   try {
@@ -77,7 +103,7 @@ const timeBudget = createTimeBudget(
   process.env.LINKEDIN_POSTS_TIME_BUDGET_SECONDS ?? 480
 );
 
-const keywords = [
+const defaultKeywords = [
   // Suporte e infraestrutura
   'vaga suporte técnico',
   'vaga suporte TI',
@@ -115,8 +141,13 @@ const keywords = [
   'estágio desenvolvimento software',
 ];
 
+const configuredKeywords = process.env.LINKEDIN_SECONDARY_ACCOUNT_KEYWORDS;
+const keywords = configuredKeywords
+  ? configuredKeywords.split(';').map(keyword => keyword.trim()).filter(Boolean)
+  : defaultKeywords;
+
 const lookbackHours = Number(
-  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 72
+  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 168
 );
 
 const keywordDiagnostics = new Map();
@@ -300,7 +331,7 @@ async function enrichPost(page, post) {
   const links = await postContainer.locator('a[href]').evaluateAll(nodes =>
     nodes
       .map(a => a.href)
-      .filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url))
+      .filter(url => /^https?:/i.test(url) && !isLinkedInUrl(url))
   ).catch(() => []);
 
   const allText = [
@@ -337,7 +368,7 @@ async function copyPostLink(page, card) {
   try {
     await page.context().grantPermissions(
       ['clipboard-read', 'clipboard-write'],
-      { origin: 'https://www.linkedin.com' }
+      { origin: linkedinBaseUrl }
     );
 
     await page.evaluate(() => navigator.clipboard.writeText(''));
@@ -359,15 +390,12 @@ async function copyPostLink(page, card) {
       ).catch(() => '');
 
       if (copied) {
-        const resolved = new URL(
-          copied,
-          'https://www.linkedin.com'
-        );
+        const resolved = new URL(copied, linkedinBaseUrl);
 
         resolved.search = '';
         resolved.hash = '';
 
-        if (/linkedin\.com\/(?:feed\/update|posts)\//i.test(resolved.href)) {
+        if (isLinkedInPostUrl(resolved.href)) {
           return resolved.href;
         }
       }
@@ -396,9 +424,7 @@ async function extractCard(page, card, keyword) {
     }))
   );
 
-  const postAnchor = anchors.find(a =>
-    /linkedin\.com\/(?:feed\/update|posts)\//i.test(a.href)
-  );
+  const postAnchor = anchors.find(a => isLinkedInPostUrl(a.href));
 
   let postUrl = null;
 
@@ -499,7 +525,8 @@ async function extractCard(page, card, keyword) {
     (await expandable.innerText().catch(() => '')).trim() || text;
 
   const authorLink = anchors.find(a =>
-    /linkedin\.com\/(?:in|company)\//i.test(a.href) &&
+    isLinkedInUrl(a.href) &&
+    /\/(?:in|company)\//i.test(new URL(a.href).pathname) &&
     (!authorName || a.text.includes(authorName) || a.aria.includes(authorName))
   );
 
@@ -507,7 +534,7 @@ async function extractCard(page, card, keyword) {
     ...new Set(
       anchors
         .map(a => a.href)
-        .filter(url => /^https?:/i.test(url) && !/linkedin\.com/i.test(url))
+        .filter(url => /^https?:/i.test(url) && !isLinkedInUrl(url))
     ),
   ];
 
@@ -601,7 +628,7 @@ async function launchBrowser() {
 }
 
 async function logAuthenticationDiagnostics(context, page) {
-  const cookies = await context.cookies('https://www.linkedin.com').catch(() => []);
+  const cookies = await context.cookies(linkedinBaseUrl).catch(() => []);
   const authCookie = cookies.find(cookie => cookie.name === 'li_at');
   let currentUrl;
 
@@ -643,7 +670,7 @@ async function main() {
     const page = context.pages()[0] ?? await context.newPage();
 
     if (mode === 'login') {
-      await page.goto('https://www.linkedin.com/login', {
+      await page.goto(`${linkedinBaseUrl}/login`, {
         waitUntil: 'domcontentloaded',
       });
 
@@ -671,8 +698,8 @@ async function main() {
       return;
     }
 
-    if (!page.url().includes('linkedin.com')) {
-      await page.goto('https://www.linkedin.com/feed/', {
+    if (!isLinkedInUrl(page.url())) {
+      await page.goto(`${linkedinBaseUrl}/feed/`, {
         waitUntil: 'domcontentloaded',
       });
     }
@@ -710,7 +737,7 @@ async function main() {
 
       try {
       const searchUrl =
-        'https://www.linkedin.com/search/results/content/?keywords=' +
+        `${linkedinBaseUrl}/search/results/content/?keywords=` +
         encodeURIComponent(keyword) +
         '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-week%22&sortBy=%22date_posted%22';
 

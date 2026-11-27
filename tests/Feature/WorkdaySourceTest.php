@@ -132,4 +132,15 @@ class WorkdaySourceTest extends TestCase
         $this->assertSame('Remoto', $vacancies[0]['work_model']);
     }
 
+    public function test_avanade_is_registered_with_its_verified_workday_site(): void
+    {
+        $avanade = config('vacancy_sources.workday.companies.avanade');
+
+        $this->assertSame('accenture.wd103.myworkdayjobs.com', $avanade['host']);
+        $this->assertSame('accenture', $avanade['tenant']);
+        $this->assertSame('AvanadeCareers', $avanade['site']);
+        $this->assertSame('pt-BR', $avanade['locale']);
+        $this->assertSame('Avanade', $avanade['name']);
+    }
+
 }

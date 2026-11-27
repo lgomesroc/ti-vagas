@@ -3,15 +3,56 @@ name: TI Vagas - LinkedIn Integration CI
 on:
   push:
     branches:
-      - feature/linkedin-recruiter-posts
-      - developer
       - main
+      - developer
+      - feature/linkedin-recruiter-posts
+  pull_request:
+    branches:
+      - main
+      - developer
+      - feature/linkedin-recruiter-posts
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: linkedin-integration-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  node:
+    name: Testes Node offline do LinkedIn
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Chromium para testes locais simulados
+        run: npx playwright install --with-deps chromium
+
+      - name: Verificar sintaxe dos scripts LinkedIn
+        run: |
+          node --check scripts/linkedin/jobs.mjs
+          node --check scripts/linkedin/secondary-account.mjs
+          node --check scripts/linkedin/runtime.mjs
+          node --check scripts/linkedin/restore-session.mjs
+          node --check scripts/linkedin/export-session.mjs
+
+      - name: Executar testes Node com endpoints locais simulados
+        run: npm run test:linkedin
+
   php:
+    name: Testes PHP de integração LinkedIn
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -40,21 +81,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Validar sintaxe dos coletores LinkedIn
-        run: |
-          node --check scripts/linkedin/jobs.mjs
-          node --check scripts/linkedin/secondary-account.mjs
-          node --check scripts/linkedin/runtime.mjs
-          node --check scripts/linkedin/restore-session.mjs
-          node --check scripts/linkedin/export-session.mjs
-
-      - name: Testar limitação de requisições do LinkedIn Jobs
-        run: node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/restore-session.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs
+      - name: Preparar ambiente de teste
+        run: cp .env.example .env
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
@@ -66,12 +94,12 @@ jobs:
       - name: Validar Composer
         run: composer validate --no-check-publish
 
-      - name: Instalar dependências
+      - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Verificar sintaxe PHP
         run: |
-          find app config database tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+          find app config database routes tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 
-      - name: Executar testes
-        run: php artisan test --compact
+      - name: Executar suíte PHP CI (sem acesso ao LinkedIn real)
+        run: php artisan test --compact --testsuite=CI

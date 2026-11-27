@@ -72,29 +72,31 @@
             </section>
 
             <div class="details-actions">
+                @if ($vacancy->application_url)
+                    @php
+                        $applicationHost = strtolower((string) parse_url($vacancy->application_url, PHP_URL_HOST));
+                        $isOriginalPost = $applicationHost === 'linkedin.com' || str_ends_with($applicationHost, '.linkedin.com');
+                    @endphp
+                    <a href="{{ $vacancy->application_url }}" target="_blank" rel="noopener noreferrer" class="button">
+                        {{ $isOriginalPost ? 'Ver publicação original' : 'Candidatar-se na empresa' }}
+                    </a>
+                @elseif ($vacancy->source_url)
+                    <a href="{{ $vacancy->source_url }}" target="_blank" rel="noopener noreferrer" class="button">Ver publicação original</a>
+                @endif
 
-                <a
-                    href="{{ $vacancy->application_url }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="button"
-                >
-                    Candidatar-se na empresa
-                </a>
+                @if ($vacancy->application_email)
+                    <p class="vacancy-date">
+                        Contato informado na publicação: {{ $vacancy->application_email }}
+                        @if ($vacancy->application_subject)
+                            <br>Assunto indicado: {{ $vacancy->application_subject }}
+                        @endif
+                    </p>
+                @endif
 
-                <a
-                    href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}"
-                    class="button"
-                >
-                    Ver outras vagas
-                </a>
-
+                <a href="{{ route('vacancies.index', ['company' => $vacancy->company]) }}" class="button">Ver outras vagas</a>
             </div>
 
-            <p class="vacancy-date">
-                O processo de candidatura é realizado diretamente no site
-                da empresa ou plataforma responsável pela oportunidade.
-            </p>
+            <p class="vacancy-date">O TI Vagas direciona você à página da vaga ou à publicação original. A candidatura acontece diretamente com a empresa ou recrutador.</p>
 
         </article>
 

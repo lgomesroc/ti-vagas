@@ -6,12 +6,14 @@ return [
         FILTER_VALIDATE_BOOL
     ),
 
-    'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 72),
+    'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 168),
 
     // LinkedIn Jobs usa o endpoint público de visitantes, sem sessão autenticada.
     'jobs' => [
         'enabled' => filter_var(env('LINKEDIN_JOBS_ENABLED', true), FILTER_VALIDATE_BOOL),
         'lookback_hours' => max(1, (int) env('LINKEDIN_JOBS_LOOKBACK_HOURS', 168)),
+        'search_terms' => array_values(array_filter(array_map('trim', explode(';', (string) env('LINKEDIN_JOBS_SEARCH_TERMS', ''))))),
+        'company_filter' => trim((string) env('LINKEDIN_JOBS_COMPANY_FILTER', '')),
         'max_pages' => max(1, (int) env('LINKEDIN_JOBS_MAX_PAGES', 5)),
         // Intervalo mínimo entre requisições (mais conservador que o anterior, 1200ms).
         'delay_ms' => max(500, (int) env('LINKEDIN_JOBS_DELAY_MS', 2500)),

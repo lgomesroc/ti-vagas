@@ -1,13 +1,17 @@
 # Estrutura do Projeto
 
-Árvore dos diretórios e arquivos versionados na branch `developer`, gerada diretamente da árvore Git.
+Árvore de diretórios e arquivos versionados na branch `main`, gerada a partir do índice Git (`git ls-files`) com os ajustes do PWA aplicados sobre o commit `dc4c9526216df1092b0ad05726996b3c3d8cda96`.
 
-**Regra de ordenação aplicada recursivamente em todos os níveis:**
-1. Pastas em ordem alfabética.
-2. Arquivos em ordem alfabética.
+**Ordenação aplicada recursivamente em cada pasta:**
+1. Diretórios primeiro, em ordem alfabética;
+2. Em seguida, os arquivos, em ordem alfabética.
 
-- Branch: `developer`
-- Total: 60 pastas e 329 arquivos.
+A ordem alfabética não diferencia maiúsculas de minúsculas; nomes iniciados por ponto (como `.github/` e `.gitignore`) aparecem antes das letras.
+
+- Branch: `main`
+- Commit base: `dc4c9526216df1092b0ad05726996b3c3d8cda96`
+- Diretórios: 63
+- Arquivos: 382
 
 ```text
 ├── .github/
@@ -16,10 +20,16 @@
 │       ├── ci.yml
 │       ├── database-failover.yml
 │       ├── gupy.yml
+│       ├── inhire.yml
+│       ├── linkedin-jobs-basis.yml
+│       ├── linkedin-jobs-brq.yml
+│       ├── linkedin-jobs-cast.yml
+│       ├── linkedin-jobs-gft.yml
 │       ├── linkedin-jobs.yml
 │       ├── linkedin-posts-ci.yml
 │       ├── linkedin-posts.yml
 │       ├── linkedin-secondary-search.yml
+│       ├── linkedin-session-monitor.yml
 │       └── vacancies.yml
 ├── app/
 │   ├── Console/
@@ -27,6 +37,7 @@
 │   │       ├── CheckNetwork.php
 │   │       ├── CheckVacancyLinks.php
 │   │       ├── CollectGupyVacancies.php
+│   │       ├── CollectInhireVacancies.php
 │   │       ├── CollectLinkedInJobs.php
 │   │       ├── CollectLinkedInPosts.php
 │   │       ├── CollectLinkedInSecondary.php
@@ -140,12 +151,15 @@
 │       ├── MindsightSource.php
 │       ├── NerdinSource.php
 │       ├── NetVagasSource.php
+│       ├── NortJobsSource.php
 │       ├── OracleHcmSource.php
 │       ├── OwnCareerPageSource.php
 │       ├── OzySource.php
 │       ├── PandapeSource.php
 │       ├── PlooralSource.php
+│       ├── ProgramathorSource.php
 │       ├── QuickinSource.php
+│       ├── RadancySource.php
 │       ├── RadarTecSource.php
 │       ├── RecrutAiSource.php
 │       ├── RioVagasSource.php
@@ -178,6 +192,7 @@
 │   ├── logging.php
 │   ├── mail.php
 │   ├── network_security.php
+│   ├── nort.php
 │   ├── queue.php
 │   ├── services.php
 │   ├── session.php
@@ -199,12 +214,15 @@
 │   │   ├── 2026_11_15_000001_create_linkedin_post_candidates_table.php
 │   │   ├── 2026_11_19_000001_expand_municipality_region_codes.php
 │   │   ├── 2026_11_19_000001_move_linkedin_candidates_to_automatic_publication.php
-│   │   └── 2026_11_22_110000_create_linkedin_job_scans_table.php
+│   │   ├── 2026_11_22_110000_create_linkedin_job_scans_table.php
+│   │   ├── 2026_11_24_160000_add_email_application_channels_to_vacancies.php
+│   │   └── 2026_11_27_120000_add_source_classification_to_vacancies_table.php
 │   ├── seeders/
 │   │   ├── DatabaseSeeder.php
 │   │   └── VacancySeeder.php
 │   └── .gitignore
 ├── docs/
+│   ├── AplicativoPWA.md
 │   ├── ArquiteturaEFluxoDeDados.md
 │   ├── AtualizacoesRecentes.md
 │   ├── AutomacaoETestes.md
@@ -220,6 +238,7 @@
 │   ├── InstalacaoEConfiguracao.md
 │   ├── IntegracaoAbler.md
 │   ├── LocalizacaoERegionalizacao.md
+│   ├── PaginasDeErroPadronizadas.md
 │   ├── RegrasDeElegibilidade.md
 │   ├── ResponsabilidadeELimitacoes.md
 │   ├── SegurancaDeRedeELocalizacao.md
@@ -239,23 +258,46 @@
 │   │   └── RELATORIO_DTB_BRASIL_2025_SUBDISTRITOS.xls
 │   └── DTB_2025.zip
 ├── public/
+│   ├── icons/
+│   │   ├── apple-touch-icon.png
+│   │   ├── icon-192.png
+│   │   ├── icon-512.png
+│   │   ├── icon-maskable-192.png
+│   │   ├── icon-maskable-512.png
+│   │   └── icon-maskable.svg
 │   ├── .htaccess
 │   ├── favicon.ico
 │   ├── favicon.svg
 │   ├── index.php
-│   └── robots.txt
+│   ├── manifest.webmanifest
+│   ├── offline.html
+│   ├── robots.txt
+│   └── sw.js
 ├── resources/
 │   ├── css/
 │   │   └── app.css
 │   ├── js/
 │   │   └── app.js
 │   └── views/
+│       ├── errors/
+│       │   ├── 400.blade.php
+│       │   ├── 404.blade.php
+│       │   ├── 405.blade.php
+│       │   ├── 419.blade.php
+│       │   ├── 429.blade.php
+│       │   ├── 4xx.blade.php
+│       │   ├── 500.blade.php
+│       │   ├── 503.blade.php
+│       │   ├── 5xx.blade.php
+│       │   └── layout.blade.php
 │       ├── layouts/
 │       │   └── app.blade.php
 │       ├── network/
 │       │   └── denied.blade.php
 │       ├── partials/
-│       │   └── location-refresh.blade.php
+│       │   ├── location-refresh.blade.php
+│       │   ├── pwa-head.blade.php
+│       │   └── pwa-register.blade.php
 │       ├── vacancies/
 │       │   ├── index.blade.php
 │       │   └── show.blade.php
@@ -269,11 +311,20 @@
 │   ├── ibge/
 │   │   └── import-dtb-2025.ps1
 │   └── linkedin/
+│       ├── export-session.mjs
+│       ├── export-session.test.mjs
 │       ├── jobs.e2e.test.mjs
 │       ├── jobs.mjs
 │       ├── rate-limit.mjs
 │       ├── rate-limit.test.mjs
-│       └── secondary-account.mjs
+│       ├── restore-session.mjs
+│       ├── restore-session.test.mjs
+│       ├── runtime.mjs
+│       ├── runtime.test.mjs
+│       ├── secondary-account.e2e.test.mjs
+│       ├── secondary-account.mjs
+│       ├── session-check.mjs
+│       └── session-check.test.mjs
 ├── storage/
 │   ├── app/
 │   │   ├── private/
@@ -313,6 +364,7 @@
 │   │   ├── CompleoSourceTest.php
 │   │   ├── CwiSourceTest.php
 │   │   ├── DerevoSourceTest.php
+│   │   ├── ErrorPagesTest.php
 │   │   ├── ExampleTest.php
 │   │   ├── FactorialSourceTest.php
 │   │   ├── ForceHttpsTest.php
@@ -330,7 +382,9 @@
 │   │   ├── LinkedInJobsRateLimitTest.php
 │   │   ├── LinkedInJobsSourceTest.php
 │   │   ├── LinkedInPostCandidateProcessorTest.php
+│   │   ├── LinkedInPostEmailApplicationTest.php
 │   │   ├── LinkedInPostSearchClientTest.php
+│   │   ├── LinkedInRuntimeConfigTest.php
 │   │   ├── LocationPermissionFlowTest.php
 │   │   ├── LocationRefreshTest.php
 │   │   ├── LocationSpoofingProtectionTest.php
@@ -344,7 +398,10 @@
 │   │   ├── OzySourceTest.php
 │   │   ├── PandapeSourceTest.php
 │   │   ├── PlooralSourceTest.php
+│   │   ├── ProgramathorSourceTest.php
+│   │   ├── PwaTest.php
 │   │   ├── QuickinSourceTest.php
+│   │   ├── RadancySourceTest.php
 │   │   ├── RadarTecSourceTest.php
 │   │   ├── RateLimitingTest.php
 │   │   ├── RecrutAiSourceTest.php
@@ -359,6 +416,7 @@
 │   │   ├── TotvsAtsSourceTest.php
 │   │   ├── UtmAttributionTest.php
 │   │   ├── VacancyControllerTest.php
+│   │   ├── VacancyEmailApplicationTest.php
 │   │   ├── VacancyImporterTest.php
 │   │   ├── VacancyLinkCheckerTest.php
 │   │   ├── VagasSourceTest.php
@@ -366,6 +424,8 @@
 │   │   ├── WorkableSourceTest.php
 │   │   ├── WorkdaySourceTest.php
 │   │   └── ZohoRecruitSourceTest.php
+│   ├── pwa/
+│   │   └── service-worker.e2e.test.mjs
 │   ├── Unit/
 │   │   ├── ExampleTest.php
 │   │   ├── GeoLocationNormalizerTest.php
@@ -400,3 +460,5 @@
 ├── render.yaml
 └── vite.config.js
 ```
+
+Para regenerar a árvore, liste os arquivos versionados com `git ls-files` e aplique a mesma ordenação (diretórios antes de arquivos, ambos em ordem alfabética, em todos os níveis).

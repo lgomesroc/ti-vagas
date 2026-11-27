@@ -29,6 +29,11 @@ jobs:
       APP_DEBUG: "false"
       APP_KEY: ${{ secrets.APP_KEY }}
 
+      # A automação geral não deve executar coletores LinkedIn.
+      LINKEDIN_POSTS_ENABLED: "false"
+      LINKEDIN_JOBS_ENABLED: "false"
+      LINKEDIN_SECONDARY_ACCOUNT_ENABLED: "false"
+
       DB_CONNECTION: pgsql
       DB_SSLMODE: require
 

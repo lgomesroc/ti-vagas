@@ -41,6 +41,8 @@
     <link rel="canonical" href="{{ rtrim(config('app.url'), '/') . request()->getPathInfo() }}">
     <meta name="theme-color" content="#172554">
 
+    @include('partials.pwa-head')
+
     <meta property="og:locale" content="pt_BR">
     <meta property="og:site_name" content="TI Vagas">
     <meta property="og:type" content="website">
@@ -113,6 +115,31 @@
         .header-link {
             color: #ffffff;
             font-size: 14px;
+        }
+
+        /* PWA: ações do cabeçalho e botão de instalação */
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+        }
+
+        .header .pwa-install-button {
+            padding: 8px 14px;
+            border: 1px solid #60a5fa;
+            background: transparent;
+            font-size: 13px;
+        }
+
+        .header .pwa-install-button:hover {
+            background: #1e3a8a;
+        }
+
+        .pwa-install-button[hidden] {
+            display: none;
         }
 
         .hero {
@@ -606,6 +633,11 @@
                 text-align: right;
             }
 
+            .header .pwa-install-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
             .hero {
                 padding: 35px 0;
             }
@@ -720,11 +752,22 @@
                 TI <span>Vagas</span>
             </a>
 
-            @unless (request()->routeIs('welcome'))
-                <a href="{{ route('vacancies.index') }}" class="header-link">
-                    Encontrar oportunidades
-                </a>
-            @endunless
+            <div class="header-actions">
+                @unless (request()->routeIs('welcome'))
+                    <a href="{{ route('vacancies.index') }}" class="header-link">
+                        Encontrar oportunidades
+                    </a>
+                @endunless
+
+                <button
+                    type="button"
+                    id="pwa-install-button"
+                    class="button pwa-install-button"
+                    hidden
+                >
+                    Instalar app
+                </button>
+            </div>
 
         </div>
     </header>
@@ -855,6 +898,8 @@
     )
         @include('partials.location-refresh')
     @endif
+
+    @include('partials.pwa-register')
 
 </body>
 </html>

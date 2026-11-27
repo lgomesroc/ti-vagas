@@ -1,6 +1,9 @@
-name: TI Vagas - Coleta isolada Abler
+name: TI Vagas - Coleta global Abler
 
 on:
+  schedule:
+    - cron: "0 1,7,13,19 * * *"
+      timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
 permissions:
@@ -11,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  abler:
+  abler_global:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -19,29 +22,65 @@ jobs:
       APP_DEBUG: "false"
       APP_KEY: ${{ secrets.APP_KEY }}
       DB_CONNECTION: pgsql
-      DB_URL: ${{ secrets.NEON_DATABASE_URL }}
       DB_SSLMODE: require
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
     steps:
-      - name: Checkout developer
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: developer
+          ref: main
+
+      - name: Resolver banco atualmente ativo no Render
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for name in APP_KEY RENDER_API_KEY RENDER_SERVICE_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::A variável/secret $name não está configurada."
+              exit 1
+            fi
+          done
+
+          response="$(curl --fail --silent --show-error --retry 3 \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Accept: application/json")"
+
+          active_url="$(jq -r '[.[] | select(.envVar.key == "DB_URL") | .envVar.value] | first // empty' <<< "$response")"
+
+          if [ -z "$active_url" ]; then
+            echo "::error::Não foi possível obter DB_URL das variáveis de ambiente do serviço Render."
+            exit 1
+          fi
+
+          echo "::add-mask::$active_url"
+          echo "DB_URL=$active_url" >> "$GITHUB_ENV"
+          echo "Banco ativo do Render resolvido para a coleta Abler."
+
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip
           coverage: none
+
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+
       - name: Instalar dependências PHP
         run: composer install --no-interaction --prefer-dist --no-progress
+
       - name: Instalar dependências Node
         run: npm ci
+
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
-      - name: Coletar somente Abler
+
+      - name: Coletar globalmente na Abler
         run: php artisan vacancies:collect-source abler-global

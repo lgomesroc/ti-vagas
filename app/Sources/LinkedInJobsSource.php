@@ -56,6 +56,8 @@ class LinkedInJobsSource implements VacancySource
             $result = Process::path(base_path())
                 ->env([
                     'LINKEDIN_JOBS_LOOKBACK_HOURS' => (string) config('linkedin.jobs.lookback_hours', 168),
+                    'LINKEDIN_JOBS_SEARCH_TERMS' => implode(';', config('linkedin.jobs.search_terms', [])),
+                    'LINKEDIN_JOBS_COMPANY_FILTER' => (string) config('linkedin.jobs.company_filter', ''),
                     'LINKEDIN_JOBS_MAX_PAGES' => (string) config('linkedin.jobs.max_pages', 5),
                     'LINKEDIN_JOBS_DELAY_MS' => (string) config('linkedin.jobs.delay_ms', 2500),
                     'LINKEDIN_JOBS_JITTER_MS' => (string) config('linkedin.jobs.jitter_ms', 500),

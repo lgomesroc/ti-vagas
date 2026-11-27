@@ -25,6 +25,7 @@ use App\Sources\MindsightSource;
 use App\Sources\OracleHcmSource;
 use App\Sources\OzySource;
 use App\Sources\OwnCareerPageSource;
+use App\Sources\RadancySource;
 use App\Sources\PandapeSource;
 use App\Sources\ProgramathorSource;
 use App\Sources\PlooralSource;
@@ -486,6 +487,23 @@ class VacancySourceFactory
                 locationFilter: $this->locationFilter,
             );
 
+            $sources[$source->name()] = $source;
+        }
+
+        $radancy = config('vacancy_sources.radancy', []);
+        foreach ($radancy['companies'] ?? [] as $companyKey => $company) {
+            $source = new RadancySource(
+                companyKey: $companyKey,
+                companyName: $company['name'] ?? $companyKey,
+                url: $company['url'],
+                caBundle: $radancy['ca_bundle'] ?? null,
+                maxPages: (int) ($radancy['max_pages'] ?? 10),
+                maxJobs: (int) ($radancy['max_jobs'] ?? 200),
+                countries: $company['countries'] ?? ['Brazil'],
+                technologyFacetName: $company['technology_facet_name'] ?? 'Professional Field',
+                technologyFacetValue: $company['technology_facet_value'] ?? 'Tech & Data',
+                locationFilter: $this->locationFilter,
+            );
             $sources[$source->name()] = $source;
         }
 

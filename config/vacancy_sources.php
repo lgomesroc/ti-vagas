@@ -22,6 +22,9 @@ return [
             'inter' => 'Banco Inter',
             'bancopan' => 'Banco PAN',
             'ifoodcarreiras' => 'iFood',
+            'agibank' => 'Agibank',
+            'knowbe4' => 'KnowBe4',
+            'incognia' => 'Incognia',
         ],
     ],
 
@@ -65,6 +68,32 @@ return [
                 'locale' => '',
                 'name' => 'ABC Fitness',
             ],
+
+            'unilever' => [
+                'host' => 'unilever.wd3.myworkdayjobs.com',
+                'tenant' => 'unilever',
+                'site' => 'Unilever_Experienced_Professionals',
+                'locale' => 'en-US',
+                'name' => 'Unilever',
+            ],
+
+            'thomson-reuters' => [
+                'host' => 'thomsonreuters.wd5.myworkdayjobs.com',
+                'tenant' => 'thomsonreuters',
+                'site' => 'External_Career_Site',
+                'locale' => 'pt-BR',
+                'name' => 'Thomson Reuters',
+            ],
+
+            'avanade' => [
+                'host' => 'accenture.wd103.myworkdayjobs.com',
+                'tenant' => 'accenture',
+                'site' => 'AvanadeCareers',
+                'locale' => 'pt-BR',
+                'name' => 'Avanade',
+            ],
+
+
         ],
     ],
 
@@ -137,6 +166,9 @@ return [
             'recargapay' => [
                 'name' => 'RecargaPay',
             ],
+            'workana-premium' => [
+                'name' => 'Workana',
+            ],
         ],
     ],
 
@@ -173,6 +205,21 @@ return [
                 'name' => 'Brasilprev',
                 'url' => 'https://brasilprev.gupy.io/',
                 'technology_only' => true,
+            ],
+
+            'ciee' => [
+                'name' => 'CIEE',
+                'url' => 'https://ciee.gupy.io/',
+            ],
+
+            'solarcocacola' => [
+                'name' => 'Solar Coca-Cola',
+                'url' => 'https://solarcocacola.gupy.io/',
+            ],
+
+            'semparar' => [
+                'name' => 'Sem Parar Corpay',
+                'url' => 'https://semparar.gupy.io/',
             ],
 
             'globalweb' => [
@@ -423,6 +470,12 @@ return [
                 'technology_only' => true,
             ],
 
+            'yduqs-tech' => [
+                'name' => 'YDUQS - Vagas Tech',
+                'url' => 'https://yduqstech.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'uol' => [
                 'name' => 'UOL',
                 'url' => 'https://uol.gupy.io/',
@@ -593,6 +646,31 @@ return [
                 'technology_only' => true,
             ],
 
+            'bancosofisa' => [
+                'name' => 'Banco Sofisa',
+                'url' => 'https://bancosofisa.gupy.io/',
+            ],
+
+            'inmetrics' => [
+                'name' => 'Inmetrics',
+                'url' => 'https://inmetrics.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'mrvco' => [
+                'name' => 'MRV&CO',
+                'url' => 'https://vagas-mrveco.gupy.io/',
+                'technology_only' => true,
+            ],
+
+            'keeggotech' => [
+                'name' => 'Keeggo Tech',
+                'url' => 'https://keeggotech.gupy.io/',
+                'technology_only' => true,
+            ],
+
+
+
         ],
 
 
@@ -698,6 +776,9 @@ return [
             'hostinger' => [
                 'name' => 'Hostinger',
             ],
+            'toku' => [
+                'name' => 'Toku',
+            ],
         ],
     ],
 
@@ -768,6 +849,42 @@ return [
                 'name' => 'AeC',
                 'url' => 'https://aec.pandape.infojobs.com.br/',
             ],
+
+            'sodexo-interno' => [
+                'name' => 'Sodexo — Corporativo',
+                'url' => 'https://sodexointerno.pandape.infojobs.com.br/',
+            ],
+            'sodexo-operacao' => [
+                'name' => 'Sodexo — Operações',
+                'url' => 'https://sodexoonsiteoperacao.pandape.infojobs.com.br/',
+            ],
+            'sodexo-administrativo' => [
+                'name' => 'Sodexo — Administrativo',
+                'url' => 'https://sodexoonsiteadministrativo.pandape.infojobs.com.br/',
+            ],
+
+            'ik' => [
+                'name' => 'iK Ecossistema da Inovação',
+                'url' => 'https://ik.pandape.infojobs.com.br/',
+            ],
+
+            'ilhaservicetecnologia' => [
+                'name' => 'Ilha Service Tecnologia',
+                'url' => 'https://ilhaservicetecnologia.pandape.infojobs.com.br/',
+            ],
+
+            'animaeducacao' => [
+                'name' => 'Ânima Educação',
+                'url' => 'https://animaeducacao.pandape.infojobs.com.br/',
+            ],
+
+            'tivit' => [
+                'name' => 'TIVIT',
+                'url' => 'https://tivitalmavivagroup.pandape.infojobs.com.br/',
+            ],
+
+
+
         ],
     ],
 
@@ -863,6 +980,12 @@ return [
                 'url' => 'https://recrutamentomagis5.vagas.solides.com.br',
             ],
 
+            'aztecnologia' => [
+                'name' => 'AZ TECNOLOGIA EM GESTÃO',
+                'slug' => 'aztecnologia',
+                'url' => 'https://aztecnologia.vagas.solides.com.br',
+            ],
+
             'cashway' => [
                 'name' => 'CashWay',
                 'slug' => 'cashway',
@@ -873,6 +996,30 @@ return [
                 'name' => 'SONDOTECNICA ENGENHARIA DE SOLOS S A',
                 'slug' => 'sondotecnica',
                 'url' => 'https://sondotecnica.vagas.solides.com.br',
+            ],
+
+            'grupoabril' => [
+                'name' => 'Grupo Abril',
+                'slug' => 'grupoabril',
+                'url' => 'https://grupoabril.vagas.solides.com.br',
+            ],
+
+            'amlabs' => [
+                'name' => 'AMLabs',
+                'slug' => 'amlabsventures',
+                'url' => 'https://amlabsventures.vagas.solides.com.br',
+            ],
+
+            'g4f' => [
+                'name' => 'G4F',
+                'slug' => 'g4f',
+                'url' => 'https://g4f.vagas.solides.com.br',
+            ],
+
+            'fast2mine' => [
+                'name' => 'FAST2 MINE',
+                'slug' => 'fast2mine',
+                'url' => 'https://fast2mine.vagas.solides.com.br',
             ],
         ],
     ],
@@ -901,6 +1048,18 @@ return [
                 'name' => 'Paraná Banco',
                 'url' => 'https://jobs.quickin.io/paranabanco/jobs',
             ],
+            'finayatech' => [
+                'name' => 'Finaya',
+                'url' => 'https://jobs.quickin.io/finayatech/jobs',
+            ],
+            'domvsit' => [
+                'name' => 'DOMVS iT',
+                'url' => 'https://jobs.quickin.io/domvsit/jobs',
+            ],
+            'qintess' => [
+                'name' => 'Qintess (antiga Resource IT)',
+                'url' => 'https://jobs.quickin.io/qintess/jobs',
+            ],
         ],
     ],
 
@@ -923,6 +1082,14 @@ return [
             'taesa' => [
                 'name' => 'TAESA',
                 'url' => 'https://vagas.taesa.com.br/search/',
+            ],
+            'capgemini-br' => [
+                'name' => 'Capgemini',
+                'url' => 'https://jobs.capgemini.com/viewalljobs/',
+            ],
+            'gft' => [
+                'name' => 'GFT Technologies',
+                'url' => 'https://jobs.gft.com/Brazil/?locale=pt_BR',
             ],
         ],
     ],
@@ -986,6 +1153,16 @@ return [
             'editora-globo' => [
                 'name' => 'EDITORA GLOBO',
                 'url' => 'https://trabalheconosco.vagas.com.br/editoragloboeradio/oportunidades',
+            ],
+
+            'vagas-com' => [
+                'name' => 'Vagas.com',
+                'url' => 'https://trabalheconosco.vagas.com.br/vagas',
+            ],
+
+            'ey' => [
+                'name' => 'EY',
+                'url' => 'https://trabalheconosco.vagas.com.br/ey/oportunidades/',
             ],
         ],
     ],
@@ -1102,10 +1279,37 @@ return [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
     ],
 
+    'radancy' => [
+        'ca_bundle' => env('VACANCY_CA_BUNDLE'),
+        'max_pages' => 10,
+        'max_jobs' => 200,
+        'companies' => [
+            'loreal' => [
+                'name' => "L'Oréal",
+                'url' => 'https://careers.loreal.com/en',
+                'countries' => ['Brazil'],
+                'technology_facet_name' => 'Professional Field',
+                'technology_facet_value' => 'Tech & Data',
+            ],
+        ],
+    ],
+
     'own_career_pages' => [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
         'companies' => [
+            // Agregador de vagas: consulta limitada à categoria Informática / TI.
+            'jobbol' => [
+                'name' => 'Jobbol (agregador de vagas de TI)',
+                'url' => 'https://www.jobbol.com.br/areas/informatica-ti?nacional=1',
+            ],
+
+            // Agregador: consultar somente a categoria de Informática / TI.
+            'jobbol' => [
+                'name' => 'Jobbol (agregador de vagas de TI)',
+                'url' => 'https://www.jobbol.com.br/areas/informatica-ti?nacional=1',
+            ],
+
             'construcode' => [
                 'name' => 'ConstruCode',
                 'url' => 'https://site.construcode.com.br/quem-somos/',
@@ -1134,6 +1338,21 @@ return [
             'colmeia-fortaleza' => [
                 'name' => 'Colmeia',
                 'url' => 'https://www.colmeia.com.br/contato/trabalhe-conosco/',
+            ],
+
+            'cognizant' => [
+                'name' => 'Cognizant',
+                'url' => 'https://careers.cognizant.com/latam-pt/vagas/',
+            ],
+
+            'accenture' => [
+                'name' => 'Accenture',
+                'url' => 'https://www.accenture.com/br-pt/careers/jobsearch',
+            ],
+
+            'ntt-data' => [
+                'name' => 'NTT DATA',
+                'url' => 'https://careers.nttdata.com/br/pt/search-results',
             ],
         ],
     ],

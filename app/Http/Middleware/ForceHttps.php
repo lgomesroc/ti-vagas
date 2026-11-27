@@ -37,7 +37,7 @@ class ForceHttps
             // Só GET/HEAD são redirecionados com segurança; um POST por http
             // perderia o corpo. Para os demais, recusa.
             if (!in_array($request->method(), ['GET', 'HEAD'], true)) {
-                return response('HTTPS obrigatório.', 400);
+                return response()->view('errors.400', [], 400);
             }
 
             return redirect()->secure($request->getRequestUri(), 301);

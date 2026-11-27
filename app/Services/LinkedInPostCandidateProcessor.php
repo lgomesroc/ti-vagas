@@ -69,7 +69,7 @@ class LinkedInPostCandidateProcessor
         }
 
         if ($publishedAt === null || $publishedAt->lt(now()->subHours(
-            (int) config('linkedin.lookback_hours', 72)
+            (int) config('linkedin.lookback_hours', 168)
         ))) {
             $candidate->fill($base + [
                 'status' => 'rejected',
@@ -131,6 +131,8 @@ class LinkedInPostCandidateProcessor
         ));
         $hasPersonalEmails = count($emails) < count($detectedEmails);
         $hasApplicationEmail = $this->hasCorporateEmail($emails);
+        $applicationEmail = $emails[0] ?? null;
+        $applicationSubject = $this->extractApplicationSubject($combinedText);
 
         if (
             (
@@ -162,7 +164,7 @@ class LinkedInPostCandidateProcessor
             return $this->emptyResult('rejected');
         }
 
-        foreach ($hasApplicationEmail ? [] : $links as $link) {
+        foreach ($links as $link) {
             $duplicateVacancy = $this->findDuplicate(null, null, null, null, $link, '');
             $duplicateCandidate = $this->findDuplicateCandidate(
                 null,
@@ -191,7 +193,7 @@ class LinkedInPostCandidateProcessor
         }
 
         $verifiedLinks = [];
-        foreach ($hasApplicationEmail ? [] : $links as $link) {
+        foreach ($links as $link) {
             $inspection = $this->urlInspector->inspect($link);
             $verifiedLinks[] = ['url' => $link] + $inspection;
 
@@ -229,10 +231,9 @@ class LinkedInPostCandidateProcessor
             }
         }
 
-        // Quando a publicação oferece e-mail, o TI Vagas exibe a própria
-        // publicação como origem da oportunidade. O e-mail permanece no texto
-        // original para que o candidato veja as instruções da pessoa recrutadora.
-        if ($hasApplicationEmail) {
+        // Sem página externa validada, o destino continua sendo a publicação original.
+        // O e-mail é metadado informativo e nunca substitui o link de origem.
+        if ($applicationUrl === null && $hasApplicationEmail) {
             $applicationUrl = $postUrl;
         }
 
@@ -244,11 +245,36 @@ class LinkedInPostCandidateProcessor
         $company = $this->extractCompany($enrichedText, $post);
         $location = $this->extractLocation($enrichedText);
         $workModel = $this->classifyWorkModel($combinedText . "\n" . $pageContent);
+        $employmentType = $this->extractEmploymentType($combinedText . "\n" . $pageContent);
         $description = trim(
             $enrichedText
             . ($commentText !== '' ? "\n\nComentários públicos:\n" . $commentText : '')
             . ($links !== [] ? "\n\nLinks identificados na publicação:\n" . implode("\n", $links) : '')
         );
+
+        if (
+            $applicationUrl === $postUrl
+            && $hasApplicationEmail
+            && !$this->hasSufficientEmailOnlyDetails($title, $company, $location, $enrichedText)
+        ) {
+            $candidate->fill($base + [
+                'embedded_links' => $verifiedLinks,
+                'emails' => $emails,
+                'title' => $title,
+                'company' => $company,
+                'description' => $description,
+                'location' => $location,
+                'work_model' => $workModel,
+                'employment_type' => $employmentType,
+                'application_url' => $applicationUrl,
+                'application_email' => $applicationEmail,
+                'application_subject' => $applicationSubject,
+                'status' => 'rejected',
+                'decision_reason' => 'Publicação com candidatura somente por e-mail não apresenta detalhes suficientes da vaga (empresa, localidade, responsabilidades e requisitos).',
+            ])->save();
+
+            return $this->emptyResult('rejected');
+        }
 
         $reason = $this->validateBusinessRules(
             $title,
@@ -287,7 +313,10 @@ class LinkedInPostCandidateProcessor
                 'description' => $description,
                 'location' => $location,
                 'work_model' => $workModel,
+                'employment_type' => $employmentType,
                 'application_url' => $applicationUrl,
+                'application_email' => $applicationEmail,
+                'application_subject' => $applicationSubject,
                 'status' => 'duplicate',
                 'decision_reason' => $duplicate !== null
                     ? 'Possível duplicidade com vaga já cadastrada: #' . $duplicate->id
@@ -307,7 +336,10 @@ class LinkedInPostCandidateProcessor
             'description' => $description,
             'location' => $location,
             'work_model' => $workModel,
+            'employment_type' => $employmentType,
             'application_url' => $applicationUrl,
+            'application_email' => $applicationEmail,
+            'application_subject' => $applicationSubject,
             'status' => $reason === null ? 'pending_publication' : 'rejected',
             'decision_reason' => $reason ?? 'Passou pelos filtros automáticos e aguarda publicação automática.',
         ])->save();
@@ -574,8 +606,8 @@ class LinkedInPostCandidateProcessor
         // anti-spam e validação de canal público de candidatura. Não aplicar aqui
         // filtros rígidos de senioridade, anos de experiência ou área: preservar
         // a oportunidade permite corrigir a regra sem perder o post de origem.
-        if ($applicationUrl === null) {
-            return 'Sem link de candidatura ou e-mail informado na publicação.';
+        if ($applicationUrl === null && !$this->hasCorporateEmail($emails)) {
+            return 'Sem link de candidatura ou e-mail corporativo informado na publicação.';
         }
 
         // Mantém a regra geográfica do projeto para não transformar vagas
@@ -761,53 +793,53 @@ class LinkedInPostCandidateProcessor
 
     private function extractTitle(string $text): ?string
     {
-        // Em posts de uma linha, captura apenas o cargo anunciado.
-        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
-
-        if (preg_match($rolePattern, $text, $matches)) {
-            return mb_substr(trim($matches[1]), 0, 255);
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (preg_match('/(?:^|\\R)\\s*#?\\s*(?:🚀\\s*)?vaga\\s+aberta\\s*[|:—-]\\s*([^\\r\\n]+)/iu', $plain, $m)) {
+            return mb_substr(trim($m[1]), 0, 255);
         }
-
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])));
-
-        foreach ($lines as $line) {
+        $rolePattern = '/(?:estamos\\s+contratando|contratamos|vaga\\s+(?:aberta\\s+)?(?:para|de)|oportunidade\\s+(?:para|de))\\s*[:!,-]?\\s*((?:desenvolvedor[ao]?|developer|programador[ao]?|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)[^\\n.!?]{0,100})/iu';
+        if (preg_match($rolePattern, $text, $m)) return mb_substr(trim($m[1]), 0, 255);
+        foreach (array_filter(array_map('trim', preg_split('/\\R/', $text) ?: [])) as $line) {
             if (preg_match('/\\b(j[uú]nior|jr\\.?|desenvolvedor|developer|programador|analista|t[eé]cnico|engineer|qa|devops|suporte|infraestrutura)\\b/i', $line)) {
                 return mb_substr(trim(preg_replace('/^[#\\-\\s]+/', '', $line)), 0, 255);
             }
         }
-
-        if (preg_match('/(?:vaga|oportunidade)\\s+(?:para|de|em)?\\s*([^\\n.!]{5,100})/iu', $text, $matches)) {
-            return mb_substr(trim($matches[1]), 0, 255);
-        }
-
         return null;
     }
 
     private function extractCompany(string $text, array $post): ?string
     {
         $company = $this->stringValue($post, ['companyName', 'company', 'organizationName']);
-        if ($company !== null) {
-            return $company;
+        if ($company !== null) return $company;
+        foreach (($post['taggedCompanies'] ?? []) as $tagged) {
+            if (is_array($tagged) && is_string($tagged['name'] ?? null) && trim($tagged['name']) !== '') return trim($tagged['name']);
         }
-
-        $taggedCompanies = $post['taggedCompanies'] ?? [];
-        if (is_array($taggedCompanies)) {
-            foreach ($taggedCompanies as $taggedCompany) {
-                $name = is_array($taggedCompany)
-                    ? ($taggedCompany['name'] ?? null)
-                    : null;
-
-                if (is_string($name) && trim($name) !== '') {
-                    return trim($name);
-                }
-            }
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (preg_match('/\\b(?:a|o)\\s+([A-Z][A-Za-z0-9&.-]{1,60})\\s+(?:est[aá]\\s+em\\s+busca|est[aá]\\s+contratando|est[aá]\\s+procurando)\\b/iu', $plain, $m)) return trim($m[1]);
+        if (preg_match(
+            '/\\bempresa\\s*:\\s*(.{3,80}?)(?=\\s+\\b(?:remoto|remote|h[ií]brido|hybrid|presencial|on-site|responsabilidades|atividades|requisitos|qualificacoes)\\b|[;|\\r\\n]|$)/iu',
+            $text,
+            $m
+        )) {
+            return trim($m[1], " \\t\\n\\r\\0\\x0B.,:-");
         }
-
-        if (preg_match('/(?:empresa\s*:\s*|(?:na|no|para a|para o|at|for)\s+)([A-Z][A-Za-z0-9&. -]{2,60})/u', $text, $matches)) {
-            return trim($matches[1]);
-        }
-
         return null;
+    }
+
+    private function extractApplicationSubject(string $text): ?string
+    {
+        $plain = str_replace(['**', '__', '*', '_'], '', $text);
+        if (!preg_match('/\\bassunto(?:\\s+do\\s+e-?mail)?\\s*[:—-]?\\s*["“]?([^\\r\\n"]+)/iu', $plain, $m)) return null;
+        $subject = trim($m[1], " \\t\\n\\r\\\"'“”.,;");
+        return $subject !== '' ? mb_substr($subject, 0, 180) : null;
+    }
+
+    private function extractEmploymentType(string $text): ?string
+    {
+        $n = $this->normalize($text);
+        $clt = preg_match('/\\bclt\\b/', $n) === 1;
+        $pj = preg_match('/\\bpj\\b/', $n) === 1;
+        return $clt === $pj ? null : ($clt ? 'CLT' : 'PJ');
     }
 
     private function extractLocation(string $text): ?string
@@ -878,8 +910,52 @@ class LinkedInPostCandidateProcessor
 
         return array_values(array_unique(array_filter(
             $normalizedUrls,
-            fn ($url) => filter_var($url, FILTER_VALIDATE_URL)
+            fn ($url) => filter_var($url, FILTER_VALIDATE_URL) && $this->isRelevantPostLink($url)
         )));
+    }
+
+    private function isRelevantPostLink(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        if ($host === 'lnkd.in' || str_ends_with($host, '.lnkd.in')) {
+            return true;
+        }
+
+        // Perfis, hashtags e buscas do LinkedIn não são páginas de candidatura.
+        return ($host === 'linkedin.com' || str_ends_with($host, '.linkedin.com'))
+            ? preg_match('~^/jobs/(?:view|collections)/~i', $path) === 1
+            : true;
+    }
+
+    private function hasSufficientEmailOnlyDetails(
+        ?string $title,
+        ?string $company,
+        ?string $location,
+        string $text
+    ): bool {
+        if (blank($title) || blank($company) || blank($location)) {
+            return false;
+        }
+
+        $plain = preg_replace("~https?://[^\\s<>\"']+~iu", ' ', $text) ?? $text;
+        $plain = preg_replace('/[A-Z0-9._%+\\-]+@[A-Z0-9.\\-]+\\.[A-Z]{2,}/i', ' ', $plain) ?? $plain;
+        $plain = preg_replace('/#[\\p{L}\\p{N}_]+/u', ' ', $plain) ?? $plain;
+        $normalized = $this->normalize($plain);
+
+        $hasResponsibilities = preg_match(
+            '/\\b(responsabilidades|atividades|o que voce vai fazer|o que voce fara|what you will do|responsibilities)\\b/',
+            $normalized
+        ) === 1;
+        $hasRequirements = preg_match(
+            '/\\b(requisitos|qualificacoes|competencias|o que esperamos|requirements|qualifications|skills)\\b/',
+            $normalized
+        ) === 1;
+
+        return mb_strlen(trim($normalized)) >= 180
+            && $hasResponsibilities
+            && $hasRequirements;
     }
 
     /**
@@ -981,9 +1057,17 @@ class LinkedInPostCandidateProcessor
     {
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
-        return $host !== ''
-            && !str_contains($host, 'linkedin.com')
-            && !str_contains($host, 'lnkd.in');
+        if ($host === '' || $host === 'lnkd.in' || str_ends_with($host, '.lnkd.in')) {
+            return false;
+        }
+
+        if ($host === 'linkedin.com' || str_ends_with($host, '.linkedin.com')) {
+            $path = (string) parse_url($url, PHP_URL_PATH);
+
+            return preg_match('~^/jobs/(?:view|collections)/~i', $path) === 1;
+        }
+
+        return true;
     }
 
     private function normalizeUrl(string $url): string

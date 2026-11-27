@@ -1,31 +1,24 @@
 # Coleta de Oportunidades no LinkedIn
 
-O projeto mantém fluxos distintos para publicações de recrutamento e para anúncios do LinkedIn Jobs. Eles não devem ser confundidos: cada fluxo possui fonte, filtros, persistência e automação próprios.
+O projeto mantém fluxos distintos para publicações de recrutamento e anúncios do LinkedIn Jobs. Eles possuem descoberta, processamento, persistência e workflows próprios.
 
 ## 1. Publicações de recrutamento
 
-### Descoberta por buscadores públicos
+### Descoberta pública
 
-O serviço `LinkedInPostSearchClient` pesquisa URLs públicas de publicações do LinkedIn utilizando:
+O serviço `LinkedInPostSearchClient` pesquisa URLs públicas de publicações utilizando provedores de busca, incluindo Bing RSS e DuckDuckGo HTML. A janela padrão de busca é configurada em `config/linkedin.php`; o workflow regular utiliza 168 horas.
 
-- Bing RSS;
-- DuckDuckGo HTML.
+Os resultados são combinados e deduplicados por URL. A descoberta depende do que os buscadores indexam e não garante acesso a todas as publicações, datas, links ou comentários.
 
-A consulta é limitada a URLs de posts do LinkedIn e às palavras-chave definidas em `config/linkedin.php`. A janela padrão é de 72 horas. Os resultados dos provedores são combinados e deduplicados pela URL. O workflow `linkedin-posts.yml` executa o modo `all` com a conta secundária desabilitada, portanto usa os buscadores públicos; a rotina de conta secundária é executada separadamente por `linkedin-secondary-search.yml`. A existência do workflow e do código não comprova, por si só, que cada execução agendada tenha sido concluída com sucesso.
+### Conta secundária
 
-O modo `duckduckgo` consulta somente DuckDuckGo. O modo `all` combina Bing, DuckDuckGo e, quando habilitada e disponível, a conta secundária. O modo `bot` utiliza a conta secundária.
+A conta secundária utiliza Playwright, Chromium e um estado de sessão fornecido pelo ambiente. O fluxo específico está em `linkedin-secondary-search.yml`, com disparo manual. A sessão também é verificada pelo workflow `linkedin-session-monitor.yml`.
 
-### Conta secundária e comentários
-
-A conta secundária utiliza um perfil/sessão separado, com Playwright e Chromium. A sessão é fornecida pelo ambiente; não se deve usar a conta pessoal do titular. A automação consulta apenas conteúdo que esteja visível para essa conta e não deve contornar CAPTCHA, desafios, bloqueios ou controles de acesso.
-
-O coletor pode expandir comentários visíveis e procurar neles links e informações públicas úteis para candidatura. Antes de expandir comentários, a conta secundária compara a publicação com os IDs e URLs já armazenados e ignora as conhecidas. A presença de comentário no banco depende do que foi efetivamente retornado pela sessão e pela página naquele momento; não há garantia de acesso a todos os comentários.
-
-A configuração de perfil, estado de sessão, timeout e habilitação está em `config/linkedin.php`. Os arquivos de sessão ficam em diretórios locais ignorados pelo Git ou são fornecidos por secrets no workflow. Nunca versione cookies, credenciais ou arquivos de sessão.
+A automação só consulta conteúdo que esteja visível para a conta. Não deve contornar CAPTCHA, desafios, bloqueios ou controles de acesso. Nunca versione cookies, credenciais ou arquivos de sessão.
 
 ### Processamento e publicação
 
-O comando é:
+Comandos:
 
 ```bash
 php artisan linkedin:collect-posts
@@ -33,67 +26,83 @@ php artisan linkedin:collect-posts --mode=duckduckgo
 php artisan linkedin:collect-posts --mode=bot
 ```
 
-O fluxo executa as seguintes etapas:
+O fluxo:
 
 1. Descobre publicações por um ou mais provedores;
-2. Descarta candidatos cujo `post_id` ou URL já estejam registrados;
-3. Reserva o novo post em `linkedin_post_candidates` com estado `processing`, usando os índices únicos para impedir que provedores ou execuções concorrentes processem a mesma publicação;
-4. Só então tenta enriquecer a publicação por meio de `LinkedInPublicPostFetcher`, quando o conteúdo público está acessível;
-5. Processa o texto, links, e-mails e comentários disponíveis;
-6. Aplica regras editoriais e verificações de duplicidade;
-7. Persiste o resultado final. Falhas durante o processamento são registradas como rejeitadas para que o post não seja consultado novamente;
-8. Executa `LinkedInPostAutoPublisher` para publicar os candidatos pendentes que forem aprovados pelas regras automáticas.
+2. Ignora IDs ou URLs já registrados;
+3. Reserva o novo post em `linkedin_post_candidates` com estado `processing`;
+4. Tenta enriquecer a publicação por meio de `LinkedInPublicPostFetcher`, quando o conteúdo público está acessível;
+5. Processa texto, links, e-mails e comentários disponíveis;
+6. Aplica critérios editoriais e verificações de duplicidade;
+7. Persiste o resultado;
+8. O `LinkedInPostAutoPublisher` publica automaticamente os candidatos que forem aprovados pelas regras.
 
-**A publicação pode ser automática.** Não se deve descrever o fluxo atual como uma fila que exige aprovação manual de cada candidato. A automação não envia candidaturas em nome dos usuários.
+A publicação aprovada pode ocorrer automaticamente. O fluxo não envia candidaturas em nome dos visitantes.
 
 ### Regras editoriais relevantes
 
-O processador considera, entre outros pontos:
+O processador considera, entre outros critérios:
 
-- Indícios de recrutamento e oportunidade de trabalho em tecnologia;
+- Indícios de recrutamento e oportunidade em tecnologia;
 - Data e janela de publicação;
-- Área e senioridade compatíveis com o escopo do portal;
-- Identificação de cargo sem usar o texto inteiro do post como título quando é possível extrair o cargo;
+- Área, senioridade e experiência compatíveis com o escopo;
+- Título identificável da oportunidade;
 - Links e informações de candidatura;
-- Deduplicação contra vagas e candidatos já conhecidos;
-- Rejeição de publicações que condicionem o envio de links ou informações a comentários, palavras-chave ou contato privado por DM, tanto no texto principal quanto em comentários públicos disponíveis;
-- Comentários comuns, sem exigência de engajamento ou contato privado, não são rejeitados apenas por existirem;
-- E-mails pessoais/gratuitos não são aceitos como contato de candidatura nem armazenados como e-mails válidos. Se houver um link válido, ele continua sendo avaliado; se o e-mail pessoal for o único canal, a publicação é rejeitada;
-- Rejeição de destinos agregadores ou links que não atendam aos critérios configurados.
+- Duplicidade com vagas e candidatos conhecidos;
+- Rejeição de posts ou comentários que condicionem informações ou links a palavras-chave, engajamento artificial ou contato privado por DM;
+- E-mails pessoais/gratuitos não são aceitos como canal de candidatura nem armazenados como contatos válidos;
+- Um link de candidatura válido continua sendo avaliado mesmo quando o post também contém e-mail pessoal;
+- Se o e-mail pessoal for o único canal, a publicação é rejeitada.
 
-A análise de comentários só pode utilizar comentários realmente disponibilizados pela sessão autenticada. A ausência de um dado não deve ser interpretada como confirmação de que ele não existe na publicação original.
+E-mails corporativos podem ser utilizados como canal de candidatura quando passam pelas regras de validação. Links de candidatura publicados no texto ou em comentários também são avaliados.
 
-**Regra de consulta única:** depois que um post é reservado e submetido à consulta detalhada, o registro permanece no banco independentemente do resultado (`pending_publication`, `published`, `duplicate`, `rejected` ou falha registrada). Nas execuções seguintes, ele não volta a ser enriquecido ou processado. A descoberta nos buscadores ainda pode retornar o link novamente, pois essa etapa é necessária para encontrar publicações novas; o bloqueio ocorre antes da consulta individual/enriquecimento. Publicações que ficam com estado `processing` por encerramento abrupto também não são repetidas automaticamente.
+### Regra de consulta única
+
+Depois que um post é reservado e submetido ao enriquecimento, o registro permanece em `linkedin_post_candidates`, independentemente do resultado (`pending_publication`, `published`, `duplicate`, `rejected` ou falha registrada). Execuções seguintes não repetem o enriquecimento do mesmo post. Um processo interrompido abruptamente pode deixar o estado `processing`, que não é reconsultado automaticamente.
 
 ### Workflows de publicações
 
-- `linkedin-posts.yml`: coleta regular no modo `all`; no workflow versionado, `LINKEDIN_SECONDARY_ACCOUNT_ENABLED=false`, portanto a execução agendada utiliza os buscadores públicos.
-- `linkedin-secondary-search.yml`: execução específica do modo `bot`, com a conta secundária habilitada e o estado de sessão fornecido por secret.
-- `linkedin-posts-ci.yml`: valida scripts Node, sintaxe PHP e testes automatizados relacionados.
+| Workflow | Gatilho | Comportamento |
+|---|---|---|
+| `linkedin-posts.yml` | 00h e 12h, mais manual | Coleta regular; janela de 168 horas; conta secundária desabilitada no YAML |
+| `linkedin-secondary-search.yml` | Manual | Restaura e valida sessão secundária e pesquisa publicações no modo bot |
+| `linkedin-session-monitor.yml` | Diário às 06h15 de Brasília e manual | Verifica a sessão secundária; cron definido em UTC |
+| `linkedin-posts-ci.yml` | Push, pull request e manual | Testes Node e PHP offline; não coleta publicações reais |
 
-Os workflows possuem agendamentos próprios em `America/Sao_Paulo` e também podem ser executados manualmente.
+O workflow regular `linkedin-posts.yml` está ativo em `main`, com `LINKEDIN_POSTS_ENABLED=true`, e restaura o estado de sessão fornecido pelo secret. A variável `LINKEDIN_SECONDARY_ACCOUNT_ENABLED=false` mantém desabilitada a pesquisa adicional pela conta secundária nesse workflow. O modo bot é executado separadamente.
 
 ## 2. LinkedIn Jobs — anúncios de vagas
 
-O projeto possui um coletor separado para anúncios publicados na área LinkedIn Jobs. Ele consulta páginas públicas de visitantes, sem login, por meio dos endpoints públicos utilizados pelo site. A implementação fica em `scripts/linkedin/jobs.mjs`, integrada ao Laravel por `LinkedInJobsSource`.
+O LinkedIn Jobs possui coletor separado, implementado em `app/Sources/LinkedInJobsSource.php` e `scripts/linkedin/jobs.mjs`. A consulta utiliza páginas/endpoints públicos acessíveis sem login.
 
-Comando:
+Comandos:
 
 ```bash
 php artisan linkedin:collect-jobs
 php artisan linkedin:collect-jobs --sync
 ```
 
-A execução padrão envia um job para a fila `linkedin`; a opção `--sync` executa diretamente. O workflow `linkedin-jobs.yml` despacha e processa a fila.
+A execução padrão despacha `FetchLinkedInJobsJob` para a fila `linkedin`; a opção `--sync` executa a consulta diretamente.
 
-O coletor pesquisa termos de desenvolvimento, suporte e infraestrutura, com localização configurável (padrão: Brasil), janela de até 168 horas e paginação limitada. Primeiro reúne e deduplica os cartões; depois remove os IDs já registrados no histórico de consultas ou já importados como `linkedin-jobs:*`. Somente os IDs ainda não consultados recebem uma requisição de detalhe. A descrição completa continua sendo obtida antes de qualquer decisão editorial: nenhum filtro de senioridade, área ou experiência foi antecipado para o cartão. Os anúncios extraídos passam pelo importador e pelos critérios editoriais gerais do TI Vagas.
+O coletor pesquisa termos de desenvolvimento, suporte e infraestrutura, com janela configurável de até 168 horas. Primeiro reúne e deduplica cartões; depois remove IDs já registrados em `linkedin_job_scans` ou já importados como `linkedin-jobs:*`. Somente IDs ainda não consultados recebem requisição de detalhe. A descrição completa é obtida antes da decisão editorial.
+
+### Workflows LinkedIn Jobs
+
+| Workflow | Empresa/filtro | Agenda em Brasília |
+|---|---|---|
+| `linkedin-jobs.yml` | Busca geral | 00h30, 06h30, 12h30 e 18h30 |
+| `linkedin-jobs-brq.yml` | BRQ | 03h30, 09h30, 15h30 e 21h30 |
+| `linkedin-jobs-cast.yml` | CAST Group | 04h30, 10h30, 16h30 e 22h30 |
+| `linkedin-jobs-gft.yml` | GFT Technologies | 04h30, 10h30, 16h30 e 22h30 |
+
+Todos aceitam execução manual, fazem checkout de `main`, resolvem o banco ativo do serviço Render e processam a fila `linkedin`. Os fluxos dedicados aplicam filtro de empresa, mas continuam sujeitos aos filtros editoriais e à deduplicação centrais.
 
 ### Tratamento de HTTP 429
 
 O coletor respeita limites do serviço externo e não tenta contorná-los por rotação de IP, proxies ou troca de identidade.
 
 | Variável | Padrão | Função |
-| --- | --- | --- |
+|---|---:|---|
 | `LINKEDIN_JOBS_DELAY_MS` | 2500 | Intervalo mínimo entre requisições |
 | `LINKEDIN_JOBS_JITTER_MS` | 500 | Variação adicional do intervalo |
 | `LINKEDIN_JOBS_MAX_RETRIES` | 3 | Tentativas após HTTP 429 |
@@ -103,23 +112,19 @@ O coletor respeita limites do serviço externo e não tenta contorná-los por ro
 | `LINKEDIN_JOBS_RESCHEDULE_MAX_SECONDS` | 14400 | Limite do reagendamento |
 
 - O cabeçalho `Retry-After` é respeitado.
-- Persistindo o HTTP 429, o script registra o progresso e encerra com código 75, sem importar resultados parciais.
-- O Laravel converte a situação em `SourceRateLimitedException` e reagenda o job com atraso crescente.
-- O job é único (`ShouldBeUnique`) para evitar despachos repetidos enquanto uma execução está pendente ou reagendada.
-- Os IDs com resposta HTTP da consulta detalhada são gravados em `linkedin_job_scans`, inclusive quando a descrição está ausente ou a resposta HTTP não é bem-sucedida. Uma resposta HTTP 429 e falhas sem resposta não são marcadas como consulta concluída.
-- O histórico também considera anúncios já importados antes da implantação da tabela, evitando uma nova consulta de detalhe para esses IDs.
-- Na execução síncrona, a limitação é apresentada como aviso e nenhuma vaga é importada.
+- Persistindo o HTTP 429, o script encerra sem importar resultados parciais.
+- O Laravel converte a situação em `SourceRateLimitedException` e reagenda o job.
+- O job único evita despachos repetidos enquanto uma execução está pendente ou reagendada.
+- Respostas HTTP de detalhe são registradas em `linkedin_job_scans`; HTTP 429 e falhas sem resposta não são marcados como consulta concluída.
 
-Os testes do mecanismo Node podem ser executados com:
+A descrição completa dos anúncios novos continua sendo consultada antes dos filtros de senioridade, área ou experiência. Não se deve antecipar a decisão editorial somente com base no cartão.
 
-```bash
-npm run test:linkedin
-```
+## 3. Limitações operacionais
 
-## 3. Limitações e responsabilidade
+- Buscadores públicos não indexam necessariamente todas as publicações.
+- A sessão secundária pode expirar ou perder acesso.
+- Comentários só podem ser analisados quando efetivamente disponibilizados.
+- Limites e mudanças do LinkedIn podem interromper coletas.
+- Um workflow verde comprova a execução técnica daquele run, não a cobertura integral das vagas publicadas.
 
-Os mecanismos de busca e as páginas públicas não garantem cobertura integral das publicações ou vagas do LinkedIn. Resultados podem estar ausentes, incompletos, atrasados ou indisponíveis. A interface pode mudar e os serviços podem limitar requisições.
-
-A existência de uma oportunidade no portal não garante que a candidatura continue aberta. O usuário deve conferir os detalhes e concluir a candidatura diretamente no canal oficial indicado pela empresa.
-
-Não implementar mecanismos para burlar limites, autenticação, desafios ou controles de acesso. Mudanças nos fluxos devem preservar as condições aplicáveis aos serviços externos e os testes correspondentes.
+Para agenda, concorrência, CI e configuração dos demais workflows, consulte [Workflows do GitHub Actions](WorkflowsGitHubActions.md).

@@ -1,18 +1,20 @@
-name: TI Vagas - Coleta isolada InHire
+name: TI Vagas - Coleta global InHire
 
 on:
+  schedule:
+    - cron: "0 2,8,14,20 * * *"
+      timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Evita concorrer com failover, sincronização ou outras coletas no banco ativo.
 concurrency:
   group: ti-vagas-database-operations
   cancel-in-progress: false
 
 jobs:
-  inhire:
+  inhire_global:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -29,7 +31,7 @@ jobs:
       RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
 
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
@@ -72,5 +74,5 @@ jobs:
       - name: Instalar dependências
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Coletar e importar InHire
+      - name: Coletar e importar InHire global
         run: php artisan vacancies:collect-inhire
