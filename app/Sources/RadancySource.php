@@ -249,7 +249,7 @@ class RadancySource implements VacancySource
                 continue;
             }
 
-            $titleNode = $xpath->query('.//h1|.//h2|.//h3|.//h4|.//*[contains(concat(" ", normalize-space(@class), " "), " job-title ")]|.//*[contains(concat(" ", normalize-space(@class), " "), " jobtitle ")]', $node)?->item(0);
+            $titleNode = $xpath->query('.//h1|.//h2|.//h3|.//h4|.//*[contains(@class, "job-title")]|.//*[contains(@class, "jobtitle")]', $node)?->item(0);
             $title = $this->cleanText($titleNode?->textContent ?? $node->textContent);
             if ($href === '' || $title === '' || isset($seen[$id])) {
                 continue;
