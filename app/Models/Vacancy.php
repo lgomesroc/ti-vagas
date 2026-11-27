@@ -15,6 +15,8 @@ class Vacancy extends Model
         'work_model',
         'employment_type',
         'salary',
+        'source_category',
+        'is_technology',
         'application_url',
         'application_email',
         'application_subject',
@@ -36,6 +38,7 @@ class Vacancy extends Model
     {
         return [
             'original_published_at' => 'datetime',
+            'is_technology' => 'boolean',
             'collected_at' => 'datetime',
             'availability_checked_at' => 'datetime',
             'latitude' => 'decimal:7',
