@@ -1298,6 +1298,12 @@ return [
         'ca_bundle' => env('VACANCY_CA_BUNDLE'),
 
         'companies' => [
+            // Agregador: consultar somente a categoria de Informática / TI.
+            'jobbol' => [
+                'name' => 'Jobbol (agregador de vagas de TI)',
+                'url' => 'https://www.jobbol.com.br/areas/informatica-ti?nacional=1',
+            ],
+
             'construcode' => [
                 'name' => 'ConstruCode',
                 'url' => 'https://site.construcode.com.br/quem-somos/',
