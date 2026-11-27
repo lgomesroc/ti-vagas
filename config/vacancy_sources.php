@@ -195,6 +195,12 @@ return [
         'max_jobs' => 200,
 
         'companies' => [
+            'qintess' => [
+                'name' => 'Qintess (antiga Resource IT)',
+                'url' => 'https://qintess.gupy.io/',
+                'technology_only' => true,
+            ],
+
             'agrotis' => [
                 'name' => 'AGROTIS',
                 'url' => 'https://agrotis.gupy.io/',
@@ -1055,10 +1061,6 @@ return [
             'domvsit' => [
                 'name' => 'DOMVS iT',
                 'url' => 'https://jobs.quickin.io/domvsit/jobs',
-            ],
-            'qintess' => [
-                'name' => 'Qintess (antiga Resource IT)',
-                'url' => 'https://jobs.quickin.io/qintess/jobs',
             ],
         ],
     ],
