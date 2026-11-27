@@ -25,6 +25,7 @@ Este README é a porta de entrada. As regras e os procedimentos detalhados estã
 | [Histórico de Fontes Gupy por Empresa (legado)](docs/FontesGupyRecentes.md) | Contexto dos antigos cadastros individuais; não descreve a coleta global atual. |
 | [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Detalhes dos conectores IBM e Microsoft. |
 | [Funcionalidades do Portal](docs/FuncionalidadesDoPortal.md) | Recursos disponíveis ao visitante e limites do serviço. |
+| [Páginas de Erro Padronizadas](docs/PaginasDeErroPadronizadas.md) | Experiência de erro, códigos HTTP, fallbacks, segurança e testes. |
 | [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Ambiente local, dependências, banco e dados geográficos. |
 | [Integração Abler](docs/IntegracaoAbler.md) | Coletor Abler, navegador, limites e workflow isolado. |
 | [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Município, regiões do IBGE e regras de vagas locais/remotas. |
@@ -56,6 +57,10 @@ Não são o público-alvo estágios, trainee, programas de formação corporativ
 - A candidatura acontece diretamente no endereço original da empresa ou plataforma de recrutamento.
 
 Os filtros automatizados reduzem anúncios incompatíveis, mas não garantem a exatidão de todos os dados nem a disponibilidade em tempo real. Consulte [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md).
+
+## Páginas de erro padronizadas
+
+O portal utiliza páginas próprias para comunicar falhas de forma clara, sem expor detalhes internos da aplicação. O tratamento considera apenas os códigos pertinentes ao funcionamento do TI Vagas e mantém respostas JSON para requisições de API. Consulte [Páginas de Erro Padronizadas](docs/PaginasDeErroPadronizadas.md) para conhecer os códigos cobertos, os fallbacks, as limitações da hospedagem e os testes.
 
 ## Tecnologias principais
 
