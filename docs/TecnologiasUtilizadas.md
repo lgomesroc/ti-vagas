@@ -1,29 +1,48 @@
-# Tecnologias utilizadas
+# Tecnologias Utilizadas
 
-Esta página resume a stack identificada no projeto. A versão efetivamente instalada deve ser conferida nos arquivos de dependências e na configuração do ambiente.
+Esta página descreve as tecnologias identificadas na branch `main`. As versões exatas devem ser conferidas nos arquivos de dependências e no ambiente de execução.
+
+## Stack principal
 
 | Tecnologia | Responsabilidade |
 |---|---|
 | PHP 8.3 | Linguagem principal do backend |
-| Laravel 13 | Framework da aplicação |
+| Laravel 13 | Framework HTTP, serviços, comandos, filas e scheduler |
 | PostgreSQL | Banco de dados relacional |
-| Blade | Renderização das páginas |
-| Tailwind CSS | Estilização da interface |
-| Vite | Compilação dos recursos frontend |
-| Node.js | Ferramentas e scripts auxiliares, incluindo coletores que utilizam navegador |
-| Playwright | Automação de navegador nos fluxos que dependem de páginas renderizadas |
-| Laravel Scheduler | Agendamento das rotinas |
-| Laravel Queue | Processamento assíncrono de jobs |
-| PHPUnit | Testes automatizados |
-| Git | Controle de versão |
-| GitHub Actions | Integração contínua e automação operacional |
+| Eloquent ORM | Persistência e consultas |
+| Blade | Renderização das páginas no servidor |
+| Tailwind CSS 4 | Estilização da interface |
+| Vite 8 | Build e desenvolvimento dos recursos frontend |
+| Node.js 22 | Scripts auxiliares e automações JavaScript |
+| Playwright | Automação de navegador para integrações que dependem de páginas renderizadas |
+| Laravel Scheduler | Agendamento de rotinas |
+| Laravel Queue | Processamento assíncrono de fontes e jobs |
+| PHPUnit 12 | Testes PHP |
+| Node.js Test Runner | Testes automatizados dos scripts JavaScript |
+| GitHub Actions | Integração contínua, coleta e rotinas operacionais |
+| Render | Hospedagem da aplicação web |
+
+## Organização dos recursos
+
+- **Backend:** `app/Http`, `app/Services`, `app/Jobs`, `app/Console` e `app/Sources`.
+- **Configuração:** `config/`, `.env.example` e `render.yaml`.
+- **Interface:** `resources/views`, `resources/css` e `resources/js`.
+- **Persistência:** `database/migrations`, `database/seeders` e `database/data`.
+- **Automação:** `.github/workflows` e `scripts/`.
+- **Testes:** `tests/Feature`, `tests/Unit` e testes Node em `scripts/linkedin`.
 
 ## Arquivos de referência
 
-- `composer.json` e `composer.lock`: dependências PHP.
-- `package.json` e `package-lock.json`: dependências Node.js e scripts.
-- `vite.config.js`: configuração de build frontend.
-- `phpunit.xml`: configuração da suíte de testes.
-- `.github/workflows/`: workflows de CI e automação.
+- `composer.json` e `composer.lock`: dependências PHP e scripts Composer.
+- `package.json` e `package-lock.json`: dependências Node.js e scripts npm.
+- `vite.config.js`: configuração do Vite.
+- `phpunit.xml`: suítes e variáveis de ambiente dos testes PHP.
+- `.env.example` e `.env.testing.example`: modelos de configuração.
+- `.github/workflows/`: CI e automações.
+- `Dockerfile` e `render.yaml`: build e configuração de hospedagem.
 
-Não atualize versões apenas com base neste resumo. Verifique compatibilidade, lockfiles e execução da suíte de testes antes de integrar mudanças.
+## Observações
+
+Playwright é utilizado pelos coletores que precisam navegar por páginas renderizadas; não é requisito para a renderização normal das páginas Blade.
+
+Não atualize versões apenas com base neste resumo. Verifique compatibilidade, lockfiles, ambiente de produção e execução dos testes antes de integrar mudanças.

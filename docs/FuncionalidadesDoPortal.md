@@ -1,26 +1,38 @@
-# Funcionalidades do portal
+# Funcionalidades do Portal
 
-O TI Vagas é um portal independente de consulta a oportunidades efetivas de nível júnior em tecnologia. O site reúne anúncios de fontes externas, aplica filtros editoriais e direciona o visitante ao canal original de candidatura.
+O TI Vagas reúne oportunidades efetivas de nível júnior em tecnologia, aplica filtros editoriais e direciona o visitante ao canal original de candidatura.
 
-## Funcionalidades para visitantes
+## Recursos disponíveis ao visitante
 
-- Listagem de oportunidades elegíveis.
-- Pesquisa por palavras-chave e paginação.
-- Página individual com detalhes disponíveis do anúncio.
-- Exibição de empresa, localização e modalidade.
-- Exibição da data original de publicação quando a fonte fornece esse dado.
-- Direcionamento para o endereço original de candidatura.
-- Exibição regional de vagas presenciais e híbridas, conforme a localização validada pelo servidor.
-- Exibição nacional de oportunidades remotas compatíveis com atuação no Brasil.
-- Preferências de consentimento para cookies não essenciais.
+- **Listagem de vagas:** consulta de oportunidades que passaram pelos critérios de importação e exibição.
+- **Pesquisa:** busca por palavras-chave e paginação dos resultados.
+- **Detalhes:** página individual com as informações disponíveis do anúncio.
+- **Informações da oportunidade:** empresa, título, descrição, localidade, modalidade, tipo de contratação, salário e data original, conforme os dados fornecidos pela fonte.
+- **Candidatura externa:** link para o endereço original da empresa ou plataforma de recrutamento.
+- **Regionalização:** vagas presenciais e híbridas são filtradas pela região validada no servidor.
+- **Vagas remotas:** oportunidades compatíveis com atuação no Brasil podem ser exibidas nacionalmente.
+- **Consentimento:** escolha de aceitar ou rejeitar cookies não essenciais.
+
+## Localização
+
+A localização é solicitada pelo navegador e validada pelo servidor. Enquanto não houver uma posição válida, a listagem permanece limitada às vagas remotas nacionais.
+
+A permissão pode ser negada ou revogada. Nesse caso, o portal volta ao modo limitado. A localização não é inferida pelo IP e parâmetros enviados pelo usuário não substituem a validação do servidor.
+
+## Atualização e disponibilidade
+
+As vagas são coletadas de fontes externas e normalizadas. Anúncios antigos são tratados pela política de expiração. Links de candidatura também passam por verificações periódicas, com estados `active`, `suspect` e `expired` e histórico das tentativas.
+
+Esses mecanismos são sinais automatizados. Uma resposta inconclusiva não significa necessariamente que a vaga foi encerrada, e uma resposta positiva não garante que a candidatura ainda esteja disponível no momento da visita.
 
 ## O que o portal não faz
 
-- Não recebe currículos nem candidaturas.
-- Não cria conta de candidato nem mantém banco de perfis profissionais.
-- Não representa empresas ou plataformas de recrutamento.
-- Não garante que uma oportunidade esteja ativa, seja legítima ou resulte em contratação.
-- Não transforma automaticamente uma vaga sem senioridade declarada em uma oportunidade comprovadamente júnior.
+- Não recebe currículos nem candidaturas;
+- Não cria contas de candidatos nem mantém banco de perfis profissionais;
+- Não representa empresas ou plataformas de recrutamento;
+- Não envia candidatura em nome do visitante;
+- Não garante que uma oportunidade esteja ativa, seja legítima ou resulte em contratação;
+- Não transforma automaticamente uma vaga sem senioridade declarada em oportunidade comprovadamente júnior.
 
 ## Fluxo de uso
 
@@ -30,7 +42,7 @@ O TI Vagas é um portal independente de consulta a oportunidades efetivas de ní
 4. Consulta as oportunidades compatíveis com os critérios editoriais e regionais.
 5. Abre os detalhes e segue para a página original de candidatura.
 
-Sem localização validada, o portal limita a exibição às vagas remotas nacionais. A região não é estimada por IP.
+Sem localização validada, o portal limita a exibição às vagas remotas nacionais.
 
 ## Documentação relacionada
 
@@ -38,3 +50,5 @@ Sem localização validada, o portal limita a exibição às vagas remotas nacio
 - [Regras de Elegibilidade](RegrasDeElegibilidade.md)
 - [Localização e Regionalização](LocalizacaoERegionalizacao.md)
 - [Consentimento e atribuição de campanhas](ConsentimentoEAtribuicao.md)
+- [Verificação de Disponibilidade das Vagas](VerificacaoDeDisponibilidade.md)
+- [Responsabilidade e Limitações](ResponsabilidadeELimitacoes.md)

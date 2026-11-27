@@ -2,55 +2,86 @@
 
 ## Visão técnica
 
-A aplicação utiliza PHP 8.3 e Laravel 13, com PostgreSQL como banco de dados, Blade para renderização das páginas e Vite/Tailwind CSS para os recursos de interface.
+A aplicação utiliza PHP 8.3 e Laravel 13, PostgreSQL como banco relacional, Blade para renderização das páginas e Vite/Tailwind CSS para os recursos de interface.
 
-O código segue a organização convencional do Laravel, separando controladores HTTP, modelos, serviços de domínio, comandos de console, jobs e integrações externas.
+O código segue a organização convencional do Laravel, separando camada HTTP, modelos, serviços de domínio, comandos, jobs e adaptadores de fontes externas.
 
 ## Camada HTTP
 
-- `routes/web.php`: declara as rotas de boas-vindas, aceite, listagem, detalhes e atualização de localização.
-- `app/Http/Controllers`: recebe as requisições e coordena a resposta.
-- `app/Http/Middleware`: aplica verificações de aceite, reputação de rede, proteção contra parâmetros de localização adulterados e captura inicial de parâmetros UTM.
-- `app/Http/Middleware/CaptureUtmParameters.php`: registra na sessão a primeira atribuição de campanha recebida, sanitizando e limitando os valores.
-- `resources/views`: contém as páginas Blade e seus componentes visuais.
+- `routes/web.php`: rotas de boas-vindas, aceite de termos e cookies, listagem, detalhes e atualização/desativação da localização.
+- `app/Http/Controllers`: recebe requisições e coordena as respostas.
+- `app/Http/Middleware/EnsureWelcomeAccepted.php`: verifica o aceite dos termos, mantém o modo inicial de localização e controla o consentimento de cookies não essenciais.
+- `app/Http/Middleware/RejectLocationOverrides.php`: rejeita tentativas de substituir a localização validada por parâmetros manipulados.
+- `app/Http/Middleware/EvaluateNetworkReputation.php`: aplica a política de reputação de rede.
+- `app/Http/Middleware/CaptureUtmParameters.php`: registra a primeira atribuição de campanha válida na sessão.
+- `app/Http/Middleware/ForceHttps.php`: força HTTPS conforme a configuração do ambiente.
+- `resources/views`: páginas Blade e componentes visuais.
 
 ## Domínio de vagas
 
-- `app/Models/Vacancy.php`: representa os anúncios armazenados e expõe o histórico de verificações de disponibilidade.
-- `app/Models/VacancyAvailabilityCheck.php`: representa cada verificação HTTP realizada sobre o link de candidatura.
-- `app/Models/LinkedInJobScan.php`: mantém o histórico de IDs de anúncios do LinkedIn Jobs que já receberam uma resposta na consulta detalhada.
-- `app/Services/VacancyImporter.php`: normaliza e importa os anúncios recebidos.
-- `app/Services/VacancyAvailabilityDetector.php`: identifica sinais de encerramento ou indisponibilidade nos dados recebidos das fontes.
-- `app/Services/VacancyLinkChecker.php`: verifica periodicamente os endereços originais de candidatura, interpreta respostas HTTP e registra o resultado de cada verificação.
-- `app/Services/VacancyLocationFilter.php`: aplica os critérios de localização e modalidade.
-- `app/Services/VacancySourceFactory.php`: instancia as fontes configuradas e registra coletores globais, como InHire. A Gupy global é construída sob demanda pelo método `make('gupy-global')`.
-- `app/Sources`: contém os adaptadores das plataformas de recrutamento, incluindo `GupyGlobalSource`, `InhireGlobalSource` e `AblerSource`.
-- `app/Jobs/FetchVacancySourceJob.php`: executa a consulta de uma fonte em fila.
+- `app/Models/Vacancy.php`: representa anúncios importados e seu estado de disponibilidade.
+- `app/Models/VacancyAvailabilityCheck.php`: representa uma verificação individual de link de candidatura.
+- `app/Models/LinkedInJobScan.php`: mantém o histórico de IDs do LinkedIn Jobs que receberam consulta detalhada.
+- `app/Models/LinkedInPostCandidate.php`: mantém candidatos identificados em publicações de recrutamento.
+- `app/Services/VacancyImporter.php`: normaliza, valida, deduplica e importa anúncios.
+- `app/Services/VacancyEditorialFilter.php`: aplica critérios editoriais de área, senioridade e experiência.
+- `app/Services/VacancyAvailabilityDetector.php`: identifica sinais de encerramento nos dados recebidos das fontes.
+- `app/Services/VacancyLinkChecker.php`: consulta URLs originais, interpreta respostas HTTP e registra histórico.
+- `app/Services/VacancyLocationFilter.php`: aplica critérios de localização e modalidade.
+- `app/Services/VacancySourceFactory.php`: instancia os adaptadores habilitados e os coletores globais.
+- `app/Sources`: implementações de plataformas ATS, páginas de carreiras e fontes públicas.
+- `app/Jobs/FetchVacancySourceJob.php`: executa uma fonte em fila.
+- `app/Jobs/FetchLinkedInJobsJob.php`: executa a coleta de anúncios do LinkedIn Jobs.
+
+## Localização e geografia
+
+A localização do visitante é obtida pelo navegador e enviada ao servidor para validação. O servidor resolve coordenadas para município e região, utilizando os serviços em `app/Services/Geo`, o diretório de municípios e as configurações em `config/geo_regions.php` e `config/location_guard.php`.
+
+A sessão começa no modo limitado, que permite somente vagas remotas nacionais. O modo regional só é habilitado após a validação da posição. A região não é liberada por estimativa de IP nem por parâmetros fornecidos livremente na URL ou no corpo da requisição.
+
+A base municipal de coordenadas está em `database/data/municipios.csv`; os dados oficiais da DTB 2025 utilizados na importação estão em `ibge/extraido/`.
 
 ## Persistência
 
-As migrations em `database/migrations` definem a estrutura do banco. A migration `2026_11_14_220000_add_vacancy_availability_monitoring.php` acrescenta o estado atual de disponibilidade à vaga e cria `vacancy_availability_checks`, que mantém o histórico das verificações. Os modelos Eloquent representam as entidades utilizadas pela aplicação. Dados territoriais auxiliares ficam em `database/data/municipios.csv`.
+As migrations em `database/migrations` definem a estrutura do banco. Entre as tabelas relevantes estão vagas, municípios, estado de importação geográfica, verificações de disponibilidade, candidatos de publicações do LinkedIn e histórico de consultas de LinkedIn Jobs.
 
-## Fluxo resumido de coleta
+O PostgreSQL também pode armazenar filas e cache, conforme a configuração do ambiente. As variáveis de conexão e os drivers são definidos em `config/database.php`, `config/queue.php`, `config/cache.php` e nos arquivos de ambiente.
 
-1. O comando `vacancies:collect` identifica as fontes habilitadas pela fábrica; a Gupy global é executada separadamente por `vacancies:collect-gupy`.
-2. A fábrica cria os adaptadores correspondentes.
-3. Jobs consultam as fontes e entregam os resultados ao importador.
-4. O importador normaliza os campos, verifica duplicidade, elegibilidade e disponibilidade.
-5. Os registros válidos são inseridos ou atualizados no banco, preservando a data original de publicação quando aplicável.
-6. A coleta global da Gupy consulta a API pública de busca, aplica os termos e a janela incremental configurados e importa sob a identidade `gupy-global`. O coletor global da InHire descobre tenants conhecidos e os consulta sob a identidade `inhire-global`. A Abler é consultada por `AblerSource`, que percorre a listagem pública paginada e importa sob a identidade `abler-global`.
-7. Os coletores LinkedIn mantêm histórico de consulta para não repetir o enriquecimento de posts e detalhes de anúncios já processados; a descrição completa de cada novo anúncio continua sendo consultada antes da aplicação dos filtros editoriais.
-8. A listagem consulta os registros e aplica os critérios de exibição.
-8. A rotina `vacancies:check-links` verifica em lotes os links de candidatura de vagas ativas ou suspeitas e grava o resultado no histórico de disponibilidade.
+## Fluxo de coleta e importação
 
-## Atribuição de campanhas
+1. O scheduler ou um workflow do GitHub Actions inicia o comando de coleta.
+2. `VacancySourceFactory` instancia as fontes habilitadas em `config/vacancy_sources.php`.
+3. `vacancies:collect` despacha um `FetchVacancySourceJob` por fonte para a fila `vacancies`; com `--sync`, executa diretamente.
+4. Cada adaptador consulta sua plataforma, normaliza os dados disponíveis e retorna anúncios no contrato comum.
+5. O importador verifica duplicidade, elegibilidade editorial, janela de publicação e critérios de localização.
+6. Os anúncios válidos são inseridos ou atualizados, preservando a data original de publicação quando fornecida.
+7. A listagem consulta os registros e aplica os critérios de exibição da região e da modalidade.
 
-O middleware `CaptureUtmParameters`, registrado no grupo web em `bootstrap/app.php`, captura os parâmetros `utm_source`, `utm_medium`, `utm_campaign`, `utm_id`, `utm_content`, `utm_term` e `utm_source_platform`. A primeira atribuição válida é preservada na sessão durante a navegação; valores não textuais, vazios ou com marcação HTML são descartados, e cada valor é limitado a 100 caracteres. A integração com o Google Analytics 4 utiliza esses dados somente quando a pessoa visitante autoriza cookies não essenciais.
+### Coletores globais e dedicados
+
+- **Gupy:** `GupyGlobalSource`, executado pelo comando `vacancies:collect-gupy` e workflow próprio.
+- **InHire:** `InhireGlobalSource`, executado pela coleta geral e também isoladamente por `vacancies:collect-inhire`. A descoberta combina tenants conhecidos com identificadores encontrados em dados já armazenados.
+- **Abler:** `AblerSource`, com automação de navegador em `scripts/abler/collect.mjs` e workflow próprio.
+- **ProgramaThor:** adaptador `ProgramathorSource`, com janela inicial configurada de 60 dias e limites de paginação/consulta.
+- **NortJobs:** adaptador `NortJobsSource`, com diagnóstico de cartões, detalhes, elegibilidade e localização.
+- **LinkedIn Jobs:** fluxo separado, com job de fila, script Node/Playwright e histórico de consultas detalhadas.
+- **Publicações de recrutamento do LinkedIn:** descoberta, enriquecimento, validação editorial e publicação automática dos candidatos aprovados.
+
+A existência de uma integração no código não garante que a fonte externa esteja acessível em todas as execuções nem que todos os anúncios sejam encontrados.
+
+## Verificação de disponibilidade
+
+A rotina `vacancies:check-links` consulta em lotes os links originais de candidatura de vagas ativas ou suspeitas. O resultado atual é armazenado na vaga e cada tentativa é registrada em `vacancy_availability_checks`. Respostas inconclusivas são tratadas como suspeitas, não como encerramento definitivo.
+
+## Atribuição e consentimento
+
+O middleware `CaptureUtmParameters`, registrado no grupo web em `bootstrap/app.php`, captura parâmetros UTM válidos e preserva a primeira atribuição na sessão. Google Analytics 4 e Google AdSense só são carregados quando a pessoa visitante autoriza cookies não essenciais.
 
 ## Configuração
 
 - `config/vacancy_sources.php`: fontes e parâmetros de integração.
-- `config/geo_regions.php`: ajustes territoriais manuais.
-- `config/location_guard.php`: parâmetros de proteção da localização.
+- `config/linkedin.php`: comportamento dos coletores LinkedIn.
+- `config/geo_regions.php`: regiões e ajustes territoriais.
+- `config/location_guard.php`: validação e proteção da localização.
 - `config/network_security.php`: política de reputação de rede.
 - `.env.example`: referência das variáveis de ambiente.

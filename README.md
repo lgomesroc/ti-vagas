@@ -1,76 +1,75 @@
 # TI Vagas
 
-Portal independente que reúne oportunidades efetivas de nível júnior na área de tecnologia. O projeto consulta fontes externas, normaliza os anúncios e aplica critérios de área, senioridade, experiência, localização e disponibilidade.
+Portal independente que reúne oportunidades efetivas de nível júnior na área de tecnologia. O projeto consulta plataformas de recrutamento, páginas de carreiras e publicações públicas, normaliza os anúncios e aplica critérios editoriais, geográficos e de disponibilidade.
 
-O visitante consulta os detalhes e segue para o canal original de candidatura. O TI Vagas não recebe currículos, não intermedeia contratações e não garante que um anúncio permaneça ativo.
+O visitante pesquisa oportunidades, consulta os detalhes disponíveis e segue diretamente para o canal original de candidatura. O TI Vagas não recebe currículos, não intermedeia contratações e não garante que um anúncio permaneça ativo.
 
 **Menos tempo procurando. Mais tempo se preparando para a próxima oportunidade.**
 
 ## Documentação
 
-A documentação foi dividida por assunto. Este README funciona como página inicial: apresenta o projeto e resume cada tema; os detalhes técnicos, procedimentos e regras ficam nos documentos específicos em `docs/`.
-
-### Índice
+Este README é a porta de entrada. As regras e os procedimentos detalhados estão organizados por assunto em `docs/`.
 
 | Documento | Conteúdo |
 |---|---|
-| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Camadas da aplicação, responsabilidades e percurso dos dados entre fontes, serviços e banco. |
-| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Registro cronológico das principais mudanças implementadas no projeto. |
-| [Automação e Testes](docs/AutomacaoETestes.md) | Scheduler, filas, comandos operacionais e execução dos testes automatizados. |
-| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato comum das fontes, normalização, importação, deduplicação e coletores globais. |
-| [Coleta de Oportunidades no LinkedIn](docs/ColetaPublicacoesLinkedIn.md) | Fluxos de publicações, LinkedIn Jobs, análise de comentários, limites e tratamento de bloqueios. |
-| [Consentimento e Atribuição de Campanhas](docs/ConsentimentoEAtribuicao.md) | Aceite dos termos, cookies não essenciais, Analytics, AdSense e parâmetros UTM. |
-| [Detecção de VPN, proxy e redes suspeitas](docs/deteccao-de-redes-suspeitas.md) | Fontes de reputação, classificação de rede, políticas, configuração e limitações. |
-| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore de diretórios e arquivos versionados, com pastas antes dos arquivos e ordenação alfabética. |
-| [Expiração dos Anúncios](docs/ExpiracaoDeAnuncios.md) | Política de retenção de 60 dias, comando de limpeza e diferença entre idade e disponibilidade. |
-| [Histórico de Fontes Gupy por Empresa (legado)](docs/FontesGupyRecentes.md) | Contexto histórico dos cadastros individuais antigos; não descreve o fluxo global atual. |
-| [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Comportamento específico dos conectores de carreiras IBM e Microsoft. |
-| [Funcionalidades do Portal](docs/FuncionalidadesDoPortal.md) | Recursos disponíveis ao visitante e limites do que o portal oferece. |
-| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Requisitos, clonagem, dependências, ambiente, banco, geografia e execução local. |
-| [Integração Abler](docs/IntegracaoAbler.md) | Coletor público com Playwright, termos de busca, limites, extração e workflow isolado. |
-| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Identificação de município, regiões do IBGE e regras de exibição local/remota. |
-| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas contempladas, senioridade, experiência, estágio e critérios editoriais. |
-| [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md) | Dependência de fontes externas, cuidados do visitante e limites das verificações. |
-| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Integridade da localização, sinais de falsificação, middleware e proteções no servidor. |
-| [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) | Stack de backend, frontend, automação, testes e arquivos de dependências. |
-| [Verificação de Disponibilidade das Vagas](docs/VerificacaoDeDisponibilidade.md) | Estados active/suspect/expired, verificação HTTP, histórico e critérios de classificação. |
-| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público-alvo, escopo, jornada do visitante e funcionalidades em alto nível. |
-| [Workflows do GitHub Actions](docs/WorkflowsGitHubActions.md) | Inventário dos workflows, branches de checkout, secrets, agendas, jobs e concorrência. |
+| [Arquitetura e Fluxo de Dados](docs/ArquiteturaEFluxoDeDados.md) | Camadas, responsabilidades e percurso dos dados. |
+| [Atualizações Recentes](docs/AtualizacoesRecentes.md) | Registro das alterações relevantes incorporadas ao projeto. |
+| [Automação e Testes](docs/AutomacaoETestes.md) | Scheduler, filas, comandos operacionais e testes. |
+| [Coleta e Integração de Vagas](docs/ColetaEIntegracaoDeVagas.md) | Contrato das fontes, normalização, importação e coletores globais. |
+| [Coleta de Oportunidades no LinkedIn](docs/ColetaPublicacoesLinkedIn.md) | Publicações de recrutamento, LinkedIn Jobs, conta secundária e limites. |
+| [Consentimento e Atribuição de Campanhas](docs/ConsentimentoEAtribuicao.md) | Termos, cookies, Analytics, AdSense e parâmetros UTM. |
+| [Detecção de VPN, proxy e redes suspeitas](docs/deteccao-de-redes-suspeitas.md) | Sinais de reputação, classificação, políticas e limitações. |
+| [Estrutura do Projeto](docs/EstruturaDoProjeto.md) | Árvore versionada da branch `main`. |
+| [Expiração dos Anúncios](docs/ExpiracaoDeAnuncios.md) | Retenção, limpeza e diferença entre idade e disponibilidade. |
+| [Histórico de Fontes Gupy por Empresa (legado)](docs/FontesGupyRecentes.md) | Contexto dos antigos cadastros individuais; não descreve a coleta global atual. |
+| [Fontes IBM e Microsoft](docs/FontesIBMEMicrosoft.md) | Detalhes dos conectores IBM e Microsoft. |
+| [Funcionalidades do Portal](docs/FuncionalidadesDoPortal.md) | Recursos disponíveis ao visitante e limites do serviço. |
+| [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) | Ambiente local, dependências, banco e dados geográficos. |
+| [Integração Abler](docs/IntegracaoAbler.md) | Coletor Abler, navegador, limites e workflow isolado. |
+| [Localização e Regionalização](docs/LocalizacaoERegionalizacao.md) | Município, regiões do IBGE e regras de vagas locais/remotas. |
+| [Regras de Elegibilidade](docs/RegrasDeElegibilidade.md) | Áreas, senioridade, experiência e critérios editoriais. |
+| [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md) | Dependência de fontes externas e cuidados do visitante. |
+| [Segurança de Rede e Localização](docs/SegurancaDeRedeELocalizacao.md) | Validação da localização, sinais de falsificação e proteções. |
+| [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) | Stack, ferramentas e arquivos de referência. |
+| [Verificação de Disponibilidade das Vagas](docs/VerificacaoDeDisponibilidade.md) | Estados active/suspect/expired e histórico de verificações. |
+| [Visão Geral da Aplicação](docs/VisaoGeralDaAplicacao.md) | Propósito, público, escopo e jornada do visitante. |
+| [Workflows do GitHub Actions](docs/WorkflowsGitHubActions.md) | Inventário atualizado dos workflows existentes em `main`. |
 
-## Escopo do portal
+## Escopo
 
-O foco são oportunidades efetivas de nível júnior nas áreas de:
+O portal concentra oportunidades efetivas de nível júnior em tecnologia, incluindo:
 
 - Desenvolvimento backend, frontend e full stack;
 - Infraestrutura, DevOps e computação em nuvem;
 - Redes e administração de sistemas;
 - Suporte técnico e suporte de TI;
-- QA e testes de software, quando compatíveis com o escopo editorial.
+- QA e testes de software, quando compatíveis com os critérios editoriais.
 
-O portal não tem como público-alvo vagas de estágio, trainee, programas de formação corporativa ou especialidades fora do escopo, como consultoria funcional de ERP/SAP, CRM, BI e ciência de dados. A classificação considera o cargo, a especialidade, os requisitos e as responsabilidades do anúncio.
+Não são o público-alvo estágios, trainee, programas de formação corporativa ou especialidades fora do escopo, como consultoria funcional de ERP/SAP, CRM, BI e ciência de dados. A classificação considera o cargo, a especialidade, os requisitos e as responsabilidades descritas no anúncio.
 
-## Como as vagas são exibidas
+## Como as oportunidades são exibidas
 
 - Oportunidades remotas compatíveis com atuação no Brasil podem ser exibidas nacionalmente.
-- Vagas presenciais e híbridas são exibidas conforme a região do visitante, identificada e validada no servidor.
+- Vagas presenciais e híbridas dependem da região do visitante, identificada pelo navegador e validada no servidor.
 - Sem localização válida, o portal limita os resultados às oportunidades remotas nacionais.
-- A candidatura ocorre diretamente no site da empresa ou plataforma que publicou o anúncio.
+- A candidatura acontece diretamente no endereço original da empresa ou plataforma de recrutamento.
 
-Os filtros automatizados reduzem anúncios incompatíveis, mas não garantem a exatidão de todos os dados nem a disponibilidade em tempo real. Leia [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md).
+Os filtros automatizados reduzem anúncios incompatíveis, mas não garantem a exatidão de todos os dados nem a disponibilidade em tempo real. Consulte [Responsabilidade, Limitações e Uso das Informações](docs/ResponsabilidadeELimitacoes.md).
 
 ## Tecnologias principais
 
 | Tecnologia | Uso |
 |---|---|
-| PHP 8.3 e Laravel 13 | Backend e regras de negócio |
-| PostgreSQL | Persistência de dados |
+| PHP 8.3 e Laravel 13 | Backend, rotas e regras de negócio |
+| PostgreSQL | Persistência |
 | Blade, Tailwind CSS e Vite | Interface e build frontend |
-| Node.js e Playwright | Scripts auxiliares e automação de navegador |
+| Node.js 22 e Playwright | Scripts auxiliares e automação de navegador |
 | Laravel Scheduler e Queue | Agendamento e processamento assíncrono |
-| PHPUnit | Testes automatizados |
-| GitHub Actions | CI e rotinas automatizadas |
+| PHPUnit e Node.js Test Runner | Testes automatizados |
+| GitHub Actions | CI e rotinas operacionais |
+| Render | Hospedagem da aplicação |
 
-Consulte [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) para os arquivos de referência e [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) para preparar o ambiente.
+Consulte [Tecnologias Utilizadas](docs/TecnologiasUtilizadas.md) e [Instalação e Configuração](docs/InstalacaoEConfiguracao.md).
 
 ## Executar localmente
 
@@ -80,7 +79,7 @@ Requisitos: PHP 8.3+, Composer, Node.js 22+, PostgreSQL e Git.
 git clone https://github.com/lgomesroc/ti-vagas.git
 cd ti-vagas
 composer install
-npm install
+npm ci
 cp .env.example .env
 php artisan key:generate
 ```
@@ -89,13 +88,17 @@ Configure a conexão PostgreSQL no `.env`, crie o banco e execute:
 
 ```bash
 php artisan migrate
+php artisan geo:import-ibge
+php artisan vacancies:resolve-municipalities
 npm run build
 php artisan serve
 ```
 
+A importação geográfica deve ser executada quando o banco ainda não tiver a base municipal. O projeto inclui os dados de apoio versionados; veja os detalhes em [Instalação e Configuração](docs/InstalacaoEConfiguracao.md).
+
 A aplicação ficará disponível em `http://127.0.0.1:8000`.
 
-Para executar a suíte, configure o banco exclusivo de testes conforme [Instalação e Configuração](docs/InstalacaoEConfiguracao.md) e rode:
+Os testes utilizam o banco PostgreSQL isolado `ti_vagas_test`, nunca o banco definido para a aplicação. Configure `.env.testing` a partir de `.env.testing.example` e execute:
 
 ```bash
 php artisan test
@@ -103,7 +106,7 @@ php artisan test
 
 ## Aviso
 
-O TI Vagas é um projeto independente. Não é empregador, agência de recrutamento ou representante das empresas anunciantes. Uma vaga publicada pode estar encerrada, desatualizada, incorreta ou não resultar em contratação. Antes de compartilhar dados pessoais, confira a legitimidade da empresa e utilize seus canais oficiais.
+O TI Vagas é um projeto independente. Não é empregador, agência de recrutamento ou representante das empresas anunciantes. Uma oportunidade pode estar encerrada, desatualizada, incorreta ou não resultar em contratação. Antes de compartilhar dados pessoais, confira a legitimidade da empresa e utilize seus canais oficiais.
 
 ---
 

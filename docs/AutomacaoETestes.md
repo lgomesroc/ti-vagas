@@ -1,57 +1,67 @@
 # Automação e Testes
 
-A automação do projeto é dividida entre o agendador Laravel, jobs de fila e GitHub Actions. Os workflows possuem checkouts explícitos: algumas rotinas usam `main`, enquanto outras executam o código de `developer`. Essa distinção é operacionalmente importante e está detalhada em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
+A automação do TI Vagas combina Laravel Scheduler, filas Laravel e GitHub Actions. A branch de referência operacional é `main`. Os workflows versionados, gatilhos, horários, secrets e grupos de concorrência estão detalhados em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
 
-## Agendamento Laravel
+## Scheduler Laravel
 
-As tarefas abaixo estão declaradas em `routes/console.php` e são disparadas pelo workflow `vacancies.yml`, que faz checkout de `main` e executa `php artisan schedule:run`.
+As tarefas estão declaradas em `routes/console.php`. O workflow `vacancies.yml` executa `php artisan schedule:run` nos horários programados.
 
 | Comando | Frequência | Responsabilidade |
 |---|---|---|
-| `vacancies:collect` | A cada 6 horas | Despacha a coleta das fontes registradas na fábrica, exceto Gupy global |
+| `vacancies:collect` | A cada 6 horas | Despacha as fontes da fábrica para a fila `vacancies` |
 | `network:update-lists` | A cada 6 horas | Atualiza listas de reputação de rede |
 | `vacancies:check-links --limit=500` | A cada 6 horas | Verifica links de candidatura |
-| `vacancies:prune-expired` | Segunda-feira às 03h, semanas ISO pares | Remove vagas expiradas conforme a política de retenção |
+| `vacancies:prune-expired` | Segunda-feira às 03h, em semanas ISO pares | Remove anúncios expirados conforme a política de retenção |
 
-As tarefas usam `withoutOverlapping()`. Isso evita sobreposição da mesma tarefa Laravel, mas não equivale a um bloqueio global entre todos os workflows do GitHub Actions.
+As tarefas usam `withoutOverlapping()`. Esse mecanismo impede sobreposição da mesma tarefa Laravel, mas não substitui os grupos de concorrência dos workflows GitHub.
 
-A Gupy global é executada separadamente por `vacancies:collect-gupy`, no workflow dedicado `gupy.yml`.
-
-## Workflows do GitHub Actions
-
-A lista completa, com branch de checkout, cron, secrets, jobs, concorrência, serviços externos e comandos executados, está em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
-
-Na branch `developer` estão os seguintes arquivos:
-- `ci.yml`: CI geral PHP, PostgreSQL de teste e build frontend;
-- `gupy.yml`: coleta global Gupy, fazendo checkout de `main`;
-- `linkedin-jobs.yml`: coleta LinkedIn Jobs, agendada e manual, fazendo checkout de `main`;
-- `abler.yml`: coleta isolada Abler, agendada e manual, fazendo checkout de `main`;
-- `inhire.yml`: coleta isolada InHire, agendada e manual, fazendo checkout de `main`;
-- `linkedin-posts-ci.yml`: CI de integração LinkedIn em modo offline, com testes Node e PHP sem sessão autenticada;
-- `linkedin-posts.yml`: coleta pública de publicações, usando a referência do evento;
-- `linkedin-secondary-search.yml`: coleta via conta secundária, fazendo checkout de `developer`;
-- `vacancies.yml`: scheduler e coleta geral, fazendo checkout de `main`.
-
-O workflow `database-failover.yml` está **somente na branch `main`**. Ele sincroniza Neon e Prisma e altera a variável `DB_URL` no Render. Não aparece na árvore de `developer`.
+A Gupy e a InHire também possuem workflows dedicados. A Gupy executa `vacancies:collect-gupy`; a InHire executa `vacancies:collect-inhire`. A coleta geral também inclui o coletor global InHire registrado na fábrica; o workflow isolado permite executá-lo separadamente.
 
 ## Filas
 
-- A fila `vacancies` processa jobs `FetchVacancySourceJob`, com três tentativas e backoff de 30 e 120 segundos.
-- A fila `linkedin` processa `FetchLinkedInJobsJob`. O job tem unicidade, middleware contra sobreposição e tratamento específico de HTTP 429.
-- O LinkedIn Jobs mantém histórico em `linkedin_job_scans`; IDs com consulta detalhada concluída não são consultados novamente. A lista de IDs já conhecidos é enviada ao script Node antes da etapa de detalhes.
-- Publicações do LinkedIn são reservadas em `linkedin_post_candidates` antes do enriquecimento. A chave única por ID/URL impede reprocessamento, inclusive de publicações rejeitadas.
-- A coleta global da Gupy é executada pelo comando dedicado e não é despachada como uma fonte individual na fila geral.
+- A fila `vacancies` processa `FetchVacancySourceJob`, responsável por executar adaptadores de fontes.
+- A fila `linkedin` processa `FetchLinkedInJobsJob`, com unicidade, controle de sobreposição e tratamento específico de HTTP 429.
+- A coleta global da Gupy é executada pelo comando dedicado e não é despachada como fonte individual na fila geral.
+- A coleta isolada InHire usa lock para impedir duas execuções simultâneas do coletor global.
+- Publicações do LinkedIn são registradas em `linkedin_post_candidates` antes do enriquecimento, evitando reprocessar o mesmo post.
+- Anúncios do LinkedIn Jobs já consultados são registrados em `linkedin_job_scans`.
 
-No workflow `vacancies.yml`, o worker processa a fila `vacancies` em ciclos, consultando `vacancies:queue-size` entre os ciclos para continuar quando há jobs pendentes ou em backoff. No workflow `linkedin-jobs.yml`, a fila `linkedin` é processada após o despacho do comando.
+O workflow `vacancies.yml` processa a fila `vacancies` em ciclos e consulta `vacancies:queue-size` para reiniciar o worker enquanto houver jobs pendentes ou em backoff. Os workflows de LinkedIn Jobs despacham a coleta e executam um worker para a fila `linkedin`.
 
-Os workflows isolados Abler e InHire têm agenda própria e `workflow_dispatch`, fazem checkout de `main` e resolvem a `DB_URL` ativa do Render antes de gravar. O LinkedIn Jobs também tem agenda e disparo manual em `main`; após despachar o job, mantém o worker da fila `linkedin` ativo para processar a coleta e reagendamentos por HTTP 429. Esses três fluxos compartilham o grupo de concorrência `ti-vagas-database-operations`. O CI específico do LinkedIn executa testes Node com endpoints locais simulados e testes PHP com PostgreSQL descartável, sem secrets operacionais, sessão autenticada ou acesso ao LinkedIn real.
+## Workflows operacionais em main
+
+| Workflow | Agenda em horário de Brasília | Função |
+|---|---|---|
+| `vacancies.yml` | 00h, 06h, 12h e 18h; segunda às 03h | Scheduler, coleta geral e fila `vacancies` |
+| `gupy.yml` | 00h, 06h, 12h e 18h | Coleta global Gupy |
+| `inhire.yml` | 02h, 08h, 14h e 20h | Coleta global InHire isolada |
+| `abler.yml` | 01h, 07h, 13h e 19h | Coleta global Abler |
+| `linkedin-jobs.yml` | 00h30, 06h30, 12h30 e 18h30 | Busca geral LinkedIn Jobs |
+| `linkedin-jobs-brq.yml` | 03h30, 09h30, 15h30 e 21h30 | Busca LinkedIn Jobs dedicada à BRQ |
+| `linkedin-jobs-cast.yml` | 04h30, 10h30, 16h30 e 22h30 | Busca LinkedIn Jobs dedicada à CAST Group |
+| `linkedin-jobs-gft.yml` | 04h30, 10h30, 16h30 e 22h30 | Busca LinkedIn Jobs dedicada à GFT Technologies |
+| `linkedin-posts.yml` | 00h e 12h | Publicações públicas de recrutamento no LinkedIn |
+| `linkedin-session-monitor.yml` | 06h15 | Verifica a validade da sessão secundária; cron configurado em UTC |
+| `database-failover.yml` | A cada 5 minutos | Verifica a saúde e sincronização dos bancos Neon/Prisma |
+
+Os horários com fuso explícito utilizam `America/Sao_Paulo`. O monitor de sessão e o failover usam cron sem campo `timezone`, portanto o GitHub interpreta esses horários em UTC. Workflows agendados podem iniciar com atraso; o cron não garante execução exatamente no minuto programado.
+
+Os horários de CAST e GFT coincidem. Os workflows compartilham o grupo de concorrência de operações do banco, portanto suas execuções são serializadas quando disputam esse grupo.
+
+## CI e testes
+
+- `ci.yml`: executa em push e pull request para `main`; valida Composer e sintaxe PHP, executa a suíte PHP no PostgreSQL descartável e compila/testa o frontend.
+- `linkedin-posts-ci.yml`: executa em push e pull request para `main`, `developer` e `feature/linkedin-recruiter-posts`, além de disparo manual. Executa testes Node offline e testes PHP de integração LinkedIn sem sessão autenticada.
+- `linkedin-posts.yml` é coletor operacional, não é o workflow de CI.
+- `linkedin-secondary-search.yml` é manual e executa validação/pesquisa com sessão secundária.
+- `linkedin-session-monitor.yml` verifica a sessão por agendamento e também pode ser disparado manualmente.
 
 ## Banco de testes
 
-Os testes automatizados não utilizam o banco de produção:
+Os testes não devem acessar o banco operacional.
 
-- **Local:** o `phpunit.xml` configura PostgreSQL e o banco exclusivo `ti_vagas_test`. As credenciais ficam no arquivo local `.env.testing`, criado a partir de `.env.testing.example`.
-- **GitHub Actions:** os jobs de CI iniciam um serviço PostgreSQL 18 descartável com o banco `ti_vagas_test`.
+- **Local:** `phpunit.xml` força PostgreSQL e banco `ti_vagas_test`; as credenciais locais ficam em `.env.testing`, criado a partir de `.env.testing.example`.
+- **GitHub Actions:** os jobs de CI iniciam PostgreSQL descartável com o banco `ti_vagas_test`.
 
 ## Comandos úteis
 
@@ -60,6 +70,8 @@ php artisan test
 php artisan vacancies:collect
 php artisan vacancies:collect --sync
 php artisan vacancies:collect-gupy
+php artisan vacancies:collect-inhire
+php artisan vacancies:collect-source abler-global
 php artisan vacancies:check-links --limit=500
 php artisan vacancies:prune-expired
 php artisan network:update-lists
@@ -73,25 +85,22 @@ npm run test:linkedin
 npm run build
 ```
 
-A opção `--sync` de `linkedin:collect-jobs` executa a consulta imediatamente, sem despachar job para a fila. Sem essa opção, o comando despacha o job para `linkedin`. O comando geral `vacancies:collect --sync` também permite executar as fontes da fábrica diretamente, sem fila.
+Os comandos de coleta podem gravar no banco configurado. Para executar localmente, confirme primeiro as variáveis de ambiente e o destino da conexão.
 
 ## Tratamento de HTTP 429 no LinkedIn Jobs
 
-O coletor aplica intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Antes de consultar detalhes, remove IDs já registrados em `linkedin_job_scans` e IDs já importados em `vacancies`; isso não filtra o cartão por cargo ou senioridade, pois a descrição completa continua sendo consultada para novos IDs. Cada resposta HTTP de detalhe é registrada para impedir nova consulta, mesmo quando a descrição está ausente ou o status é de erro. HTTP 429 e falhas sem resposta não entram no histórico de consultas concluídas. Se a limitação persistir, interrompe a execução sem importar resultados parciais. O Laravel reagenda o job com atraso crescente; esgotados os reagendamentos, a próxima execução agendada tentará novamente. Não há rotação de IP, proxy ou troca de identidade para contornar limites.
-
-Os parâmetros são configuráveis por variáveis `LINKEDIN_JOBS_*`. Consulte [Coleta de Oportunidades no LinkedIn](ColetaPublicacoesLinkedIn.md).
+O coletor aplica intervalo mínimo entre requisições, jitter, backoff exponencial e respeito ao cabeçalho `Retry-After`. Persistindo a limitação, interrompe a execução sem importar resultados parciais. O Laravel reagenda o job com atraso crescente. Não há rotação de IP, proxy ou troca de identidade para contornar limites.
 
 ## Failover PostgreSQL
 
-O workflow de failover Neon ↔ Prisma está em `main`, não em `developer`. Ele copia o banco ativo para o standby e, quando necessário, atualiza `DB_URL` do serviço Render, solicita deploy e verifica `/up`. A restauração substitui o conteúdo do banco de destino.
+O workflow `database-failover.yml` está em `main`. Ele sincroniza Neon e Prisma e pode alterar `DB_URL` no serviço Render. A operação substitui os dados do banco de destino durante a sincronização; não é uma cópia incremental sem impacto.
 
-**Atenção:** em `main`, `vacancies.yml` compartilha o grupo `ti-vagas-database-operations` com o failover; em `developer`, esse workflow usa `ti-vagas-vacancies` e não compartilha o bloqueio. Gupy e LinkedIn usam grupos independentes nas duas branches. Além disso, os workflows de coleta configuram sua própria `DB_URL` com o secret `NEON_DATABASE_URL`, em vez de ler a variável atual do Render. Portanto, a configuração existente não assegura que todas as coletas parem de acessar Neon durante um failover. Não interpretar a concorrência configurada como uma trava global. Os detalhes e as condições estão documentados em [Workflows do GitHub Actions](WorkflowsGitHubActions.md).
+Os workflows operacionais de coleta que compartilham o grupo `ti-vagas-database-operations` são serializados com o failover. Os fluxos de LinkedIn Posts, conta secundária, monitor de sessão e CI possuem grupos independentes. Não interprete o grupo de concorrência como bloqueio global de toda e qualquer conexão ao banco.
 
 ## Organização dos testes
 
-- `tests/Feature`: testes de integração e comportamento HTTP, fontes, importação, regionalização, localização, reputação de rede, atribuição UTM e verificação de links.
-- `tests/Unit`: testes unitários de regras e serviços.
-- `tests/Concerns`: recursos compartilhados pelos testes.
-- `scripts/linkedin`: scripts Node e testes dos coletores LinkedIn.
+- `tests/Feature`: comportamento HTTP, fontes, importação, localização, segurança, consentimento e disponibilidade.
+- `tests/Unit`: filtros, normalização, deduplicação, políticas e regras de domínio.
+- `scripts/linkedin/*.test.mjs`: testes Node para scripts de coleta, sessão e limites.
 
-Ao alterar regras de negócio, atualizar os testes correspondentes e conferir o resultado do CI da branch e do commit que serão publicados.
+Os testes dos coletores LinkedIn utilizam endpoints locais simulados. Eles não comprovam autenticação ou disponibilidade do LinkedIn em produção.
