@@ -201,7 +201,7 @@ class RadancySource implements VacancySource
             'work_model' => $workModel,
             'employment_type' => $this->normalizeEmploymentType($posting['employmentType'] ?? null),
             'salary' => null,
-            'application_url' => $this->absoluteUrl($this->scalar($posting['url'] ?? ''), $card['url']),
+            'application_url' => $this->absoluteUrl($this->scalar($posting['url'] ?? ''), $card['url']) ?? $card['url'],
             'external_id' => $this->name() . ':' . $card['id'],
             'original_published_at' => $publishedAt,
             'source_category' => $category !== '' ? $category : null,
