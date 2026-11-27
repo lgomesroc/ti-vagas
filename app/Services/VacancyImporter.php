@@ -217,6 +217,8 @@ class VacancyImporter
                 'work_model' => $data['work_model'] ?? null,
                 'employment_type' => $data['employment_type'] ?? null,
                 'salary' => $data['salary'] ?? null,
+                'source_category' => is_string($data['source_category'] ?? null) ? $data['source_category'] : null,
+                'is_technology' => is_bool($data['source_is_technology'] ?? null) ? $data['source_is_technology'] : null,
                 'application_url' => $applicationUrl,
                 'application_email' => $applicationEmail,
                 'application_subject' => is_string($data['application_subject'] ?? null) ? (trim($data['application_subject']) ?: null) : null,
