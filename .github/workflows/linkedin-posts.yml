@@ -118,11 +118,12 @@ jobs:
         run: php artisan linkedin:collect-posts --mode=bot
 
       - name: Criptografar perfil atualizado
+        id: profile-encrypt
         if: always()
         run: node scripts/linkedin/profile-cache.mjs save
 
       - name: Persistir snapshot criptografado
-        if: always() && hashFiles('.local/linkedin-profile.enc') != ''
+        if: always() && steps.profile-encrypt.outcome == 'success' && hashFiles('.local/linkedin-profile.enc') != ''
         uses: actions/cache/save@v4
         with:
           path: .local/linkedin-profile.enc
