@@ -115,11 +115,12 @@ jobs:
         run: php artisan migrate --force
 
       - name: Coletar, validar e cadastrar publicações
+        id: collect-posts
         run: php artisan linkedin:collect-posts --mode=bot
 
       - name: Criptografar perfil atualizado
         id: profile-encrypt
-        if: always()
+        if: always() && steps.collect-posts.outcome == 'success'
         run: node scripts/linkedin/profile-cache.mjs save
 
       - name: Persistir snapshot criptografado
