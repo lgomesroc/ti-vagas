@@ -6,7 +6,7 @@ return [
         FILTER_VALIDATE_BOOL
     ),
 
-    'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 168),
+    'lookback_hours' => (int) env('LINKEDIN_POSTS_LOOKBACK_HOURS', 24),
 
     // LinkedIn Jobs usa o endpoint público de visitantes, sem sessão autenticada.
     'jobs' => [
