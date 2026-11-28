@@ -739,7 +739,7 @@ async function main() {
       const searchUrl =
         `${linkedinBaseUrl}/search/results/content/?keywords=` +
         encodeURIComponent(keyword) +
-        '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-week%22&sortBy=%22date_posted%22';
+        '&origin=GLOBAL_SEARCH_HEADER&datePosted=%22past-24h%22&sortBy=%22date_posted%22';
 
       process.stderr.write(
         `\n[LinkedIn Posts] Pesquisa: ${keyword}\n`
