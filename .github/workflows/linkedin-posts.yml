@@ -103,11 +103,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Descriptografar e restaurar perfil anterior
-        if: steps.profile-cache-restore.outputs.cache-hit != ''
         run: node scripts/linkedin/profile-cache.mjs restore
 
       - name: Restaurar sessão inicial da conta secundária
-        if: steps.profile-cache-restore.outputs.cache-hit == ''
+        if: ${{ hashFiles('.local/linkedin-profile.enc') == '' }}
         env:
           LINKEDIN_STORAGE_STATE_B64: ${{ secrets.LINKEDIN_STORAGE_STATE_B64 }}
         run: node scripts/linkedin/restore-session.mjs
