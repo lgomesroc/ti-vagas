@@ -14,7 +14,7 @@ services:
         value: production
 
       - key: APP_DEBUG
-        value: "true"
+        value: "false"
 
       - key: APP_KEY
         sync: false
@@ -54,7 +54,7 @@ services:
         value: "24"
 
       - key: LINKEDIN_SECONDARY_ACCOUNT_ENABLED
-        value: "false"
+        value: "true"
 
       - key: LINKEDIN_SECONDARY_ACCOUNT_PROFILE
         value: /var/data/linkedin-secondary-profile
