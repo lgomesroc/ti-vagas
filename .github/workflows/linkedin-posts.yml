@@ -98,4 +98,4 @@ jobs:
         run: php artisan migrate --force
 
       - name: Coletar, validar e cadastrar publicações
-        run: php artisan linkedin:collect-posts
+        run: php artisan linkedin:collect-posts --mode=bot
