@@ -2,7 +2,7 @@ name: TI Vagas - LinkedIn Recruiter Posts
 
 on:
   schedule:
-    - cron: "0 0,12 * * *"
+    - cron: "*/15 * * * *"
       timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
