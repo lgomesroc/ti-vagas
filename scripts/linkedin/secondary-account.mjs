@@ -843,7 +843,7 @@ async function main() {
 
     // O cartão já foi expandido e os links, e-mails e comentários públicos
     // foram extraídos durante a busca. Evita abrir até 25 URLs individualmente.
-    const enriched = [...posts.values()];
+    const enriched = [...posts.values()].sort((a, b) => Date.parse(b.datePosted ?? 0) - Date.parse(a.datePosted ?? 0));
 
     process.stderr.write(
       '[LinkedIn secondary diagnostics]\n' +
