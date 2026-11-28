@@ -51,7 +51,7 @@ services:
         value: "true"
 
       - key: LINKEDIN_POSTS_LOOKBACK_HOURS
-        value: "1"
+        value: "24"
 
       - key: LINKEDIN_SECONDARY_ACCOUNT_ENABLED
         value: "false"
