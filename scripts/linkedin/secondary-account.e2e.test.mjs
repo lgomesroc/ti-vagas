@@ -16,7 +16,7 @@ test('navegador extrai publicação e contato de um LinkedIn simulado localmente
   let baseUrl = '';
 
   const server = http.createServer((request, response) => {
-    requests.push(request.url ?? '');
+    requests.push({ url: request.url ?? '', cookie: request.headers.cookie ?? '' });
 
     if (request.url === '/feed/') {
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -119,8 +119,9 @@ test('navegador extrai publicação e contato de um LinkedIn simulado localmente
     assert.equal(posts[0].authorName, 'Acme Tecnologia');
     assert.ok(posts[0].emails.includes('talentos@acme.com.br'));
     assert.ok(posts[0].links.includes('https://careers.acme.example/vagas/123'));
-    assert.ok(requests.some(url => url.startsWith('/search/results/content/')));
-    assert.ok(requests.every(url => url.startsWith('/feed/') || url.startsWith('/search/results/content/') || url === '/favicon.ico'));
+    assert.ok(requests.some(request => request.url.startsWith('/search/results/content/')));
+    assert.ok(requests.every(request => request.url.startsWith('/feed/') || request.url.startsWith('/search/results/content/') || request.url === '/favicon.ico'));
+    assert.ok(requests.some(request => request.url === '/feed/' && request.cookie.includes('li_at=mock-session-only')), 'o cookie de sessão deve chegar à primeira navegação do perfil persistente');
   } finally {
     await new Promise(resolve => server.close(resolve));
     rmSync(directory, { recursive: true, force: true });
