@@ -147,7 +147,7 @@ const keywords = configuredKeywords
   : defaultKeywords;
 
 const lookbackHours = Number(
-  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 1
+  process.env.LINKEDIN_POSTS_LOOKBACK_HOURS ?? 24
 );
 
 const keywordDiagnostics = new Map();
