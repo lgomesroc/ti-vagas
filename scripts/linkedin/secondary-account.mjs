@@ -614,9 +614,6 @@ async function launchBrowser() {
     ...launchOptions,
     viewport: { width: 1440, height: 1000 },
     locale: 'pt-BR',
-    ...(storageStatePath && existsSync(storageStatePath) && !profileInitialized
-      ? { storageState: storageStatePath }
-      : {}),
   };
 
   const persistent = await launchPersistentBrowser({
@@ -624,6 +621,57 @@ async function launchBrowser() {
     profileDir: profile,
     contextOptions,
   });
+
+  // launchPersistentContext não oferece a opção storageState. Em um perfil
+  // novo, os cookies do bootstrap precisam ser aplicados explicitamente.
+  if (storageStatePath && existsSync(storageStatePath) && !profileInitialized) {
+    let state;
+
+    try {
+      state = JSON.parse(readFileSync(storageStatePath, 'utf8'));
+    } catch {
+      await persistent.close();
+      throw new Error('O storage-state inicial não contém JSON válido.');
+    }
+
+    const cookies = Array.isArray(state?.cookies) ? state.cookies : [];
+
+    if (cookies.length === 0) {
+      await persistent.close();
+      throw new Error('O storage-state inicial não contém cookies para importar.');
+    }
+
+    try {
+      await persistent.context.addCookies(cookies);
+    } catch (error) {
+      await persistent.close();
+      throw new Error(
+        'Não foi possível importar os cookies iniciais para o perfil persistente: ' +
+        (error?.message ?? String(error))
+      );
+    }
+
+    const importedCookies = await persistent.context.cookies(linkedinBaseUrl);
+    const liAtImported = importedCookies.some(cookie => cookie.name === 'li_at');
+
+    process.stderr.write(
+      '[LinkedIn session bootstrap] ' +
+      JSON.stringify({
+        source: 'storage-state',
+        suppliedCookieCount: cookies.length,
+        importedCookieCount: importedCookies.length,
+        liAtImported,
+      }) +
+      '\\n'
+    );
+
+    if (!liAtImported) {
+      await persistent.close();
+      throw new Error(
+        'O cookie li_at não foi aplicado ao contexto persistente. Verifique domínio e validade do storage-state.'
+      );
+    }
+  }
 
   return {
     browser: null,
