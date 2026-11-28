@@ -9,7 +9,7 @@
         "linkedin:secondary:search": "node scripts/linkedin/secondary-account.mjs search",
         "linkedin:secondary:jobs": "node scripts/linkedin/secondary-account.mjs jobs",
         "linkedin:secondary:all": "node scripts/linkedin/secondary-account.mjs all",
-        "test:linkedin": "node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/restore-session.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs scripts/linkedin/secondary-account.e2e.test.mjs scripts/linkedin/session-check.test.mjs scripts/linkedin/persistent-browser.test.mjs",
+        "test:linkedin": "node --test scripts/linkedin/rate-limit.test.mjs scripts/linkedin/runtime.test.mjs scripts/linkedin/restore-session.test.mjs scripts/linkedin/export-session.test.mjs scripts/linkedin/jobs.e2e.test.mjs scripts/linkedin/secondary-account.e2e.test.mjs scripts/linkedin/session-check.test.mjs scripts/linkedin/persistent-browser.test.mjs scripts/linkedin/profile-cache.test.mjs",
         "linkedin:secondary:export": "node scripts/linkedin/export-session.mjs",
         "linkedin:secondary:check": "node scripts/linkedin/session-check.mjs",
         "test:pwa": "node --test tests/pwa/service-worker.e2e.test.mjs"
