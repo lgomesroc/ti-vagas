@@ -1,0 +1,129 @@
+name: TI Vagas - Importar vaga EY em produção
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ti-vagas-database-operations
+  cancel-in-progress: false
+
+jobs:
+  import-ey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${{ secrets.APP_KEY }}
+      DB_CONNECTION: pgsql
+      DB_SSLMODE: require
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+    steps:
+      - name: Checkout da branch que disparou o workflow
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Resolver banco atualmente ativo no Render
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for name in APP_KEY RENDER_API_KEY RENDER_SERVICE_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::A variável/secret $name não está configurada."
+              exit 1
+            fi
+          done
+
+          response="$(curl --fail --silent --show-error --retry 3 \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Accept: application/json")"
+
+          active_url="$(jq -r '[.[] | select(.envVar.key == "DB_URL") | .envVar.value] | first // empty' <<< "$response")"
+
+          if [ -z "$active_url" ]; then
+            echo "::error::Não foi possível obter DB_URL do serviço Render."
+            exit 1
+          fi
+
+          echo "::add-mask::$active_url"
+          echo "DB_URL=$active_url" >> "$GITHUB_ENV"
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, curl, zip, pcntl
+          coverage: none
+
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Importar e confirmar a vaga EY
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          php artisan tinker --execute="$(cat <<'PHP'
+          $requiredColumns = ['source_url', 'work_model', 'ibge_municipality_code'];
+          foreach ($requiredColumns as $column) {
+              if (!\\Illuminate\\Support\\Facades\\Schema::hasColumn('vacancies', $column)) {
+                  throw new \\RuntimeException("A coluna obrigatória '{$column}' não existe em produção. Nenhuma vaga foi alterada; é necessário alinhar as migrations primeiro.");
+              }
+          }
+
+          $result = app(\\App\\Services\\VacancyImporter::class)->importFetched('ey-careers', [[
+              'title' => 'Desenvolvedor(a) Fullstack Junior',
+              'company' => 'EY',
+              'description' => 'Atuação em projetos de desenvolvimento de software na área de Financial Services, com foco em tecnologias modernas e integração de sistemas. Requisitos: formação em Engenharia de Software, Sistemas de Informação, Análise e Desenvolvimento de Sistemas ou Ciência da Computação; experiência em projetos de desenvolvimento de software; conhecimentos em Java, .NET, Python, JavaScript, APIs REST, microsserviços, bancos de dados relacionais e não relacionais, Docker ou Kubernetes; inglês falado e escrito. Experiência no setor financeiro é diferencial. Benefícios incluem assistência médica e odontológica, incentivos à educação, PLR, previdência privada e vale-alimentação.',
+              'location' => 'São Paulo, SP',
+              'work_model' => 'presencial',
+              'employment_type' => null,
+              'salary' => null,
+              'application_url' => 'https://careers.ey.com/ey/job/S%C3%A3o-Paulo-JK-Desenvolvedor%28a%29-Fullstack-Junior-SP-04543-011/1461167433/',
+              'source_url' => 'https://www.linkedin.com/jobs/view/desenvolvedor-a-fullstack-junior-at-ey-4495067164/',
+              'external_id' => '1461167433',
+              'original_published_at' => '2026-11-26T00:00:00-03:00',
+              'city' => 'São Paulo',
+              'state' => 'São Paulo',
+              'state_code' => 'SP',
+              'country_code' => 'BR',
+              'ibge_municipality_code' => '3550308',
+          ]]);
+
+          $vacancy = \\App\\Models\\Vacancy::query()
+              ->where('source', 'ey-careers')
+              ->where('external_id', '1461167433')
+              ->first();
+
+          if ($vacancy === null) {
+              throw new \\RuntimeException('A importação não criou nem atualizou a vaga. Resultado: '.json_encode($result));
+          }
+
+          if ($vacancy->work_model !== 'presencial') {
+              $vacancy->forceFill(['work_model' => 'presencial'])->save();
+              $vacancy->refresh();
+          }
+
+          if ($vacancy->work_model !== 'presencial' || $vacancy->application_url !== 'https://careers.ey.com/ey/job/S%C3%A3o-Paulo-JK-Desenvolvedor%28a%29-Fullstack-Junior-SP-04543-011/1461167433/') {
+              throw new \\RuntimeException('A verificação final da vaga EY falhou.');
+          }
+
+          echo json_encode([
+              'import' => $result,
+              'id' => $vacancy->id,
+              'title' => $vacancy->title,
+              'company' => $vacancy->company,
+              'location' => $vacancy->location,
+              'work_model' => $vacancy->work_model,
+              'application_url' => $vacancy->application_url,
+          ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), PHP_EOL;
+          PHP
+          )"
