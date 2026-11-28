@@ -92,6 +92,7 @@ test('navegador extrai publicação e contato de um LinkedIn simulado localmente
           CI: 'true',
           LINKEDIN_BASE_URL: baseUrl,
           LINKEDIN_STORAGE_STATE_PATH: storageStatePath,
+          LINKEDIN_SECONDARY_ACCOUNT_PROFILE: path.join(directory, 'profile'),
           LINKEDIN_HEADLESS: 'true',
           LINKEDIN_POSTS_LOOKBACK_HOURS: '168',
           LINKEDIN_POSTS_TIME_BUDGET_SECONDS: '30',
