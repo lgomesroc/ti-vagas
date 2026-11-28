@@ -11,6 +11,7 @@ import {
 } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const FORMAT = Buffer.from('TIVP1');
@@ -214,7 +215,7 @@ async function main() {
   throw new Error('Uso: node scripts/linkedin/profile-cache.mjs restore|save');
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   main().catch(error => {
     console.error(error?.message ?? String(error));
     process.exitCode = 1;
