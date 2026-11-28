@@ -74,12 +74,12 @@ jobs:
           php artisan tinker --execute="$(cat <<'PHP'
           $requiredColumns = ['source_url', 'work_model', 'ibge_municipality_code'];
           foreach ($requiredColumns as $column) {
-              if (!\\Illuminate\\Support\\Facades\\Schema::hasColumn('vacancies', $column)) {
-                  throw new \\RuntimeException("A coluna obrigatória '{$column}' não existe em produção. Nenhuma vaga foi alterada; é necessário alinhar as migrations primeiro.");
+              if (!\Illuminate\Support\Facades\Schema::hasColumn('vacancies', $column)) {
+                  throw new \RuntimeException("A coluna obrigatória '{$column}' não existe em produção. Nenhuma vaga foi alterada; é necessário alinhar as migrations primeiro.");
               }
           }
 
-          $result = app(\\App\\Services\\VacancyImporter::class)->importFetched('ey-careers', [[
+          $result = app(\App\Services\VacancyImporter::class)->importFetched('ey-careers', [[
               'title' => 'Desenvolvedor(a) Fullstack Junior',
               'company' => 'EY',
               'description' => 'Atuação em projetos de desenvolvimento de software na área de Financial Services, com foco em tecnologias modernas e integração de sistemas. Requisitos: formação em Engenharia de Software, Sistemas de Informação, Análise e Desenvolvimento de Sistemas ou Ciência da Computação; experiência em projetos de desenvolvimento de software; conhecimentos em Java, .NET, Python, JavaScript, APIs REST, microsserviços, bancos de dados relacionais e não relacionais, Docker ou Kubernetes; inglês falado e escrito. Experiência no setor financeiro é diferencial. Benefícios incluem assistência médica e odontológica, incentivos à educação, PLR, previdência privada e vale-alimentação.',
@@ -98,13 +98,13 @@ jobs:
               'ibge_municipality_code' => '3550308',
           ]]);
 
-          $vacancy = \\App\\Models\\Vacancy::query()
+          $vacancy = \App\Models\Vacancy::query()
               ->where('source', 'ey-careers')
               ->where('external_id', '1461167433')
               ->first();
 
           if ($vacancy === null) {
-              throw new \\RuntimeException('A importação não criou nem atualizou a vaga. Resultado: '.json_encode($result));
+              throw new \RuntimeException('A importação não criou nem atualizou a vaga. Resultado: '.json_encode($result));
           }
 
           if ($vacancy->work_model !== 'presencial') {
@@ -113,7 +113,7 @@ jobs:
           }
 
           if ($vacancy->work_model !== 'presencial' || $vacancy->application_url !== 'https://careers.ey.com/ey/job/S%C3%A3o-Paulo-JK-Desenvolvedor%28a%29-Fullstack-Junior-SP-04543-011/1461167433/') {
-              throw new \\RuntimeException('A verificação final da vaga EY falhou.');
+              throw new \RuntimeException('A verificação final da vaga EY falhou.');
           }
 
           echo json_encode([
