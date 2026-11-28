@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { launchPersistentBrowser } from './persistent-browser.mjs';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import path from 'node:path';
@@ -601,30 +602,34 @@ async function launchBrowser() {
     args: chromiumArgs(headless),
   };
 
-  if (storageStatePath && existsSync(storageStatePath)) {
-    const browser = await chromium.launch(launchOptions);
-
-    const context = await browser.newContext({
-      storageState: storageStatePath,
-      viewport: { width: 1440, height: 1000 },
-      locale: 'pt-BR',
-    });
-
-    return { browser, context };
-  }
-
   mkdirSync(profile, { recursive: true });
 
-  const context = await chromium.launchPersistentContext(
-    profile,
-    {
-      ...launchOptions,
-      viewport: { width: 1440, height: 1000 },
-      locale: 'pt-BR',
-    }
-  );
+  // Um perfil Chromium restaurado do cache já contém cookies e armazenamento
+  // local. O storage-state só é usado como bootstrap na primeira execução.
+  const profileInitialized =
+    existsSync(path.join(profile, 'Local State')) ||
+    existsSync(path.join(profile, 'Default'));
 
-  return { browser: null, context };
+  const contextOptions = {
+    ...launchOptions,
+    viewport: { width: 1440, height: 1000 },
+    locale: 'pt-BR',
+    ...(storageStatePath && existsSync(storageStatePath) && !profileInitialized
+      ? { storageState: storageStatePath }
+      : {}),
+  };
+
+  const persistent = await launchPersistentBrowser({
+    chromium,
+    profileDir: profile,
+    contextOptions,
+  });
+
+  return {
+    browser: null,
+    context: persistent.context,
+    close: persistent.close,
+  };
 }
 
 async function logAuthenticationDiagnostics(context, page) {
@@ -664,7 +669,7 @@ async function main() {
     );
   }
 
-  const { browser, context } = await launchBrowser();
+  const { browser, context, close } = await launchBrowser();
 
   try {
     const page = context.pages()[0] ?? await context.newPage();
@@ -868,10 +873,14 @@ async function main() {
       process.stdout.write(JSON.stringify(enriched));
     }
   } finally {
-    await context.close();
+    if (close) {
+      await close();
+    } else {
+      await context.close();
 
-    if (browser) {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+      }
     }
   }
 }
